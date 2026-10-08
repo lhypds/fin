@@ -1,0 +1,291 @@
+.ledger {
+  /* Two equal halves: bank transactions | reconciliation. The left half keeps a minimum so its
+     fixed columns never collapse; below 1024px the split stops being 50/50 and the table scrolls. */
+  --halves: minmax(512px, 1fr) minmax(240px, 1fr);
+  --cols-left: 92px minmax(108px, 1fr) 120px 120px 72px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-bottom: var(--line) solid var(--border);
+}
+
+.filters {
+  display: flex;
+}
+
+.filterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px;
+  border: var(--line) solid var(--border);
+  border-right: none;
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.filterBtn:last-child {
+  border-right: var(--line) solid var(--border);
+}
+
+.filterBtn:hover {
+  background: var(--bg-hover);
+}
+
+.filterBtn[data-active="true"] {
+  background: var(--border);
+  color: var(--bg);
+}
+
+.count {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+/* The two scroll axes live on two nested boxes: the outer one scrolls horizontally and shows its
+   scrollbar when the pane is narrower than the table, the inner one scrolls vertically with its
+   scrollbar hidden (.scroll-y). Firefox cannot hide one axis of a single box. */
+.scrollX {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  /* 512 + 240: fits a 1440px screen with both drawers open. Wider than the pane, it makes .scrollX scroll. */
+  min-width: 752px;
+}
+
+.table {
+  /* Keeps the last row's bottom border off the status bar's top border when scrolled to the end. */
+  padding-bottom: 12px;
+}
+
+/* The section bar and the column header pin together. One sticky wrapper means the header's offset
+   is wherever the section bar ends, so it never depends on the bar's font-dependent height. */
+.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.sections {
+  display: grid;
+  grid-template-columns: var(--halves);
+  background: var(--bg-alt);
+  border-bottom: var(--line) solid var(--border);
+  font-weight: 600;
+}
+
+.sectionLeft,
+.sectionRight {
+  padding: 6px 12px;
+}
+
+.sectionRight {
+  border-left: var(--line) solid var(--border);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: var(--halves);
+  /* The left half is vertically centered against the (taller) reconciliation cell. */
+  align-items: center;
+  border-bottom: var(--line) solid var(--border);
+}
+
+.left {
+  display: grid;
+  grid-template-columns: var(--cols-left);
+  /* The fixed 16px line-height below keeps the mono date/amount cells and the CJK description
+     on the same line despite different font metrics. */
+  align-items: center;
+  min-width: 0;
+}
+
+.left > div {
+  padding: 8px 6px;
+  min-width: 0;
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.left > div:first-child {
+  padding-left: 12px;
+}
+
+.row:hover {
+  background: var(--bg-hover);
+}
+
+/* A matched row is green across both halves. It sits after :hover so the green holds while
+   hovered, and before data-over so a drop target still turns blue. */
+.row[data-matched="true"] {
+  background: var(--ok-bg);
+}
+
+.row[data-over="true"] {
+  background: var(--info-bg);
+}
+
+.head {
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.head .left > div {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+/* The header's empty reconciliation cell must not inherit the 40px row min-height below,
+   or the header is as tall as a data row. */
+.row.head > .cMatch {
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.num {
+  text-align: right;
+}
+
+.withdrawal {
+  color: var(--err);
+}
+
+.deposit {
+  color: var(--ok);
+}
+
+.desc {
+  white-space: nowrap;
+}
+
+/* 12px on the right mirrors the 12px the date column keeps from the left edge.
+   overflow stays visible so the buttons' tooltips are not clipped by the cell. */
+.left > .actions {
+  display: flex;
+  gap: 2px;
+  padding: 6px 12px 6px 6px;
+  overflow: visible;
+}
+
+/* The whole row is the drop target for a receipt; an unmatched cell is simply empty. The min-height
+   is the height of one chip plus the padding, so unmatched rows are as tall as matched ones. */
+.row > .cMatch {
+  border-left: var(--line) solid var(--border);
+  padding: 6px 12px;
+  min-height: 40px;
+  white-space: normal;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  align-self: stretch;
+}
+
+/* An empty cell is a button that opens the receipt picker. */
+.row > .cMatch[data-pickable="true"] {
+  cursor: pointer;
+}
+
+.row > .cMatch[data-pickable="true"]:focus-visible {
+  outline: var(--line) solid var(--focus);
+  outline-offset: -2px;
+}
+
+.empty {
+  padding: 32px 12px;
+  color: var(--muted);
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* A matched chip is a button that opens the receipt preview. The negative margin lets its hover
+   background reach the cell padding without changing the chip's layout box. */
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  margin: 0 -6px;
+  padding: 0 6px;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--bg-hover);
+}
+
+.chip:focus-visible {
+  outline: var(--line) solid var(--focus);
+  outline-offset: -2px;
+}
+
+.chipInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chipTitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chipMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.chipMeta > * {
+  flex: none;
+  white-space: nowrap;
+}
+
+.chipActions {
+  display: flex;
+  gap: 2px;
+}
+
+/* The rightmost button sits near the column edge: anchor its tooltip to the right instead of centering it. */
+.actions > button:last-child::after,
+.chipActions > button:last-child::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.mismatch {
+  color: var(--warn);
+  font-size: 10px;
+}

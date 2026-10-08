@@ -1,0 +1,157 @@
+{
+  "app": {
+    "title": "fin",
+    "subtitle": "Reconciliation",
+    "loadError": "Could not load data from the server. Is it running? Reload the page to try again."
+  },
+  "login": {
+    "username": "Your username",
+    "password": "password",
+    "next": "Next",
+    "go": "Go",
+    "back": "Back",
+    "passwordEmpty": "Please enter a password",
+    "invalid": "Wrong username or password",
+    "logout": "Log out"
+  },
+  "header": {
+    "autoMatch": "Auto match",
+    "clearAll": "Clear all",
+    "clearConfirm": "Delete all passbook files, transactions and receipts? This cannot be undone.",
+    "search": "Search…",
+    "clearSearch": "Clear search"
+  },
+  "statusBar": {
+    "transactions": "{{tx}} transactions · {{matched}} matched · {{unmatched}} open",
+    "receipts": "{{total}} receipts · {{open}} unmatched",
+    "ocrProgress": "Reading {{done}}/{{total}} · {{percent}}%",
+    "noApiKey": "OPENAI_API_KEY not set",
+    "model": "Model"
+  },
+  "status": {
+    "pending": "Pending",
+    "processing": "Reading…",
+    "done": "Read",
+    "error": "Error",
+    "matched": "Matched",
+    "unmatched": "Unmatched",
+    "missing": "File missing"
+  },
+  "confidence": {
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "manual": "Manual"
+  },
+  "dropzone": {
+    "hint": "Drop files here or click to upload",
+    "types": "PNG · JPG · WEBP · PDF",
+    "rejected": "{{count}} file(s) skipped: unsupported type",
+    "duplicate": "{{count}} file(s) skipped: already uploaded"
+  },
+  "sources": {
+    "title": "Passbook files",
+    "ocrAll": "Read all pending",
+    "empty": "Upload passbook (通帳) photos or statement PDFs. OCR turns them into rows on the ledger.",
+    "txCount": "{{count}} rows",
+    "deleteConfirm": "Delete this file and its {{count}} transactions?",
+    "rerunConfirm": "This passbook has already been read. Reading it again calls the model once more, and rows it reads differently this time are added as new transactions. Read it again?"
+  },
+  "ledger": {
+    "title": "Bank transactions",
+    "results": "Reconciliation",
+    "date": "Date",
+    "description": "Description",
+    "withdrawal": "Withdrawal",
+    "deposit": "Deposit",
+    "filterAll": "All",
+    "filterUnmatched": "Unmatched",
+    "filterMatched": "Matched",
+    "empty": "No transactions yet. Upload a passbook image on the left and run OCR, or add a row by hand.",
+    "emptyFiltered": "Nothing here.",
+    "emptySearch": "No transactions match the search.",
+    "sumMismatch": "Receipts total {{sum}} ≠ {{amount}}",
+    "add": "Add row",
+    "deleteConfirm": "Delete this transaction?",
+    "noDate": "no date"
+  },
+  "receipts": {
+    "title": "Unmatched receipts",
+    "ocrAll": "Read all pending",
+    "showMatched": "Show matched",
+    "empty": "Upload receipts, invoices or screenshots. They stay here until they are matched to a transaction.",
+    "deleteConfirm": "Delete this receipt?",
+    "rerunConfirm": "This receipt has already been read. Reading it again replaces the current result, including any fields you edited. Read it again?",
+    "noAmount": "no amount",
+    "dragHint": "Drag onto a ledger row to match"
+  },
+  "picker": {
+    "title": "Match receipt",
+    "empty": "No unmatched receipts with an OCR result.",
+    "suggested": "suggested",
+    "search": "Search receipts…",
+    "noResults": "No receipts match."
+  },
+  "preview": {
+    "ocrResult": "OCR result",
+    "vendor": "Vendor",
+    "date": "Date",
+    "total": "Total",
+    "currency": "Currency",
+    "tax": "Tax",
+    "invoiceNumber": "Invoice no.",
+    "direction": "Direction",
+    "paymentMethod": "Payment",
+    "items": "Items",
+    "summary": "Summary",
+    "notes": "Notes",
+    "matchedTo": "Matched to",
+    "noOcr": "No OCR result yet.",
+    "rerun": "Run OCR again",
+    "run": "Run OCR",
+    "transactions": "Extracted rows",
+    "expense": "Expense",
+    "income": "Income",
+    "unknown": "Unknown",
+    "noPreview": "File data is missing. It was cleared from browser storage.",
+    "error": "Error"
+  },
+  "txEditor": {
+    "title": "Edit transaction",
+    "addTitle": "Add transaction",
+    "dateRequired": "Date is required (YYYY-MM-DD)",
+    "amountRequired": "Enter a withdrawal or a deposit"
+  },
+  "button": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "preview": "Preview",
+    "ocr": "Run OCR",
+    "ocrRunning": "Reading {{percent}}%",
+    "unmatch": "Unmatch",
+    "edit": "Edit",
+    "upload": "Upload",
+    "match": "Match",
+    "close": "Close"
+  },
+  "toast": {
+    "ocrDone": "OCR finished: {{ok}} ok, {{errors}} failed",
+    "ocrFailed": "OCR failed: {{message}}",
+    "matched": "{{count}} matched automatically",
+    "noMatches": "No new matches found",
+    "nothingPending": "Nothing pending",
+    "cleared": "All data cleared",
+    "saved": "Saved",
+    "filesAdded": "{{count}} file(s) added",
+    "uploadFailed": "{{count}} file(s) failed to upload: {{message}}",
+    "saveFailed": "Failed to save to the server: {{message}}",
+    "rowsAdded": "{{count}} rows extracted"
+  },
+  "panel": {
+    "openLeft": "Show passbook files",
+    "closeLeft": "Hide passbook files",
+    "openRight": "Show receipts",
+    "closeRight": "Hide receipts"
+  }
+}

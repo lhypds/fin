@@ -1,0 +1,157 @@
+{
+  "app": {
+    "title": "fin",
+    "subtitle": "照合",
+    "loadError": "サーバーからデータを読み込めません。サーバーが起動しているか確認して、ページを再読み込みしてください。"
+  },
+  "login": {
+    "username": "ユーザー名",
+    "password": "パスワード",
+    "next": "次へ",
+    "go": "はじめる",
+    "back": "戻る",
+    "passwordEmpty": "パスワードを入力してください",
+    "invalid": "ユーザー名またはパスワードが違います",
+    "logout": "ログアウト"
+  },
+  "header": {
+    "autoMatch": "自動照合",
+    "clearAll": "すべて削除",
+    "clearConfirm": "通帳ファイル・取引・証憑をすべて削除しますか？元に戻せません。",
+    "search": "検索…",
+    "clearSearch": "検索をクリア"
+  },
+  "statusBar": {
+    "transactions": "取引 {{tx}} 件 · 照合済 {{matched}} · 未照合 {{unmatched}}",
+    "receipts": "証憑 {{total}} 件 · 未照合 {{open}}",
+    "ocrProgress": "読取中 {{done}}/{{total}} · {{percent}}%",
+    "noApiKey": "OPENAI_API_KEY が未設定",
+    "model": "モデル"
+  },
+  "status": {
+    "pending": "未読取",
+    "processing": "読取中…",
+    "done": "読取済",
+    "error": "エラー",
+    "matched": "照合済",
+    "unmatched": "未照合",
+    "missing": "ファイルなし"
+  },
+  "confidence": {
+    "high": "高",
+    "medium": "中",
+    "low": "低",
+    "manual": "手動"
+  },
+  "dropzone": {
+    "hint": "ここにドロップ、またはクリックしてアップロード",
+    "types": "PNG · JPG · WEBP · PDF",
+    "rejected": "非対応のファイル {{count}} 件をスキップしました",
+    "duplicate": "重複するファイル {{count}} 件をスキップしました"
+  },
+  "sources": {
+    "title": "通帳原本",
+    "ocrAll": "未読取をすべて読取",
+    "empty": "通帳の写真や明細PDFをアップロードすると、OCRで取引行に変換されます。",
+    "txCount": "{{count}} 行",
+    "deleteConfirm": "このファイルと {{count}} 件の取引を削除しますか？",
+    "rerunConfirm": "この通帳は読取済です。再読取ではモデルを再度呼び出し、今回読み方が異なる行は新しい取引として追加されます。再読取しますか？"
+  },
+  "ledger": {
+    "title": "銀行取引",
+    "results": "照合結果",
+    "date": "日付",
+    "description": "摘要",
+    "withdrawal": "お支払",
+    "deposit": "お預り",
+    "filterAll": "すべて",
+    "filterUnmatched": "未照合",
+    "filterMatched": "照合済",
+    "empty": "取引がありません。左側で通帳画像をアップロードして読取するか、手動で追加してください。",
+    "emptyFiltered": "該当なし。",
+    "emptySearch": "該当する取引がありません。",
+    "sumMismatch": "証憑合計 {{sum}} ≠ {{amount}}",
+    "add": "行を追加",
+    "deleteConfirm": "この取引を削除しますか？",
+    "noDate": "日付なし"
+  },
+  "receipts": {
+    "title": "未照合の証憑",
+    "ocrAll": "未読取をすべて読取",
+    "showMatched": "照合済を表示",
+    "empty": "領収書・請求書・スクリーンショットをアップロード。取引と照合されるまでここに残ります。",
+    "deleteConfirm": "この証憑を削除しますか？",
+    "rerunConfirm": "この証憑は読取済です。再読取すると、手動で修正した項目を含め現在の結果が上書きされます。再読取しますか？",
+    "noAmount": "金額なし",
+    "dragHint": "取引行にドラッグして照合"
+  },
+  "picker": {
+    "title": "証憑を選択",
+    "empty": "読取済で未照合の証憑がありません。",
+    "suggested": "候補",
+    "search": "証憑を検索…",
+    "noResults": "該当する証憑がありません。"
+  },
+  "preview": {
+    "ocrResult": "読取結果",
+    "vendor": "取引先",
+    "date": "日付",
+    "total": "合計",
+    "currency": "通貨",
+    "tax": "税額",
+    "invoiceNumber": "番号",
+    "direction": "区分",
+    "paymentMethod": "支払方法",
+    "items": "明細",
+    "summary": "概要",
+    "notes": "備考",
+    "matchedTo": "照合先",
+    "noOcr": "まだ読取結果がありません。",
+    "rerun": "再読取",
+    "run": "読取",
+    "transactions": "抽出した取引",
+    "expense": "支出",
+    "income": "収入",
+    "unknown": "不明",
+    "noPreview": "ファイルデータがありません。ブラウザのストレージから削除されました。",
+    "error": "エラー"
+  },
+  "txEditor": {
+    "title": "取引を編集",
+    "addTitle": "取引を追加",
+    "dateRequired": "日付を入力してください（YYYY-MM-DD）",
+    "amountRequired": "お支払またはお預りの金額を入力してください"
+  },
+  "button": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "preview": "プレビュー",
+    "ocr": "読取",
+    "ocrRunning": "読取中 {{percent}}%",
+    "unmatch": "照合解除",
+    "edit": "編集",
+    "upload": "アップロード",
+    "match": "照合",
+    "close": "閉じる"
+  },
+  "toast": {
+    "ocrDone": "読取完了：成功 {{ok}}、失敗 {{errors}}",
+    "ocrFailed": "読取に失敗：{{message}}",
+    "matched": "{{count}} 件を自動照合しました",
+    "noMatches": "新しい照合は見つかりませんでした",
+    "nothingPending": "未読取のファイルはありません",
+    "cleared": "すべてのデータを削除しました",
+    "saved": "保存しました",
+    "filesAdded": "{{count}} 件のファイルを追加しました",
+    "uploadFailed": "{{count}} 件のアップロードに失敗：{{message}}",
+    "saveFailed": "サーバーへの保存に失敗：{{message}}",
+    "rowsAdded": "{{count}} 行を抽出しました"
+  },
+  "panel": {
+    "openLeft": "通帳原本を表示",
+    "closeLeft": "通帳原本を隠す",
+    "openRight": "証憑を表示",
+    "closeRight": "証憑を隠す"
+  }
+}

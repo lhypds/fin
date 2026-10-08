@@ -1,0 +1,80 @@
+/* A fixed height so the dialog does not grow and shrink as the search narrows the list; the list
+   fills whatever the search box leaves. */
+.modal.modal {
+  max-width: 640px;
+  height: 60vh;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.search {
+  margin-bottom: 10px;
+}
+
+/* Scrolls vertically via the global .scroll-y class. The list fills the dialog, so only the top line
+   belongs to it; every item, the last one included, draws its own bottom line so the lines hug the
+   items rather than the dialog's bottom edge. */
+.list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border-top: var(--line) solid var(--border);
+}
+
+/* No candidates or nothing matched the search: hide the stray top line. */
+.list:empty {
+  display: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 4px;
+  border: none;
+  border-bottom: var(--line) solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover {
+  background: var(--bg-hover);
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  display: flex;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

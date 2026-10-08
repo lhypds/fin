@@ -1,0 +1,205 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.loadError {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100vh;
+  padding: 0 16px;
+  color: var(--err);
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* Three columns with equal outer tracks keep the search box centred on the window regardless of
+   how wide the brand and the action buttons are. */
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  height: 44px;
+  padding: 0 12px;
+  border-bottom: var(--line) solid var(--border);
+  flex: none;
+}
+
+.search {
+  position: relative;
+  width: 480px;
+  max-width: 100%;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* Side padding clears the icon on the left and the clear button on the right. */
+.searchInput {
+  padding-left: 26px;
+  padding-right: 26px;
+}
+
+.searchClear {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.searchClear:hover {
+  color: var(--fg);
+}
+
+.searchClear svg {
+  width: 12px;
+  height: 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.logo {
+  font-family: var(--font-title);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: end;
+}
+
+/* Who is logged in, next to the way out. Capped so a long name cannot push the buttons around. */
+.user {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusBar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 24px;
+  padding: 0 12px;
+  border-top: var(--line) solid var(--border);
+  background: var(--bg-alt);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.divider {
+  flex: none;
+  width: var(--line);
+  height: 12px;
+  background: var(--border);
+}
+
+.progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bar {
+  display: block;
+  width: 80px;
+  height: 6px;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  background: var(--border);
+  transition: width 0.2s ease;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.drawer {
+  flex: none;
+  width: 320px;
+  overflow: hidden;
+  transition: width 0.15s ease;
+}
+
+.drawer[data-open="false"] {
+  width: 0;
+}
+
+.toggle {
+  flex: none;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-left: var(--line) solid var(--border);
+  border-right: var(--line) solid var(--border);
+  background: var(--bg-alt);
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.toggle:hover {
+  background: var(--border);
+  color: var(--bg);
+}
+
+.toggle svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}

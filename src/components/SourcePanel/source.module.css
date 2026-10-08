@@ -1,0 +1,102 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 320px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-bottom: var(--line) solid var(--border);
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.drop {
+  padding: 8px 12px;
+  border-bottom: var(--line) solid var(--border);
+}
+
+.list {
+  flex: 1;
+}
+
+/* The bottom padding keeps the last card's border off the status bar when scrolled to the end. */
+.listInner {
+  padding-bottom: 12px;
+}
+
+.empty {
+  padding: 16px 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.card {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: var(--line) solid var(--border);
+  cursor: pointer;
+}
+
+.card:hover {
+  background: var(--bg-hover);
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  display: flex;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.error {
+  color: var(--err);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.actions {
+  display: flex;
+  gap: 2px;
+}
+
+/* Rightmost button is 12px from the drawer edge: anchor its tooltip to the right so it is not clipped. */
+.actions > button:last-child::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}

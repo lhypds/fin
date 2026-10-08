@@ -1,0 +1,169 @@
+.modal.modal {
+  max-width: 1200px;
+  width: 94vw;
+  height: 88vh;
+}
+
+.body {
+  display: flex;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Zoomed in, the image pans in both directions with no scrollbar at all: Firefox cannot hide the
+   vertical one on its own, and a scrollbar-less pane is the usual image-viewer feel anyway. */
+.viewer {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  scrollbar-width: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-alt);
+  border: var(--line) solid var(--border);
+  cursor: zoom-in;
+}
+
+.viewer::-webkit-scrollbar {
+  display: none;
+}
+
+.viewer img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.viewer[data-zoom="true"] {
+  display: block;
+  cursor: zoom-out;
+}
+
+.viewer[data-zoom="true"] img {
+  max-width: none;
+  max-height: none;
+}
+
+.frame {
+  flex: 1;
+  min-width: 0;
+  border: var(--line) solid var(--border);
+  background: var(--bg-alt);
+}
+
+/* Scrolls vertically via the global .scroll-y class when the fields overflow the modal. */
+.side {
+  width: 320px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 8px;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.error {
+  padding: 6px 8px;
+  color: var(--err);
+  background: var(--err-bg);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.notes {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.matched {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--ok-bg);
+  border: var(--line) solid var(--border);
+}
+
+.matchedText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionTitle {
+  font-weight: 600;
+  padding-top: 4px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.grid3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 60px;
+  gap: 10px;
+}
+
+/* Scrolls vertically via the global .scroll-y class. */
+.rows {
+  display: flex;
+  flex-direction: column;
+  border: var(--line) solid var(--border);
+  max-height: 240px;
+}
+
+.txRow {
+  display: flex;
+  gap: 8px;
+  padding: 4px 8px;
+  border-bottom: var(--line) solid var(--border);
+  font-size: 10px;
+}
+
+.txRow:last-child {
+  border-bottom: none;
+}
+
+.txDesc {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.txAmount {
+  flex: none;
+  text-align: right;
+}
+
+.withdrawal {
+  color: var(--err);
+}
+
+.deposit {
+  color: var(--ok);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}

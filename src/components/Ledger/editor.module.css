@@ -1,0 +1,26 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* 6 + the modal header's 10px bottom padding = 16px above the first field, the same as the
+     16px the content keeps below the buttons and the 12 + 4 between the last field and them. */
+  padding-top: 6px;
+}
+
+/* The amounts row: withdrawal, deposit and the currency they are in. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.error {
+  color: var(--err);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}

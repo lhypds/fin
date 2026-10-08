@@ -1,0 +1,40 @@
+.zone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: var(--line) dashed var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+}
+
+.zone:hover,
+.zone:focus-visible,
+.zone[data-over="true"] {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.types {
+  font-size: 10px;
+}

@@ -1,0 +1,117 @@
+/* The front page as stash draws its own (stash/src/pages/Home/home.module.css and
+   components/SignIn/signin.module.css), value for value: the language switcher in a row of its
+   own at the top, and under it a hero holding the wordmark and the form, lifted a little above
+   the centre of the window. Colours come from fin's own tokens; stash's type sizes are kept as
+   they are, odd pixels included, because the two pages are meant to be the same page. */
+.page {
+  min-height: 100vh;
+  min-height: 100dvh; /* iOS Safari: 100vh extends behind the collapsed URL bar */
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.lang {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px;
+}
+
+.hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 16px 15vh;
+  padding: 0 16px 15dvh;
+  text-align: center;
+}
+
+.title {
+  font-family: var(--font-title);
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+}
+
+/* The form: a field with its button joined to it, and one line of type under the pair. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 340px;
+  margin-top: 10px;
+}
+
+.row {
+  display: flex;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: var(--line) solid var(--border);
+  border-right: none;
+  font-size: 15px;
+  outline: none;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: inherit;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: text;
+}
+
+.input::placeholder {
+  color: var(--muted);
+}
+
+.go {
+  padding: 10px 20px;
+  background: var(--border);
+  color: var(--bg);
+  border: var(--line) solid var(--border);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.go:disabled {
+  opacity: 0.55;
+}
+
+/* One voice whether the line is saying what went wrong or nothing at all. Centred under the
+   field, and as wide as its words so that centring lands on the words. */
+.message {
+  min-height: 18px;
+  font-size: 13px;
+  color: var(--muted);
+  width: max-content;
+  max-width: 100%;
+  align-self: center;
+  text-align: center;
+}
+
+/* The way out of the password step is a word inside that line, not a box set beside it. */
+.word {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.word:hover:not(:disabled) {
+  color: var(--fg);
+}

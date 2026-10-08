@@ -1,0 +1,234 @@
+@import url(https://cdn.jsdelivr.net/npm/firacode@6.2.0/distr/fira_code.css);
+
+:root {
+  --font-title: "Fira Code VF", monospace;
+  --fg: #0f172a;
+  --muted: #777777;
+  --faint: #bbbbbb;
+  --border: #000000;
+  --focus: #0969da;
+  --line: 1px; /* hairline width; the only odd px in the stylesheet */
+  --bg: #ffffff;
+  --bg-alt: #f6f6f6;
+  --bg-hover: #f0f0f0;
+  --ok: #1a7f37;
+  --warn: #9a6700;
+  --err: #cf222e;
+  --info: #0969da;
+  --ok-bg: #e9f5ec;
+  --warn-bg: #fbf1dc;
+  --err-bg: #fbe9eb;
+  --info-bg: #e6f0fb;
+  --font-mono: "SF Mono", Menlo, Consolas, monospace;
+}
+
+body {
+  font-family: Helvetica, Arial, "Hiragino Sans", "PingFang SC", "Noto Sans CJK JP", sans-serif;
+  font-size: 12px;
+  color: var(--fg);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+}
+
+button {
+  font: inherit;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--border);
+  color: var(--bg);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn.primary {
+  background: var(--border);
+  color: var(--bg);
+}
+
+/* Large variant for the action row at the bottom of a modal. The hairline of top padding is
+   optical: with line-height 1 the CJK glyphs land ~0.7px above the true centre in both Blink and
+   WebKit, and this nudge brings every script to within a quarter pixel of it. */
+.btn.lg {
+  height: 28px;
+  min-width: 96px;
+  padding: var(--line) 20px 0;
+  justify-content: center;
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: #333333;
+}
+
+.btn svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.input,
+.select {
+  display: block;
+  width: 100%;
+  height: 26px;
+  padding: 0 8px;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  outline: none;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+  line-height: 1;
+  border: var(--line) solid currentColor;
+  white-space: nowrap;
+}
+
+.tag.ok {
+  color: var(--ok);
+  background: var(--ok-bg);
+}
+
+.tag.warn {
+  color: var(--warn);
+  background: var(--warn-bg);
+}
+
+.tag.err {
+  color: var(--err);
+  background: var(--err-bg);
+}
+
+.tag.info {
+  color: var(--info);
+  background: var(--info-bg);
+}
+
+.tag.plain {
+  color: var(--muted);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field > label {
+  color: var(--muted);
+  font-size: 10px;
+  /* Fixed so a field is the same height in every language; the CJK fallback fonts have a taller
+     natural line height than Helvetica. */
+  line-height: 14px;
+}
+
+/* Scrollbars. Vertical ones are hidden everywhere: lists, the ledger and modal bodies still scroll
+   with the wheel or trackpad but take no gutter, so a panel's content runs right up to the hairline
+   that separates it from its neighbour. Horizontal ones (the ledger when the pane is narrower than
+   its table) stay visible: square, black thumb on a white track. Chrome / Safari / Edge use the
+   ::-webkit-scrollbar parts; the transparent border plus background-clip insets the thumb. */
+*::-webkit-scrollbar {
+  height: 12px;
+}
+
+*::-webkit-scrollbar:vertical {
+  display: none;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #333333;
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--bg);
+}
+
+/* A vertical scroll container with no visible scrollbar. scrollbar-width covers Firefox and
+   Chromium 121+, the pseudo-element covers Safari and older Chromium. Firefox cannot hide one axis
+   only, so this goes on boxes that scroll vertically and nothing else; the ledger splits its two
+   axes over two nested boxes for that reason (see ledger.module.css). */
+.scroll-y {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.scroll-y::-webkit-scrollbar {
+  display: none;
+}
+
+/* Firefox has no scrollbar parts; the standard properties give its horizontal scrollbar the same
+   colours. Scoped so Chromium keeps using the parts above (it ignores them once scrollbar-color is
+   set). */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) var(--bg);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}

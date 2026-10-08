@@ -1,0 +1,66 @@
+.wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.wrapper[data-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* The native control stays in the DOM for keyboard and screen-reader access, but is not drawn. */
+.input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.box {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+  color: var(--bg);
+}
+
+.box::before {
+  content: "";
+  width: 6px;
+  height: 4px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-20%) rotate(-45deg);
+  opacity: 0;
+}
+
+.wrapper:hover .box {
+  background: var(--bg-hover);
+}
+
+.input:checked + .box {
+  background: var(--border);
+}
+
+.input:checked + .box::before {
+  opacity: 1;
+}
+
+.input:focus-visible + .box {
+  outline: var(--line) solid var(--focus);
+  outline-offset: 2px;
+}
+
+.label {
+  line-height: 1;
+}
