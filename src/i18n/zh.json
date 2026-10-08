@@ -51,16 +51,18 @@
   },
   "sources": {
     "title": "账本原件",
-    "ocrAll": "识别全部待处理",
+    "ocrAll": "识别全部",
     "empty": "上传账本照片或流水 PDF，OCR 会把它们转换成中间的流水行。",
     "txCount": "{{count}} 行",
     "deleteConfirm": "删除此文件及其 {{count}} 条流水？",
-    "rerunConfirm": "这份账本已经识别过。重新识别会再次调用模型，这次读法不同的行会作为新流水追加。要重新识别吗？"
+    "rerunConfirm": "这份账本已经识别过。重新识别会再次调用模型，这次读法不同的行会作为新流水追加。要重新识别吗？",
+    "rerunAllConfirm": "{{count}} 份账本都已经识别过。重新识别会对每份再调用一次模型，这次读法不同的行会作为新流水追加。要全部重新识别吗？"
   },
   "ledger": {
     "title": "银行流水",
     "results": "对账结果",
     "date": "日期",
+    "bank": "银行",
     "description": "摘要",
     "withdrawal": "支出",
     "deposit": "收入",
@@ -77,11 +79,12 @@
   },
   "receipts": {
     "title": "未对账收据",
-    "ocrAll": "识别全部待处理",
+    "ocrAll": "识别全部",
     "showMatched": "显示已对账",
     "empty": "上传收据、发票或截图。它们会一直留在这里，直到和某条流水对上。",
     "deleteConfirm": "删除这张收据？",
     "rerunConfirm": "这张收据已经识别过。重新识别会覆盖当前结果，包括你手动修改过的字段。要重新识别吗？",
+    "rerunAllConfirm": "{{count}} 张收据都已经识别过。重新识别会覆盖它们当前的结果，包括你手动修改过的字段。要全部重新识别吗？",
     "noAmount": "无金额",
     "dragHint": "拖到流水行上即可匹配"
   },

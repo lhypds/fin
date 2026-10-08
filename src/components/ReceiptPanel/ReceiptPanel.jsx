@@ -17,7 +17,10 @@ export default function ReceiptPanel({ onPreview }) {
   const [showMatched, setShowMatched] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const pendingCount = receipts.filter((r) => r.status === "pending").length;
+  // Files the button can read: a missing upload cannot be, one being read is already on its way.
+  // `todo` are those not read yet, or whose read failed.
+  const readable = receipts.filter((r) => !r.missing && r.status !== "processing");
+  const todo = readable.filter((r) => r.status === "pending" || r.status === "error");
   const running = progress.receipt.total > 0;
   const percent = running ? Math.round((progress.receipt.done / progress.receipt.total) * 100) : 0;
   const visible = showMatched ? receipts : receipts.filter((r) => !r.txId);
@@ -54,13 +57,20 @@ export default function ReceiptPanel({ onPreview }) {
     runOcr([r.id]);
   }
 
+  // Reads what has not been read yet. Once everything has, offers to read it all again.
+  function handleRunAll() {
+    if (todo.length) return runOcr(todo.map((r) => r.id));
+    if (!window.confirm(t("receipts.rerunAllConfirm", { count: readable.length }))) return;
+    runOcr(readable.map((r) => r.id));
+  }
+
   return (
     <section className={styles.panel}>
       <header className={styles.head}>
         <h2 className={styles.title}>{t("receipts.title")}</h2>
-        <button type="button" className="btn" disabled={busy || running || !pendingCount} onClick={() => runOcr()}>
+        <button type="button" className="btn" disabled={busy || running || !readable.length} onClick={handleRunAll}>
           {busy || running ? <LoaderIcon className="spin" /> : <PlayIcon />}
-          {running ? t("button.ocrRunning", { percent }) : `${t("receipts.ocrAll")}${pendingCount ? ` (${pendingCount})` : ""}`}
+          {running ? t("button.ocrRunning", { percent }) : `${t("receipts.ocrAll")}${todo.length ? ` (${todo.length})` : ""}`}
         </button>
       </header>
 

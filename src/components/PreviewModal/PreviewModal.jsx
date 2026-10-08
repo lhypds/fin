@@ -30,15 +30,30 @@ function Viewer({ item }) {
 
 function SourceDetails({ item }) {
   const { t } = useTranslation();
-  const { transactions, ocrPending } = useReconcile();
+  const { transactions, ocrPending, setSourceBank } = useReconcile();
   const rows = transactions.filter((tx) => tx.sourceId === item.id);
   const busy = item.status === "processing";
+  // The bank is edited in place; a new OCR result resets the draft (state-from-props, adjusted during render).
+  const [bank, setBank] = useState(item.bank || "");
+  const [seenBank, setSeenBank] = useState(item.bank);
+  if (seenBank !== item.bank) {
+    setSeenBank(item.bank);
+    setBank(item.bank || "");
+  }
 
   async function run() {
     if (item.status === "done" && !window.confirm(t("sources.rerunConfirm"))) return;
     const { errors, lastError, results } = await ocrPending("source", [item.id]);
     if (errors) showToast(t("toast.ocrFailed", { message: lastError?.message || "" }), 6000);
     else showToast(t("toast.rowsAdded", { count: results.reduce((a, b) => a + (b || 0), 0) }));
+  }
+
+  // Writes the bank onto the file and all of its rows.
+  function commitBank() {
+    const value = bank.trim();
+    if (value === (item.bank || "")) return;
+    setSourceBank(item.id, value);
+    showToast(t("toast.saved"));
   }
 
   return (
@@ -51,6 +66,23 @@ function SourceDetails({ item }) {
         </button>
       </div>
       {item.error && <div className={styles.error}>{item.error}</div>}
+      <div className="field">
+        <label htmlFor="src-bank">{t("ledger.bank")}</label>
+        <input
+          id="src-bank"
+          className="input"
+          value={bank}
+          onChange={(e) => setBank(e.target.value)}
+          onBlur={commitBank}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.currentTarget.blur();
+            }
+          }}
+          placeholder="みずほ · 三井住友 · SBJ"
+        />
+      </div>
       {item.notes && (
         <div className="field">
           <label>{t("preview.notes")}</label>
@@ -91,8 +123,10 @@ function toDraft(ocr) {
   };
 }
 
+// Fields the form does not show (items, vendorKana, fee) are carried over from the OCR result.
 function fromDraft(d, prev) {
   return {
+    ...prev,
     items: prev?.items || [],
     vendor: d.vendor.trim() || null,
     date: d.date || null,

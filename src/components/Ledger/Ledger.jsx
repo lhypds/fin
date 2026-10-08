@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ActionButton } from "@ui";
 import { useReconcile } from "@store";
 import { fmtMoney, txAmount } from "@utils/format";
+import { amountGap } from "@utils/matching";
 import { transactionHaystack, matchesQuery } from "@utils/search";
 import FileThumb from "../FileThumb";
 import { ConfidenceTag } from "../StatusTag";
@@ -100,6 +101,7 @@ export default function Ledger({ onPreviewReceipt, query = "" }) {
               <div className={`${styles.row} ${styles.head}`}>
                 <div className={styles.left}>
                   <div>{t("ledger.date")}</div>
+                  <div>{t("ledger.bank")}</div>
                   <div>{t("ledger.description")}</div>
                   <div className={styles.num}>{t("ledger.withdrawal")}</div>
                   <div className={styles.num}>{t("ledger.deposit")}</div>
@@ -121,7 +123,8 @@ export default function Ledger({ onPreviewReceipt, query = "" }) {
               const amount = txAmount(tx);
               const totals = receipts.map((r) => r.ocr?.total);
               const sum = totals.every((v) => v != null) ? totals.reduce((a, b) => a + Number(b), 0) : null;
-              const mismatch = matched && sum != null && Math.round(sum) !== Math.round(amount);
+              // A gap the size of a transfer fee is the fee being on one side only, not a wrong receipt.
+              const mismatch = matched && sum != null && amountGap(sum, amount, tx.currency) == null;
               // An empty reconciliation cell opens the picker; a matched one holds chips with their own buttons.
               const pickProps = matched
                 ? {}
@@ -164,6 +167,7 @@ export default function Ledger({ onPreviewReceipt, query = "" }) {
                 >
                   <div className={styles.left}>
                     <div className="mono">{tx.date || <span className="muted">{t("ledger.noDate")}</span>}</div>
+                    <div title={tx.bank || undefined}>{tx.bank}</div>
                     <div className={styles.desc}>{tx.description}</div>
                     <div className={`${styles.num} ${styles.withdrawal} mono`}>{tx.withdrawal ? fmtMoney(tx.withdrawal, tx.currency) : ""}</div>
                     <div className={`${styles.num} ${styles.deposit} mono`}>{tx.deposit ? fmtMoney(tx.deposit, tx.currency) : ""}</div>

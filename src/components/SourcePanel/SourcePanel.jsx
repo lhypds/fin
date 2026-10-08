@@ -12,7 +12,10 @@ import styles from "./source.module.css";
 export default function SourcePanel({ onPreview }) {
   const { t } = useTranslation();
   const { sources, transactions, importFiles, ocrPending, removeFileItem, progress } = useReconcile();
-  const pendingCount = sources.filter((s) => s.status === "pending").length;
+  // Files the button can read: a missing upload cannot be, one being read is already on its way.
+  // `todo` are those not read yet, or whose read failed.
+  const readable = sources.filter((s) => !s.missing && s.status !== "processing");
+  const todo = readable.filter((s) => s.status === "pending" || s.status === "error");
   const [busy, setBusy] = useState(false);
   const running = progress.source.total > 0;
   const percent = running ? Math.round((progress.source.done / progress.source.total) * 100) : 0;
@@ -50,13 +53,20 @@ export default function SourcePanel({ onPreview }) {
     runOcr([src.id]);
   }
 
+  // Reads what has not been read yet. Once everything has, offers to read it all again.
+  function handleRunAll() {
+    if (todo.length) return runOcr(todo.map((s) => s.id));
+    if (!window.confirm(t("sources.rerunAllConfirm", { count: readable.length }))) return;
+    runOcr(readable.map((s) => s.id));
+  }
+
   return (
     <section className={styles.panel}>
       <header className={styles.head}>
         <h2 className={styles.title}>{t("sources.title")}</h2>
-        <button type="button" className="btn" disabled={busy || running || !pendingCount} onClick={() => runOcr()}>
+        <button type="button" className="btn" disabled={busy || running || !readable.length} onClick={handleRunAll}>
           {busy || running ? <LoaderIcon className="spin" /> : <PlayIcon />}
-          {running ? t("button.ocrRunning", { percent }) : `${t("sources.ocrAll")}${pendingCount ? ` (${pendingCount})` : ""}`}
+          {running ? t("button.ocrRunning", { percent }) : `${t("sources.ocrAll")}${todo.length ? ` (${todo.length})` : ""}`}
         </button>
       </header>
 
@@ -76,6 +86,7 @@ export default function SourcePanel({ onPreview }) {
                 <div className={styles.name}>{src.name}</div>
                 <div className={styles.meta}>
                   <span>{formatBytes(src.size)}</span>
+                  {src.bank && <span>· {src.bank}</span>}
                   {src.status === "done" && <span>· {t("sources.txCount", { count })}</span>}
                 </div>
                 {src.error && (

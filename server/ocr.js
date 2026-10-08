@@ -11,6 +11,11 @@ const PASSBOOK_SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
+    bank: {
+      type: ["string", "null"],
+      description:
+        "The bank the passbook / statement belongs to, as its common short name without 株式会社 or 銀行: みずほ, 三井住友, 三菱UFJ, りそな, きらぼし, SBJ, ゆうちょ, 楽天, 住信SBI, 横浜. null if not visible",
+    },
     currency: { type: "string", description: "ISO 4217 code of the account currency, e.g. JPY" },
     transactions: {
       type: "array",
@@ -29,7 +34,7 @@ const PASSBOOK_SCHEMA = {
     },
     notes: { type: "string", description: "Short remarks about unreadable rows or assumptions, empty if none" },
   },
-  required: ["currency", "transactions", "notes"],
+  required: ["bank", "currency", "transactions", "notes"],
 };
 
 const RECEIPT_SCHEMA = {
@@ -37,8 +42,14 @@ const RECEIPT_SCHEMA = {
   additionalProperties: false,
   properties: {
     vendor: { type: ["string", "null"], description: "Store / company / counterparty name" },
+    vendorKana: {
+      type: ["string", "null"],
+      description:
+        "Katakana reading of the vendor name as a Japanese bank statement would print it, without 株式会社 etc. and without spaces, e.g. 栄泰投資控股株式会社 → エイタイトウシコウコ, 天野正康 → アマノマサヤス. null when the name has no Japanese reading",
+    },
     date: { type: ["string", "null"], description: "Transaction or payment date, Gregorian YYYY-MM-DD" },
     total: { type: ["number", "null"], description: "Grand total actually paid, tax included" },
+    fee: { type: ["number", "null"], description: "Transfer or handling fee (振込手数料) that is part of total, if printed separately; null otherwise" },
     currency: { type: "string", description: "ISO 4217 code, e.g. JPY" },
     tax: { type: ["number", "null"], description: "Tax amount if printed" },
     invoiceNumber: { type: ["string", "null"], description: "Invoice / receipt / registration number if printed" },
@@ -62,12 +73,13 @@ const RECEIPT_SCHEMA = {
     },
     summary: { type: "string", description: "One line describing the document in its own language" },
   },
-  required: ["vendor", "date", "total", "currency", "tax", "invoiceNumber", "direction", "paymentMethod", "items", "summary"],
+  required: ["vendor", "vendorKana", "date", "total", "fee", "currency", "tax", "invoiceNumber", "direction", "paymentMethod", "items", "summary"],
 };
 
 const PASSBOOK_INSTRUCTIONS = `You are an OCR engine for bank passbooks (日本の銀行通帳) and bank statements.
 Extract every transaction row that is visible, in printed order. Do not invent rows.
 Rules:
+- bank = the institution's usual short name, the way people say it, 2 to 6 characters: 株式会社三井住友銀行 → 三井住友, みずほ銀行 → みずほ, 三菱UFJ銀行 → 三菱UFJ, きらぼし銀行 → きらぼし, SBJ銀行 → SBJ, ゆうちょ銀行 → ゆうちょ, 城南信用金庫 → 城南信金. Read it from the logo, header, stamp or branch line. null when no bank is identifiable.
 - Dates must be Gregorian YYYY-MM-DD. Japanese passbooks print dates as YY-MM-DD in the Reiwa era (令和): a two-digit year from 01 to 12 means Reiwa, so add 2018 (e.g. 06-10-08 → 2024-10-08). A year from 20 to 99 means 20YY. "R6" or "令和6" also means 2024. Heisei (平成, H) year N → 1988 + N.
 - Amounts are plain numbers without commas or currency symbols. withdrawal = お支払金額 / 出金 / お引出し. deposit = お預り金額 / 入金 / お預入れ. Never put the same number in both.
 - balance = 差引残高 column if present.
@@ -78,9 +90,11 @@ Rules:
 
 const RECEIPT_INSTRUCTIONS = `You are an OCR engine for receipts, invoices, payment confirmations and bank transfer slips (レシート, 領収書, 請求書, 振込明細, PDF invoices, app screenshots).
 Extract the fields precisely. Rules:
-- total = the grand total that was actually paid or is payable, including tax. Prefer 合計 / お支払金額 / ご請求金額 / Total over subtotals.
+- total = the grand total that was actually paid or is payable, including tax. Prefer 合計 / お支払金額 / ご請求金額 / Total over subtotals. On a bank transfer slip total = 振込金額 + 振込手数料 when the fee is charged to the payer.
+- fee = the 振込手数料 / handling fee when it is printed as its own line and included in total; null otherwise. Also list 振込金額 and 手数料 as separate items.
 - date = the payment or issue date in Gregorian YYYY-MM-DD. Convert Japanese era dates (令和6年10月8日 → 2024-10-08, R6.10.8 → 2024-10-08).
 - vendor = the business that issued the document (shop, company, service). For bank transfer slips use the payee.
+- vendorKana = the vendor's name in katakana the way a passbook prints it (no spaces, no 株式会社 / 有限会社): 栄泰投資控股株式会社 → エイタイトウシコウコ, 天野正康 公認会計士事務所 → アマノマサヤス, スターティア株式会社 → スターティア. null for names with no Japanese reading.
 - direction = "expense" when the account holder paid someone, "income" when the account holder received money (an invoice they issued, a sales receipt they wrote). Use "unknown" if unclear.
 - items = line items with amounts if the document has them, otherwise an empty array. Keep it short (max 20).
 - summary = one short line in the document's language, e.g. "セブンイレブン 食料品 ¥1,230".

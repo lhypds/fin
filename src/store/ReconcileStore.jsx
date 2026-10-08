@@ -63,6 +63,18 @@ function reducer(state, action) {
       return { ...state, sources: [...state.sources, ...action.items] };
     case "updateSource":
       return { ...state, sources: patchById(state.sources, action.id, action.patch) };
+    // The bank of a statement, written onto its rows too: all of them when the user set it, only
+    // the rows without one when it comes from OCR, so a hand-corrected row keeps its value.
+    case "setSourceBank": {
+      const bank = action.bank || "";
+      return {
+        ...state,
+        sources: patchById(state.sources, action.id, { bank }),
+        transactions: state.transactions.map((t) =>
+          t.sourceId === action.id && (action.overwrite || !t.bank) && (t.bank || "") !== bank ? { ...t, bank } : t,
+        ),
+      };
+    }
     case "removeSource": {
       const txIds = new Set(state.transactions.filter((t) => t.sourceId === action.id).map((t) => t.id));
       return {
@@ -152,11 +164,13 @@ export function ReconcileProvider({ children }) {
   const applySourceResult = useCallback((id, result) => {
     const existing = stateRef.current.transactions;
     const seen = new Set(existing.map(txKey));
+    const bank = result.bank || "";
     const items = [];
     for (const t of result.transactions || []) {
       const tx = {
         id: uid(),
         sourceId: id,
+        bank,
         date: t.date || null,
         description: t.description || "",
         withdrawal: Number(t.withdrawal) || 0,
@@ -173,6 +187,8 @@ export function ReconcileProvider({ children }) {
     if (items.length) dispatch({ type: "addTransactions", items });
     const txCount = existing.filter((t) => t.sourceId === id).length + items.length;
     dispatch({ type: "updateSource", id, patch: { status: "done", error: null, txCount, notes: result.notes || "" } });
+    // Rows from an earlier read of the same file get the bank as well.
+    if (bank) dispatch({ type: "setSourceBank", id, bank, overwrite: false });
     return items.length;
   }, []);
 
@@ -233,8 +249,12 @@ export function ReconcileProvider({ children }) {
           if (cancelled) return;
           if (record?.kind !== "source" || !record.result) continue;
           const rows = transactions.filter((t) => t.sourceId === src.id).length;
-          if (rows) dispatch({ type: "updateSource", id: src.id, patch: { status: "done", error: null, txCount: rows, notes: src.notes || record.result.notes || "" } });
-          else applySourceResult(src.id, record.result);
+          if (rows) {
+            dispatch({ type: "updateSource", id: src.id, patch: { status: "done", error: null, txCount: rows, notes: src.notes || record.result.notes || "" } });
+            if (record.result.bank) dispatch({ type: "setSourceBank", id: src.id, bank: record.result.bank, overwrite: false });
+          } else {
+            applySourceResult(src.id, record.result);
+          }
         }
         for (const rc of waiting(saved.receipts)) {
           const record = await recover(rc.id);
@@ -392,11 +412,13 @@ export function ReconcileProvider({ children }) {
 
   const updateTransaction = useCallback((id, patch) => dispatch({ type: "updateTransaction", id, patch }), []);
   const addTransaction = useCallback((tx) => {
-    const item = { id: uid(), sourceId: null, receiptIds: [], currency: "JPY", withdrawal: 0, deposit: 0, balance: null, ...tx };
+    const item = { id: uid(), sourceId: null, bank: "", receiptIds: [], currency: "JPY", withdrawal: 0, deposit: 0, balance: null, ...tx };
     dispatch({ type: "addTransactions", items: [item] });
     return item.id;
   }, []);
   const removeTransaction = useCallback((id) => dispatch({ type: "removeTransaction", id }), []);
+  // Sets the bank of a statement and of every row that came from it.
+  const setSourceBank = useCallback((id, bank) => dispatch({ type: "setSourceBank", id, bank, overwrite: true }), []);
 
   const updateReceipt = useCallback((id, patch) => dispatch({ type: "updateReceipt", id, patch }), []);
 
@@ -451,6 +473,7 @@ export function ReconcileProvider({ children }) {
       updateTransaction,
       addTransaction,
       removeTransaction,
+      setSourceBank,
       updateReceipt,
       removeFileItem,
       clearEverything,
@@ -472,6 +495,7 @@ export function ReconcileProvider({ children }) {
       updateTransaction,
       addTransaction,
       removeTransaction,
+      setSourceBank,
       updateReceipt,
       removeFileItem,
       clearEverything,

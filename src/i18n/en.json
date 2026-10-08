@@ -51,16 +51,18 @@
   },
   "sources": {
     "title": "Passbook files",
-    "ocrAll": "Read all pending",
+    "ocrAll": "Read all",
     "empty": "Upload passbook (通帳) photos or statement PDFs. OCR turns them into rows on the ledger.",
     "txCount": "{{count}} rows",
     "deleteConfirm": "Delete this file and its {{count}} transactions?",
-    "rerunConfirm": "This passbook has already been read. Reading it again calls the model once more, and rows it reads differently this time are added as new transactions. Read it again?"
+    "rerunConfirm": "This passbook has already been read. Reading it again calls the model once more, and rows it reads differently this time are added as new transactions. Read it again?",
+    "rerunAllConfirm": "All {{count}} passbook files have been read. Reading them again calls the model once more per file, and rows it reads differently this time are added as new transactions. Read them all again?"
   },
   "ledger": {
     "title": "Bank transactions",
     "results": "Reconciliation",
     "date": "Date",
+    "bank": "Bank",
     "description": "Description",
     "withdrawal": "Withdrawal",
     "deposit": "Deposit",
@@ -77,11 +79,12 @@
   },
   "receipts": {
     "title": "Unmatched receipts",
-    "ocrAll": "Read all pending",
+    "ocrAll": "Read all",
     "showMatched": "Show matched",
     "empty": "Upload receipts, invoices or screenshots. They stay here until they are matched to a transaction.",
     "deleteConfirm": "Delete this receipt?",
     "rerunConfirm": "This receipt has already been read. Reading it again replaces the current result, including any fields you edited. Read it again?",
+    "rerunAllConfirm": "All {{count}} receipts have been read. Reading them again replaces their current results, including any fields you edited. Read them all again?",
     "noAmount": "no amount",
     "dragHint": "Drag onto a ledger row to match"
   },

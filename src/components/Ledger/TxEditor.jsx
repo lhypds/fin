@@ -10,6 +10,7 @@ export default function TxEditor({ tx, onClose }) {
   const { updateTransaction, addTransaction } = useReconcile();
   const [form, setForm] = useState(() => ({
     date: tx?.date || "",
+    bank: tx?.bank || "",
     description: tx?.description || "",
     withdrawal: tx?.withdrawal || "",
     deposit: tx?.deposit || "",
@@ -27,6 +28,7 @@ export default function TxEditor({ tx, onClose }) {
     if (!withdrawal && !deposit) return setError(t("txEditor.amountRequired"));
     const patch = {
       date: form.date,
+      bank: form.bank.trim(),
       description: form.description.trim(),
       withdrawal,
       deposit,
@@ -44,6 +46,10 @@ export default function TxEditor({ tx, onClose }) {
         <div className="field">
           <label htmlFor="tx-date">{t("ledger.date")}</label>
           <input id="tx-date" className="input mono" type="date" value={form.date} onChange={set("date")} />
+        </div>
+        <div className="field">
+          <label htmlFor="tx-bank">{t("ledger.bank")}</label>
+          <input id="tx-bank" className="input" value={form.bank} onChange={set("bank")} placeholder="みずほ · 三井住友 · SBJ" />
         </div>
         <div className="field">
           <label htmlFor="tx-desc">{t("ledger.description")}</label>

@@ -1,8 +1,9 @@
 .ledger {
   /* Two equal halves: bank transactions | reconciliation. The left half keeps a minimum so its
      fixed columns never collapse; below 1024px the split stops being 50/50 and the table scrolls. */
-  --halves: minmax(512px, 1fr) minmax(240px, 1fr);
-  --cols-left: 92px minmax(108px, 1fr) 120px 120px 72px;
+  --halves: minmax(584px, 1fr) minmax(240px, 1fr);
+  /* date | bank | description | withdrawal | deposit | actions. 72px holds a short bank name such as 三菱UFJ. */
+  --cols-left: 92px 72px minmax(108px, 1fr) 120px 120px 72px;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -69,8 +70,8 @@
 .scroll {
   flex: 1;
   min-height: 0;
-  /* 512 + 240: fits a 1440px screen with both drawers open. Wider than the pane, it makes .scrollX scroll. */
-  min-width: 752px;
+  /* 584 + 240: fits a 1440px screen with both drawers open. Wider than the pane, it makes .scrollX scroll. */
+  min-width: 824px;
 }
 
 .table {
@@ -223,8 +224,9 @@
   text-align: center;
 }
 
-/* A matched chip is a button that opens the receipt preview. The negative margin lets its hover
-   background reach the cell padding without changing the chip's layout box. */
+/* A matched chip is a button that opens the receipt preview. It has no hover background of its
+   own: the row's hover is the only hover feedback. The negative margin lets its focus outline
+   reach the cell padding without changing the chip's layout box. */
 .chip {
   display: flex;
   align-items: center;
@@ -233,10 +235,6 @@
   margin: 0 -6px;
   padding: 0 6px;
   cursor: pointer;
-}
-
-.chip:hover {
-  background: var(--bg-hover);
 }
 
 .chip:focus-visible {

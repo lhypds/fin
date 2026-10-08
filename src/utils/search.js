@@ -18,13 +18,13 @@ function amountText(value, currency) {
 export function receiptHaystack(r) {
   const o = r.ocr || {};
   return normalize(
-    [r.name, o.vendor, o.date, amountText(o.total, o.currency), o.summary, o.invoiceNumber, o.paymentMethod].join(" "),
+    [r.name, o.vendor, o.vendorKana, o.date, amountText(o.total, o.currency), o.summary, o.invoiceNumber, o.paymentMethod].join(" "),
   );
 }
 
 /* Everything a ledger row shows: the transaction's own cells plus the chips of its matched receipts. */
 export function transactionHaystack(tx, receipts = []) {
-  const own = [tx.date, tx.description, amountText(tx.withdrawal, tx.currency), amountText(tx.deposit, tx.currency)];
+  const own = [tx.date, tx.bank, tx.description, amountText(tx.withdrawal, tx.currency), amountText(tx.deposit, tx.currency)];
   return normalize(own.join(" ")) + " " + receipts.map(receiptHaystack).join(" ");
 }
 
