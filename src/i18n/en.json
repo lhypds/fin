@@ -1,7 +1,7 @@
 {
   "app": {
     "title": "fin",
-    "subtitle": "Reconciliation",
+    "subtitle": "",
     "loadError": "Could not load data from the server. Is it running? Reload the page to try again."
   },
   "login": {

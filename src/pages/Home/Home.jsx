@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher, SourcePanel, ReceiptPanel, Ledger, PreviewModal } from "@components";
-import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, TrashIcon, SearchIcon, XIcon, LogOutIcon } from "@components/icons";
+import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, TrashIcon, SearchIcon, XIcon, UserIcon } from "@components/icons";
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
 import styles from "./home.module.css";
@@ -34,9 +34,28 @@ export default function Home() {
   const [rightOpen, setRightOpen] = useState(() => readFlag("panel.right", true));
   const [preview, setPreview] = useState(null);
   const [query, setQuery] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   useEffect(() => writeFlag("panel.left", leftOpen), [leftOpen]);
   useEffect(() => writeFlag("panel.right", rightOpen), [rightOpen]);
+
+  // The account menu closes the way stash's does: on a press anywhere outside it, or on Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleOutside(e) {
+      if (!menuRef.current?.contains(e.target)) setMenuOpen(false);
+    }
+    function handleKey(e) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", handleOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("pointerdown", handleOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [menuOpen]);
 
   const closePreview = useCallback(() => setPreview(null), []);
 
@@ -66,7 +85,8 @@ export default function Home() {
       <header className={styles.header}>
         <div className={styles.brand}>
           <h1 className={styles.logo}>{t("app.title")}</h1>
-          <span className="muted">{t("app.subtitle")}</span>
+          {/* English has no subtitle; Chinese and Japanese name the job beside the logo. */}
+          {t("app.subtitle") && <span className="muted">{t("app.subtitle")}</span>}
         </div>
         <div className={styles.search}>
           <SearchIcon className={styles.searchIcon} />
@@ -102,13 +122,35 @@ export default function Home() {
             <TrashIcon />
             {t("header.clearAll")}
           </button>
-          <LanguageSwitcher />
-          <span className={`muted ${styles.user}`} title={user}>
-            {user}
-          </span>
-          <button type="button" className="btn" onClick={logout} title={t("login.logout")} aria-label={t("login.logout")}>
-            <LogOutIcon />
-          </button>
+          {/* The account, as stash's bar has it: the language switcher with a profile button
+              joined to it, which opens a menu holding the name and the way out. */}
+          <div className={styles.account}>
+            <LanguageSwitcher />
+            <div className={styles.profileWrap} ref={menuRef} data-open={menuOpen} onMouseLeave={() => setMenuOpen(false)}>
+              <button
+                type="button"
+                className={styles.profile}
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-label={user}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+              >
+                <UserIcon />
+              </button>
+              <div className={styles.menu}>
+                <span>@{user}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    logout();
+                  }}
+                >
+                  {t("login.logout")}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 

@@ -17,7 +17,7 @@
   "header": {
     "autoMatch": "自动对账",
     "clearAll": "清空全部",
-    "clearConfirm": "删除所有通帳文件、流水和收据？此操作不可撤销。",
+    "clearConfirm": "删除所有账本文件、流水和收据？此操作不可撤销。",
     "search": "搜索…",
     "clearSearch": "清除搜索"
   },
@@ -50,12 +50,12 @@
     "duplicate": "已跳过 {{count}} 个重复文件"
   },
   "sources": {
-    "title": "通帳原件",
+    "title": "账本原件",
     "ocrAll": "识别全部待处理",
-    "empty": "上传通帳照片或流水 PDF，OCR 会把它们转换成中间的流水行。",
+    "empty": "上传账本照片或流水 PDF，OCR 会把它们转换成中间的流水行。",
     "txCount": "{{count}} 行",
     "deleteConfirm": "删除此文件及其 {{count}} 条流水？",
-    "rerunConfirm": "这份通帳已经识别过。重新识别会再次调用模型，这次读法不同的行会作为新流水追加。要重新识别吗？"
+    "rerunConfirm": "这份账本已经识别过。重新识别会再次调用模型，这次读法不同的行会作为新流水追加。要重新识别吗？"
   },
   "ledger": {
     "title": "银行流水",
@@ -67,7 +67,7 @@
     "filterAll": "全部",
     "filterUnmatched": "未对账",
     "filterMatched": "已对账",
-    "empty": "还没有流水。在左侧上传通帳图片并运行识别，或手动添加一行。",
+    "empty": "还没有流水。在左侧上传账本图片并运行识别，或手动添加一行。",
     "emptyFiltered": "没有符合条件的记录。",
     "emptySearch": "没有匹配的流水。",
     "sumMismatch": "收据合计 {{sum}} ≠ {{amount}}",
@@ -149,8 +149,8 @@
     "rowsAdded": "提取了 {{count}} 行流水"
   },
   "panel": {
-    "openLeft": "显示通帳原件",
-    "closeLeft": "收起通帳原件",
+    "openLeft": "显示账本原件",
+    "closeLeft": "收起账本原件",
     "openRight": "显示收据",
     "closeRight": "收起收据"
   }

@@ -4,6 +4,7 @@ fin
 
 Auto reconciliation of financial transactions.
 
+
 Setup
 -----
 
@@ -33,7 +34,6 @@ the same workspace:
 ```
 
 The file is read on every login, so edits apply without a restart. Sessions are
-kept in memory: restarting the server logs everyone out.
 
 Data lives under `data/` (`DATA_DIR` in `.env`):
 

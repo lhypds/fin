@@ -99,12 +99,84 @@
   justify-self: end;
 }
 
-/* Who is logged in, next to the way out. Capped so a long name cannot push the buttons around. */
-.user {
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* The language switcher and the profile button sit joined, sharing the hairline between them. */
+.account {
+  display: flex;
+  align-items: center;
+}
+
+.profileWrap {
+  position: relative;
+}
+
+/* The profile button and its menu as stash draws them (stash/src/pages/Stash/TopBar/
+   topbar.module.css), value for value: a 26 by 22 box with the person in it, and under it a
+   column of rows the same height, their borders merging with the button's. */
+.profile {
+  width: 26px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: var(--line) solid var(--border);
+  border-left: none;
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.profile:hover {
+  background: var(--border);
+  color: var(--bg);
+}
+
+.profile svg {
+  width: 12px;
+  height: 12px;
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% - var(--line));
+  display: none;
+  flex-direction: column;
+  z-index: 999;
+}
+
+.profileWrap[data-open="true"] .menu {
+  display: flex;
+}
+
+/* The name is a row like the others, but there is nothing to open behind it here. */
+.menu > * {
+  box-sizing: border-box;
+  display: block;
+  height: 22px;
+  padding: 4px 6px;
+  border: var(--line) solid var(--border);
+  border-top: none;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 12px;
+  line-height: 1;
+  text-align: left;
   white-space: nowrap;
+}
+
+.menu > :first-child {
+  border-top: var(--line) solid var(--border);
+}
+
+.menu button {
+  cursor: pointer;
+}
+
+.menu button:hover {
+  background: var(--border);
+  color: var(--bg);
 }
 
 .statusBar {
