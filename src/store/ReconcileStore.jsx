@@ -32,11 +32,13 @@ function attach(state, txId, receiptId, confidence) {
   const receipt = state.receipts.find((r) => r.id === receiptId);
   const tx = state.transactions.find((t) => t.id === txId);
   if (!receipt || !tx) return state;
+  // A row whose receipts change loses its confirmation: the person confirmed the receipts as they
+  // were, so the new set needs looking at again.
   const transactions = state.transactions.map((t) => {
     let ids = t.receiptIds || [];
     if (t.id !== txId && ids.includes(receiptId)) ids = ids.filter((x) => x !== receiptId);
     if (t.id === txId && !ids.includes(receiptId)) ids = [...ids, receiptId];
-    return ids === t.receiptIds ? t : { ...t, receiptIds: ids };
+    return ids === t.receiptIds ? t : { ...t, receiptIds: ids, confirmed: false };
   });
   const receipts = patchById(state.receipts, receiptId, { txId, confidence: confidence ?? null });
   return { ...state, transactions, receipts };
@@ -46,7 +48,7 @@ function detach(state, receiptId) {
   return {
     ...state,
     transactions: state.transactions.map((t) =>
-      t.receiptIds?.includes(receiptId) ? { ...t, receiptIds: t.receiptIds.filter((x) => x !== receiptId) } : t,
+      t.receiptIds?.includes(receiptId) ? { ...t, receiptIds: t.receiptIds.filter((x) => x !== receiptId), confirmed: false } : t,
     ),
     receipts: patchById(state.receipts, receiptId, { txId: null, confidence: null }),
   };
@@ -115,6 +117,13 @@ function reducer(state, action) {
       return action.matches.reduce((s, m) => attach(s, m.txId, m.receiptId, m.confidence), state);
     case "unmatch":
       return detach(state, action.receiptId);
+    // Every link undone at once, with the confirmations that rested on them.
+    case "unmatchAll":
+      return {
+        ...state,
+        transactions: state.transactions.map((t) => (t.receiptIds?.length || t.confirmed ? { ...t, receiptIds: [], confirmed: false } : t)),
+        receipts: state.receipts.map((r) => (r.txId || r.confidence != null ? { ...r, txId: null, confidence: null } : r)),
+      };
 
     default:
       return state;
@@ -409,6 +418,7 @@ export function ReconcileProvider({ children }) {
   }, []);
 
   const unmatch = useCallback((receiptId) => dispatch({ type: "unmatch", receiptId }), []);
+  const unmatchAll = useCallback(() => dispatch({ type: "unmatchAll" }), []);
 
   const updateTransaction = useCallback((id, patch) => dispatch({ type: "updateTransaction", id, patch }), []);
   const addTransaction = useCallback((tx) => {
@@ -470,6 +480,7 @@ export function ReconcileProvider({ children }) {
       runAutoMatch,
       match,
       unmatch,
+      unmatchAll,
       updateTransaction,
       addTransaction,
       removeTransaction,
@@ -492,6 +503,7 @@ export function ReconcileProvider({ children }) {
       runAutoMatch,
       match,
       unmatch,
+      unmatchAll,
       updateTransaction,
       addTransaction,
       removeTransaction,

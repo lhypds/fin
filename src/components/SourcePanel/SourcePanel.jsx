@@ -11,7 +11,7 @@ import styles from "./source.module.css";
 
 export default function SourcePanel({ onPreview }) {
   const { t } = useTranslation();
-  const { sources, transactions, importFiles, ocrPending, removeFileItem, progress } = useReconcile();
+  const { sources, transactions, importFiles, ocrPending, removeFileItem, unmatchAll, progress } = useReconcile();
   // Files the button can read: a missing upload cannot be, one being read is already on its way.
   // `todo` are those not read yet, or whose read failed.
   const readable = sources.filter((s) => !s.missing && s.status !== "processing");
@@ -53,10 +53,12 @@ export default function SourcePanel({ onPreview }) {
     runOcr([src.id]);
   }
 
-  // Reads what has not been read yet. Once everything has, offers to read it all again.
+  // Reads what has not been read yet. Once everything has, offers to read it all again, which
+  // starts the reconciliation over: every match is undone as the run begins.
   function handleRunAll() {
     if (todo.length) return runOcr(todo.map((s) => s.id));
     if (!window.confirm(t("sources.rerunAllConfirm", { count: readable.length }))) return;
+    unmatchAll();
     runOcr(readable.map((s) => s.id));
   }
 

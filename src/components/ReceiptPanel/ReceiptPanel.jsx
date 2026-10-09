@@ -13,7 +13,7 @@ export const RECEIPT_DRAG_TYPE = "application/x-receipt";
 
 export default function ReceiptPanel({ onPreview }) {
   const { t } = useTranslation();
-  const { receipts, importFiles, ocrPending, removeFileItem, unmatch, progress } = useReconcile();
+  const { receipts, importFiles, ocrPending, removeFileItem, unmatch, unmatchAll, progress } = useReconcile();
   const [showMatched, setShowMatched] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -57,10 +57,13 @@ export default function ReceiptPanel({ onPreview }) {
     runOcr([r.id]);
   }
 
-  // Reads what has not been read yet. Once everything has, offers to read it all again.
+  // Reads what has not been read yet. Once everything has, offers to read it all again, which
+  // starts the reconciliation over: the new results replace the ones the matches were made on,
+  // so every match is undone as the run begins.
   function handleRunAll() {
     if (todo.length) return runOcr(todo.map((r) => r.id));
     if (!window.confirm(t("receipts.rerunAllConfirm", { count: readable.length }))) return;
+    unmatchAll();
     runOcr(readable.map((r) => r.id));
   }
 

@@ -22,6 +22,15 @@
   --font-mono: "SF Mono", Menlo, Consolas, monospace;
 }
 
+/* The page itself never scrolls, but on macOS the browser still rubber-bands the viewport when an
+   inner list runs out of scroll (and a horizontal overscroll triggers back/forward navigation).
+   overscroll-behavior: none turns both off; it has to sit on the root, overflow: hidden alone is
+   not enough. */
+html,
+body {
+  overscroll-behavior: none;
+}
+
 body {
   font-family: Helvetica, Arial, "Hiragino Sans", "PingFang SC", "Noto Sans CJK JP", sans-serif;
   font-size: 12px;
@@ -207,6 +216,8 @@ p {
 .scroll-y {
   overflow-y: auto;
   scrollbar-width: none;
+  /* Safari bounces inner scrollers too; none stops that and keeps the scroll from chaining out. */
+  overscroll-behavior: none;
 }
 
 .scroll-y::-webkit-scrollbar {

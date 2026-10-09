@@ -9,10 +9,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid black;
-  background: #ffffff;
-  color: #0f172a;
-  padding: 4px 6px;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  padding: 0;
   font: inherit;
   font-size: 12px;
   cursor: pointer;
@@ -21,46 +21,76 @@
   user-select: none;
 }
 
-.wrapper:hover .trigger {
-  background: black;
-  color: white;
+/* Trimmed to the cap height so the flex centring lands on the letters themselves. Left to the
+   font's ascent and descent, Helvetica's capitals sit half a pixel high in the box and the system
+   font's half a pixel low. */
+.label {
+  display: block;
+  line-height: 1;
+  text-align: center;
+  text-box: trim-both cap alphabetic;
+}
+
+/* Helvetica's Z carries almost no space on its left while H carries nearly a pixel on its right, so
+   a centred "ZH" box puts the ink a third of a pixel left of centre. The nudge is the difference
+   between those side bearings, in em so it follows the font size. EN and JA are symmetric as they
+   are. */
+.label[data-lang="zh"],
+.option[data-lang="zh"] {
+  padding-left: 0.05em;
 }
 
 .dropdown {
   display: none;
   position: absolute;
-  top: 100%;
+  top: calc(100% - var(--line));
   left: 0;
   z-index: 999;
   flex-direction: column;
 }
 
-.wrapper:hover .dropdown,
 .wrapper[data-open="true"] .dropdown {
   display: flex;
 }
 
+/* Every row keeps all four borders and overlaps the one above by a hairline, so each row's inner
+   box is 20px like the trigger's and the label sits on a whole pixel. Dropping border-top instead
+   would leave the box a hairline taller and put the text half a pixel high. */
 .option {
   width: 26px;
   height: 22px;
   display: inline-flex;
   align-items: center;
-  border: 1px solid black;
-  border-top: none;
-  background: #ffffff;
-  color: #0f172a;
-  padding: 4px 6px;
+  justify-content: center;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  padding: 0;
   font: inherit;
   font-size: 12px;
   cursor: pointer;
   line-height: 1;
   white-space: nowrap;
-  justify-content: center;
   text-align: center;
 }
 
-.option:hover,
+.option + .option {
+  margin-top: calc(-1 * var(--line));
+}
+
 .active {
-  background: black;
-  color: white;
+  background: var(--border);
+  color: var(--bg);
+}
+
+@media (hover: hover) {
+  .wrapper:hover .trigger {
+    background: var(--border);
+    color: var(--bg);
+  }
+
+  .option:hover {
+    background: var(--border);
+    color: var(--bg);
+  }
 }

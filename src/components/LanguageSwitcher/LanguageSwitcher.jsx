@@ -31,9 +31,11 @@ export default function LanguageSwitcher() {
   }
 
   return (
-    <div ref={wrapperRef} className={styles.wrapper} data-open={open}>
+    <div ref={wrapperRef} className={styles.wrapper} data-open={open} onMouseLeave={() => setOpen(false)}>
       <button type="button" className={styles.trigger} onClick={() => setOpen((v) => !v)}>
-        {current.label}
+        <span className={styles.label} data-lang={current.code}>
+          {current.label}
+        </span>
       </button>
       <div className={styles.dropdown}>
         {LANGS.map(({ code, label }) => (
@@ -43,7 +45,9 @@ export default function LanguageSwitcher() {
             className={`${styles.option} ${i18n.language === code ? styles.active : ""}`}
             onClick={() => switchLang(code)}
           >
-            {label}
+            <span className={styles.label} data-lang={code}>
+              {label}
+            </span>
           </button>
         ))}
       </div>

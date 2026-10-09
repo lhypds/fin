@@ -138,9 +138,20 @@
   background: var(--bg-hover);
 }
 
-/* A matched row is green across both halves. It sits after :hover so the green holds while
-   hovered, and before data-over so a drop target still turns blue. */
+/* A matched row is a button: yellow across both halves until a person clicks it to confirm the
+   match, then green, and a second click takes the confirmation back. Both colours sit after
+   :hover so they hold while hovered, and before data-over so a drop target still turns blue. */
 .row[data-matched="true"] {
+  background: var(--warn-bg);
+  cursor: pointer;
+}
+
+.row[data-matched="true"]:focus-visible {
+  outline: var(--line) solid var(--focus);
+  outline-offset: -2px;
+}
+
+.row[data-confirmed="true"] {
   background: var(--ok-bg);
 }
 
@@ -224,22 +235,27 @@
   text-align: center;
 }
 
-/* A matched chip is a button that opens the receipt preview. It has no hover background of its
-   own: the row's hover is the only hover feedback. The negative margin lets its focus outline
-   reach the cell padding without changing the chip's layout box. */
+/* A chip names a matched receipt. Only its thumbnail is a button (it opens the preview); a click
+   anywhere else on the chip falls through to the row and toggles the confirmation. */
 .chip {
   display: flex;
   align-items: center;
   gap: 8px;
   min-height: 28px;
-  margin: 0 -6px;
-  padding: 0 6px;
+}
+
+.chipThumb {
+  flex: none;
+  display: flex;
+  padding: 0;
+  border: none;
+  background: none;
   cursor: pointer;
 }
 
-.chip:focus-visible {
+.chipThumb:focus-visible {
   outline: var(--line) solid var(--focus);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
 
 .chipInfo {

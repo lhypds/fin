@@ -35,7 +35,7 @@ function isReceiptDrag(e) {
 
 export default function Ledger({ onPreviewReceipt, query = "" }) {
   const { t } = useTranslation();
-  const { transactions, receiptById, match, unmatch, removeTransaction } = useReconcile();
+  const { transactions, receiptById, match, unmatch, removeTransaction, updateTransaction } = useReconcile();
   const [filter, setFilter] = useState("all");
   const [editing, setEditing] = useState(null);
   const [picking, setPicking] = useState(null);
@@ -65,6 +65,10 @@ export default function Ledger({ onPreviewReceipt, query = "" }) {
   function handleDelete(tx) {
     if (!window.confirm(t("ledger.deleteConfirm"))) return;
     removeTransaction(tx.id);
+  }
+
+  function toggleConfirmed(tx) {
+    updateTransaction(tx.id, { confirmed: !tx.confirmed });
   }
 
   return (
@@ -141,13 +145,33 @@ export default function Ledger({ onPreviewReceipt, query = "" }) {
                       }
                     },
                   };
+              // A matched row is a toggle: a click anywhere on it that no button or thumbnail
+              // claims flips the human confirmation of the match. Keys count only on the row
+              // itself, since Enter and Space on the buttons inside it bubble up here too.
+              const confirmProps = matched
+                ? {
+                    role: "button",
+                    tabIndex: 0,
+                    "aria-pressed": !!tx.confirmed,
+                    onClick: () => toggleConfirmed(tx),
+                    onKeyDown: (e) => {
+                      if (e.target !== e.currentTarget) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleConfirmed(tx);
+                      }
+                    },
+                  }
+                : {};
 
               return (
                 <div
                   key={tx.id}
                   className={styles.row}
                   data-matched={matched}
+                  data-confirmed={matched && !!tx.confirmed}
                   data-over={overId === tx.id}
+                  {...confirmProps}
                   onDragOver={(e) => {
                     if (!isReceiptDrag(e)) return;
                     e.preventDefault();
@@ -171,7 +195,7 @@ export default function Ledger({ onPreviewReceipt, query = "" }) {
                     <div className={styles.desc}>{tx.description}</div>
                     <div className={`${styles.num} ${styles.withdrawal} mono`}>{tx.withdrawal ? fmtMoney(tx.withdrawal, tx.currency) : ""}</div>
                     <div className={`${styles.num} ${styles.deposit} mono`}>{tx.deposit ? fmtMoney(tx.deposit, tx.currency) : ""}</div>
-                    <div className={styles.actions}>
+                    <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
                       <ActionButton tooltip={t("button.edit")} onClick={() => setEditing(tx)}>
                         <EditIcon />
                       </ActionButton>
@@ -184,21 +208,20 @@ export default function Ledger({ onPreviewReceipt, query = "" }) {
                   <div className={styles.cMatch} {...pickProps}>
                     {matched &&
                       receipts.map((r, i) => (
-                        // A matched chip opens the receipt preview, like a card in the side panels.
-                        <div
-                          key={r.id}
-                          className={styles.chip}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => onPreviewReceipt(r.id)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
+                        // The thumbnail is the chip's one button and opens the receipt preview. The
+                        // rest of the chip belongs to the row, so a click there confirms the match.
+                        <div key={r.id} className={styles.chip}>
+                          <button
+                            type="button"
+                            className={styles.chipThumb}
+                            title={t("button.preview")}
+                            onClick={(e) => {
+                              e.stopPropagation();
                               onPreviewReceipt(r.id);
-                            }
-                          }}
-                        >
-                          <FileThumb item={r} size={28} />
+                            }}
+                          >
+                            <FileThumb item={r} size={28} />
+                          </button>
                           <div className={styles.chipInfo}>
                             <div className={styles.chipTitle}>{r.ocr?.vendor || r.name}</div>
                             <div className={`${styles.chipMeta} mono`}>

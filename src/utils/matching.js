@@ -150,6 +150,8 @@ function dateScore(diff) {
 const FEE_RANGE = { JPY: [100, 880], KRW: [100, 1100] };
 const FEE_RANGE_DEFAULT = [0.5, 10];
 
+const feeRange = (currency) => FEE_RANGE[(currency || "JPY").toUpperCase()] || FEE_RANGE_DEFAULT;
+
 // "exact" when the two amounts agree, "fee" when they differ by a transfer fee, null otherwise.
 export function amountGap(a, b, currency = "JPY") {
   if (a == null || b == null) return null;
@@ -158,9 +160,25 @@ export function amountGap(a, b, currency = "JPY") {
   if (!x || !y || Number.isNaN(x) || Number.isNaN(y)) return null;
   const diff = Math.abs(x - y);
   if (diff === 0) return "exact";
-  const [min, max] = FEE_RANGE[(currency || "JPY").toUpperCase()] || FEE_RANGE_DEFAULT;
+  const [min, max] = feeRange(currency);
   if (diff >= min && diff <= max && diff <= 0.2 * Math.max(x, y)) return "fee";
   return null;
+}
+
+const FEE_ITEM_RE = /手数料|\bfees?\b/i;
+
+// The transfer fee the receipt prints. The OCR is asked to put it in `fee` but in practice leaves
+// that null and lists it as a line item (税込手数料, 振込手数料), so those are summed instead; the
+// sum only counts when it is the size of a transfer fee, not a service charge billed as 手数料.
+function receiptFee(ocr, currency) {
+  if (ocr.fee) return Number(ocr.fee);
+  let sum = 0;
+  for (const it of ocr.items || []) {
+    const v = Number(it?.amount);
+    if (v > 0 && FEE_ITEM_RE.test(it?.name || "")) sum += v;
+  }
+  const [min, max] = feeRange(currency);
+  return sum >= min && sum <= max ? sum : null;
 }
 
 // Amounts written into a file name: "0910-171600-雅山.pdf" → 171600, "收款700万" → 7000000. The
@@ -184,15 +202,18 @@ function fileNameAmounts(name) {
 // of a statement used as a receipt. Only these are amounts a bank row could carry.
 const PAYMENT_ITEM_RE = /振込|振替|入金|出金|引出|預入|支払|金額|amount|transfer|deposit|withdraw/i;
 
-// Every amount the receipt could stand for, each with how much a hit on it is worth. The OCR total
-// comes first; the total without its fee, payment-like line items and amounts in the file name are
-// a little less certain.
-function receiptAmounts(receipt) {
+// Every amount the receipt could stand for, each with how much a hit on it is worth. A transfer
+// slip prints two amounts, the 振込金額 and the total with the fee on top, and the statement can
+// carry either (きらぼし lists the fee as its own row, Mizuho folds it into the withdrawal), so
+// both count in full. Payment-like line items and amounts in the file name are a little less
+// certain.
+function receiptAmounts(receipt, currency) {
   const ocr = receipt.ocr || {};
   const out = [];
   const total = ocr.total == null ? null : Number(ocr.total);
   if (total) out.push({ value: total, weight: 1 });
-  if (total && ocr.fee) out.push({ value: total - Number(ocr.fee), weight: 1 });
+  const fee = receiptFee(ocr, currency);
+  if (total && fee && fee < total) out.push({ value: total - fee, weight: 1 });
   for (const it of ocr.items || []) {
     const v = Number(it?.amount);
     if (v && PAYMENT_ITEM_RE.test(it.name || "") && !/手数料/.test(it.name || "")) out.push({ value: v, weight: 0.9 });
@@ -205,7 +226,7 @@ function receiptAmounts(receipt) {
 // null when none of them does.
 function amountScore(amount, receipt, currency) {
   let best = null;
-  for (const { value, weight } of receiptAmounts(receipt)) {
+  for (const { value, weight } of receiptAmounts(receipt, currency)) {
     const gap = amountGap(amount, value, currency);
     if (!gap) continue;
     const score = weight * (gap === "exact" ? 1 : 0.85);
