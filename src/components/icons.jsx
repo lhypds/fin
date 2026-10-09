@@ -25,10 +25,11 @@ export function UploadIcon({ className }) {
   );
 }
 
+// Drawn a little inside the 24-box: a full-height triangle reads bigger than the outline icons beside it.
 export function PlayIcon({ className }) {
   return (
     <Icon className={className}>
-      <polygon points="6 3 20 12 6 21 6 3" />
+      <polygon points="7 4.5 19 12 7 19.5 7 4.5" />
     </Icon>
   );
 }
