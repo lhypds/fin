@@ -25,10 +25,8 @@
   "backup": {
     "title": "バックアップと復元",
     "backupSection": "バックアップ",
-    "backupHint": "現在のデータを data/backups の下に、日時の名前のフォルダーとして保存します。",
     "backupNow": "今すぐバックアップ",
     "restoreSection": "復元",
-    "restoreHint": "バックアップを選んで復元すると、現在のデータはその内容に置き換わります。",
     "empty": "バックアップはまだありません。",
     "restore": "復元",
     "restoreConfirm": "{{time}} のバックアップに復元しますか？現在のデータは上書きされ、元に戻せません。",

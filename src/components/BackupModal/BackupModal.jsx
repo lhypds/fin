@@ -84,7 +84,6 @@ export default function BackupModal({ onClose }) {
       <div className={styles.body}>
         <section className={styles.section}>
           <h3 className={styles.heading}>{t("backup.backupSection")}</h3>
-          <p className={styles.hint}>{t("backup.backupHint")}</p>
           <div>
             <button type="button" className="btn lg" onClick={backup} disabled={!!busy}>
               {busy === "backup" ? <LoaderIcon className="spin" /> : <ArchiveIcon />}
@@ -95,7 +94,6 @@ export default function BackupModal({ onClose }) {
 
         <section className={styles.section}>
           <h3 className={styles.heading}>{t("backup.restoreSection")}</h3>
-          <p className={styles.hint}>{t("backup.restoreHint")}</p>
           {backups?.length === 0 && <p className={styles.empty}>{t("backup.empty")}</p>}
           {backups?.length > 0 && (
             <div className={`${styles.list} scroll-y`}>

@@ -212,17 +212,20 @@
   background: var(--bg-hover);
 }
 
-/* A matched row is a button: blue across both halves until a person clicks it to confirm the
-   match, then green, and a second click takes the confirmation back. Both colours sit after
-   :hover so they hold while hovered. */
-.row[data-matched="true"] {
-  background: var(--info-bg);
+/* Every data row is a button (the header is not): a click confirms it, green across both halves,
+   and a second click takes the confirmation back. A matched row is blue until then. Both colours
+   sit after :hover so they hold while hovered, green after blue so it wins on a matched row. */
+.row[role="button"] {
   cursor: pointer;
 }
 
-.row[data-matched="true"]:focus-visible {
+.row[role="button"]:focus-visible {
   outline: var(--line) solid var(--focus);
   outline-offset: -2px;
+}
+
+.row[data-matched="true"] {
+  background: var(--info-bg);
 }
 
 .row[data-confirmed="true"] {

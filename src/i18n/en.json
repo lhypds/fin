@@ -25,10 +25,8 @@
   "backup": {
     "title": "Backup and restore",
     "backupSection": "Back up",
-    "backupHint": "Saves the data as it is now to a folder under data/backups named by the time.",
     "backupNow": "Back up now",
     "restoreSection": "Restore",
-    "restoreHint": "Pick a backup and restore it; the data as it is now is replaced by it.",
     "empty": "No backups yet.",
     "restore": "Restore",
     "restoreConfirm": "Restore the backup from {{time}}? The current data will be overwritten. This cannot be undone.",

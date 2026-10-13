@@ -25,10 +25,8 @@
   "backup": {
     "title": "备份与还原",
     "backupSection": "备份",
-    "backupHint": "把当前数据保存到 data/backups 下以时间命名的文件夹里。",
     "backupNow": "立即备份",
     "restoreSection": "还原",
-    "restoreHint": "选择一个备份并还原，当前数据会被它覆盖。",
     "empty": "还没有备份。",
     "restore": "还原",
     "restoreConfirm": "还原到 {{time}} 的备份？当前数据会被覆盖，此操作不可撤销。",

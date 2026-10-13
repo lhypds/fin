@@ -167,31 +167,30 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
               const sum = totals.every((v) => v != null) ? totals.reduce((a, b) => a + Number(b), 0) : null;
               // A gap the size of a transfer fee is the fee being on one side only, not a wrong receipt.
               const mismatch = matched && sum != null && amountGap(sum, amount, tx.currency) == null;
-              // A matched row is a toggle: a click anywhere on it that no button or thumbnail
-              // claims flips the human confirmation of the match. Keys count only on the row
-              // itself, since Enter and Space on the buttons inside it bubble up here too.
-              const confirmProps = matched
-                ? {
-                    role: "button",
-                    tabIndex: 0,
-                    "aria-pressed": !!tx.confirmed,
-                    onClick: () => toggleConfirmed(tx),
-                    onKeyDown: (e) => {
-                      if (e.target !== e.currentTarget) return;
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        toggleConfirmed(tx);
-                      }
-                    },
+              // Every row is a toggle: a click anywhere on it that no button or thumbnail claims
+              // flips the human confirmation, matched or not (a row can be checked off without a
+              // receipt). Keys count only on the row itself, since Enter and Space on the buttons
+              // inside it bubble up here too.
+              const confirmProps = {
+                role: "button",
+                tabIndex: 0,
+                "aria-pressed": !!tx.confirmed,
+                onClick: () => toggleConfirmed(tx),
+                onKeyDown: (e) => {
+                  if (e.target !== e.currentTarget) return;
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    toggleConfirmed(tx);
                   }
-                : {};
+                },
+              };
 
               return (
                 <div
                   key={tx.id}
                   className={styles.row}
                   data-matched={matched}
-                  data-confirmed={matched && !!tx.confirmed}
+                  data-confirmed={!!tx.confirmed}
                   {...confirmProps}
                   onDragOver={(e) => {
                     if (!isReceiptDrag(e)) return;

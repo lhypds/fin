@@ -23,7 +23,6 @@
   font-weight: 600;
 }
 
-.hint,
 .empty {
   color: var(--muted);
   line-height: 1.6;
