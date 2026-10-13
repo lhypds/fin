@@ -38,6 +38,18 @@
   color: var(--fg);
 }
 
+/* The search narrows the list under it. Escape in the box clears it. */
+.search {
+  display: flex;
+  padding: 8px 12px;
+  border-bottom: var(--line) solid var(--border);
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+}
+
 .list {
   flex: 1;
 }

@@ -263,7 +263,7 @@ export function scoreMatch(tx, receipt) {
 
   // An exact amount on the same day scores 0.8 without any name evidence, a month apart about 0.5,
   // months apart about 0.42. A fee-sized gap (0.85) or an opposite direction (0.9) on top of a far
-  // date drops below the threshold: those pairs stay suggestions in the picker.
+  // date drops below the threshold: those pairs are left for a hand match.
   let score = as.score * (0.35 + 0.45 * ds + 0.2 * ns);
 
   // A payer's transfer slip (expense) legitimately matches the deposit it caused on the receiving

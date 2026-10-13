@@ -1,22 +1,38 @@
 import { useEffect, useRef } from "react";
 import styles from "./modal.module.css";
 
+// The dialogs open right now, oldest first. Escape closes only the newest, so a preview opened
+// from an editor goes before the editor under it.
+const openStack = [];
+
 const Modal = ({ isOpen, onClose, title, children, closeOnOverlay = true, closeOnEscape = true, className }) => {
   // A click only counts as "outside" when it both starts and ends on the overlay. A drag that
   // begins inside the dialog (selecting text in a field) and is released over the backdrop
   // must not close it.
   const pressedOnOverlay = useRef(false);
+  // The latest onClose, read at key time, so a new callback each render does not re-register the
+  // dialog and move it to the top of the stack.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
-    if (!isOpen || !closeOnEscape || !onClose) return;
+    if (!isOpen || !closeOnEscape) return;
+    const token = {};
+    openStack.push(token);
     const handleKeyDown = (e) => {
       if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (openStack[openStack.length - 1] !== token || !onCloseRef.current) return;
       e.preventDefault();
-      onClose();
+      onCloseRef.current();
     };
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, closeOnEscape, onClose]);
+    return () => {
+      openStack.splice(openStack.indexOf(token), 1);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, closeOnEscape]);
 
   // Prevent touchmove on background
   // allow scroll on textarea/input/select but prevent on the rest of the background

@@ -116,6 +116,7 @@
     "noDate": "日付なし"
   },
   "receipts": {
+    "search": "証憑を検索…",
     "title": "未照合の証憑",
     "ocrAll": "すべて読取",
     "showMatched": "照合済を表示",
@@ -125,13 +126,6 @@
     "rerunAllConfirm": "{{count}} 件の証憑はすべて読取済です。再読取すると、手動で修正した項目を含め現在の結果が上書きされ、現在の照合はすべて解除されます。すべて再読取しますか？",
     "noAmount": "金額なし",
     "dragHint": "取引行にドラッグして照合"
-  },
-  "picker": {
-    "title": "証憑を選択",
-    "empty": "読取済で未照合の証憑がありません。",
-    "suggested": "候補",
-    "search": "証憑を検索…",
-    "noResults": "該当する証憑がありません。"
   },
   "preview": {
     "ocrResult": "読取結果",
@@ -163,6 +157,8 @@
   },
   "matchEditor": {
     "title": "照合を編集",
+    "receipts": "照合した証憑",
+    "noReceipts": "証憑なし",
     "memo": "メモ"
   },
   "button": {

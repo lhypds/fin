@@ -3,18 +3,19 @@ import { useTranslation } from "react-i18next";
 import { ActionButton, Checkbox, showToast } from "@ui";
 import { useReconcile } from "@store";
 import { fmtMoney } from "@utils/format";
+import { receiptHaystack, matchesQuery } from "@utils/search";
 import DropZone from "../DropZone";
 import FileThumb from "../FileThumb";
 import StatusTag from "../StatusTag";
 import { PlayIcon, EyeIcon, TrashIcon, LoaderIcon, UnlinkIcon } from "../icons";
+import { RECEIPT_DRAG_TYPE, isReceiptDrag } from "./drag";
 import styles from "./receipt.module.css";
-
-export const RECEIPT_DRAG_TYPE = "application/x-receipt";
 
 export default function ReceiptPanel({ onPreview }) {
   const { t } = useTranslation();
   const { receipts, importReceipts, ocrPending, removeReceipt, unmatch, unmatchAll, progress } = useReconcile();
   const [showMatched, setShowMatched] = useState(false);
+  const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
 
   // Files the button can read: a missing upload cannot be, one being read is already on its way.
@@ -23,7 +24,9 @@ export default function ReceiptPanel({ onPreview }) {
   const todo = readable.filter((r) => r.status === "pending" || r.status === "error");
   const running = progress.receipt.total > 0;
   const percent = running ? Math.round((progress.receipt.done / progress.receipt.total) * 100) : 0;
-  const visible = showMatched ? receipts : receipts.filter((r) => !r.txId);
+  // The open receipts, or all of them, narrowed by the search box above the list.
+  const listed = showMatched ? receipts : receipts.filter((r) => !r.txId);
+  const visible = query.trim() ? listed.filter((r) => matchesQuery(receiptHaystack(r), query)) : listed;
 
   async function runOcr(ids) {
     setBusy(true);
@@ -84,7 +87,37 @@ export default function ReceiptPanel({ onPreview }) {
         </Checkbox>
       </div>
 
-      <div className={`${styles.list} scroll-y`}>
+      <div className={styles.search}>
+        <input
+          className={`input ${styles.searchInput}`}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setQuery("");
+          }}
+          placeholder={t("receipts.search")}
+          aria-label={t("receipts.search")}
+        />
+      </div>
+
+      {/* The list is a drop target for a chip dragged back from the ledger: the receipt is unmatched.
+          Nothing marks the list while the chip is over it. */}
+      <div
+        className={`${styles.list} scroll-y`}
+        onDragOver={(e) => {
+          if (!isReceiptDrag(e)) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "link";
+        }}
+        onDrop={(e) => {
+          const id = e.dataTransfer.getData(RECEIPT_DRAG_TYPE);
+          if (!id) return;
+          e.preventDefault();
+          // A card dropped back on its own list is already unmatched and is left alone.
+          if (receipts.some((r) => r.id === id && r.txId)) unmatch(id);
+        }}
+      >
         <div className={styles.listInner}>
         {visible.length === 0 && (
           <p className={styles.empty}>{receipts.length === 0 ? t("receipts.empty") : t("ledger.emptyFiltered")}</p>

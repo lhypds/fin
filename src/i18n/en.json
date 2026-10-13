@@ -117,6 +117,7 @@
   },
   "receipts": {
     "title": "Unmatched receipts",
+    "search": "Search receipts…",
     "ocrAll": "Read all",
     "showMatched": "Show matched",
     "empty": "Upload receipts, invoices or screenshots. They stay here until they are matched to a transaction.",
@@ -125,13 +126,6 @@
     "rerunAllConfirm": "All {{count}} receipts have been read. Reading them again replaces their current results, including any fields you edited, and undoes every match. Read them all again?",
     "noAmount": "no amount",
     "dragHint": "Drag onto a ledger row to match"
-  },
-  "picker": {
-    "title": "Match receipt",
-    "empty": "No unmatched receipts with an OCR result.",
-    "suggested": "suggested",
-    "search": "Search receipts…",
-    "noResults": "No receipts match."
   },
   "preview": {
     "ocrResult": "OCR result",
@@ -163,6 +157,8 @@
   },
   "matchEditor": {
     "title": "Edit reconciliation",
+    "receipts": "Matched receipts",
+    "noReceipts": "No receipt matched",
     "memo": "Memo"
   },
   "button": {

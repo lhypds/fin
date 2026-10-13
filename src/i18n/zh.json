@@ -117,6 +117,7 @@
   },
   "receipts": {
     "title": "未对账收据",
+    "search": "搜索收据…",
     "ocrAll": "识别全部",
     "showMatched": "显示已对账",
     "empty": "上传收据、发票或截图。它们会一直留在这里，直到和某条流水对上。",
@@ -125,13 +126,6 @@
     "rerunAllConfirm": "{{count}} 张收据都已经识别过。重新识别会覆盖它们当前的结果，包括你手动修改过的字段，现有的对账会全部撤销。要全部重新识别吗？",
     "noAmount": "无金额",
     "dragHint": "拖到流水行上即可匹配"
-  },
-  "picker": {
-    "title": "选择收据",
-    "empty": "没有已识别且未对账的收据。",
-    "suggested": "推荐",
-    "search": "搜索收据…",
-    "noResults": "没有匹配的收据。"
   },
   "preview": {
     "ocrResult": "识别结果",
@@ -163,6 +157,8 @@
   },
   "matchEditor": {
     "title": "编辑对账",
+    "receipts": "对账收据",
+    "noReceipts": "未关联收据",
     "memo": "备注"
   },
   "button": {

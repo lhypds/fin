@@ -8,11 +8,10 @@ import { transactionHaystack, matchesQuery } from "@utils/search";
 import { ledgerView, UNDATED } from "@utils/transactions";
 import FileThumb from "../FileThumb";
 import { ConfidenceTag } from "../StatusTag";
-import { RECEIPT_DRAG_TYPE } from "../ReceiptPanel";
+import { RECEIPT_DRAG_TYPE, isReceiptDrag } from "../ReceiptPanel";
 import TxEditor from "./TxEditor";
 import MatchEditor from "./MatchEditor";
-import ReceiptPicker from "./ReceiptPicker";
-import { EditIcon, TrashIcon, EyeIcon, UnlinkIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon } from "../icons";
+import { EditIcon, TrashIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon } from "../icons";
 import styles from "./ledger.module.css";
 
 const FILTERS = ["all", "unmatched", "matched"];
@@ -31,19 +30,13 @@ function sortByDate(list) {
     .map((x) => x.tx);
 }
 
-function isReceiptDrag(e) {
-  return Array.from(e.dataTransfer?.types || []).includes(RECEIPT_DRAG_TYPE);
-}
-
 // One month of one account (or of all of them) at a time. `bankId` is the account chosen on the
 // left, `month` the one chosen here, both held by the page so an import can move them.
 export default function Ledger({ bankId = null, month = "", onMonthChange, onPreviewReceipt, query = "" }) {
   const { t } = useTranslation();
-  const { transactions, receiptById, match, unmatch, removeTransaction, updateTransaction } = useReconcile();
+  const { transactions, receiptById, match, removeTransaction, updateTransaction } = useReconcile();
   const [filter, setFilter] = useState("all");
   const [editing, setEditing] = useState(null);
-  const [picking, setPicking] = useState(null);
-  const [overId, setOverId] = useState(null);
   const [editingMatch, setEditingMatch] = useState(null);
 
   // The month picker's entries, the one on screen, and its rows. The header's auto-match covers
@@ -174,24 +167,6 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
               const sum = totals.every((v) => v != null) ? totals.reduce((a, b) => a + Number(b), 0) : null;
               // A gap the size of a transfer fee is the fee being on one side only, not a wrong receipt.
               const mismatch = matched && sum != null && amountGap(sum, amount, tx.currency) == null;
-              // An empty reconciliation cell opens the picker; a matched one holds chips with their own buttons.
-              const pickProps = matched
-                ? {}
-                : {
-                    "data-pickable": true,
-                    role: "button",
-                    tabIndex: 0,
-                    title: t("picker.title"),
-                    onClick: () => setPicking(tx),
-                    // Keys count only on the cell itself: Enter on the edit button inside it must not open the picker.
-                    onKeyDown: (e) => {
-                      if (e.target !== e.currentTarget) return;
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setPicking(tx);
-                      }
-                    },
-                  };
               // A matched row is a toggle: a click anywhere on it that no button or thumbnail
               // claims flips the human confirmation of the match. Keys count only on the row
               // itself, since Enter and Space on the buttons inside it bubble up here too.
@@ -217,22 +192,18 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                   className={styles.row}
                   data-matched={matched}
                   data-confirmed={matched && !!tx.confirmed}
-                  data-over={overId === tx.id}
                   {...confirmProps}
                   onDragOver={(e) => {
                     if (!isReceiptDrag(e)) return;
                     e.preventDefault();
                     e.dataTransfer.dropEffect = "link";
-                    if (overId !== tx.id) setOverId(tx.id);
-                  }}
-                  onDragLeave={(e) => {
-                    if (!e.currentTarget.contains(e.relatedTarget)) setOverId((id) => (id === tx.id ? null : id));
                   }}
                   onDrop={(e) => {
                     const receiptId = e.dataTransfer.getData(RECEIPT_DRAG_TYPE);
-                    setOverId(null);
                     if (!receiptId) return;
                     e.preventDefault();
+                    // A chip dropped back on its own row stays as it is, confidence included.
+                    if (tx.receiptIds?.includes(receiptId)) return;
                     match(tx.id, receiptId, null);
                   }}
                 >
@@ -256,59 +227,59 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                     </div>
                   </div>
 
-                  <div className={styles.cMatch} {...pickProps}>
-                    {matched &&
-                      receipts.map((r, i) => (
-                        // The thumbnail is the chip's one button and opens the receipt preview. The
-                        // rest of the chip belongs to the row, so a click there confirms the match.
-                        <div key={r.id} className={styles.chip}>
-                          <button
-                            type="button"
-                            className={styles.chipThumb}
-                            title={t("button.preview")}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onPreviewReceipt(r.id);
+                  <div className={styles.cMatch}>
+                    <div className={styles.matchBody}>
+                      {matched &&
+                        receipts.map((r, i) => (
+                          // The thumbnail is the chip's one button and opens the receipt preview. The
+                          // rest of the chip belongs to the row, so a click there confirms the match.
+                          // Dragged to the receipt list, the chip is unmatched; to another row, moved there.
+                          <div
+                            key={r.id}
+                            className={styles.chip}
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData(RECEIPT_DRAG_TYPE, r.id);
+                              e.dataTransfer.effectAllowed = "link";
                             }}
                           >
-                            <FileThumb item={r} size={28} />
-                          </button>
-                          <div className={styles.chipInfo}>
-                            <div className={styles.chipTitle}>{r.ocr?.vendor || r.name}</div>
-                            <div className={`${styles.chipMeta} mono`}>
-                              <span>{r.ocr?.date || "—"}</span>
-                              <span>{r.ocr?.total != null ? fmtMoney(r.ocr.total, r.ocr.currency) : t("receipts.noAmount")}</span>
-                              <ConfidenceTag confidence={r.confidence} />
-                            </div>
-                            {/* The sum note covers every receipt, so it hangs off the last chip. Inside the chip
-                                (rather than below the stack) the thumb and buttons stay centred against it. */}
-                            {mismatch && i === receipts.length - 1 && (
-                              <div className={styles.mismatch}>
-                                {t("ledger.sumMismatch", { sum: fmtMoney(sum, tx.currency), amount: fmtMoney(amount, tx.currency) })}
+                            <button
+                              type="button"
+                              className={styles.chipThumb}
+                              title={t("button.preview")}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onPreviewReceipt(r.id);
+                              }}
+                            >
+                              <FileThumb item={r} size={28} />
+                            </button>
+                            <div className={styles.chipInfo}>
+                              <div className={styles.chipTitle}>{r.ocr?.vendor || r.name}</div>
+                              <div className={`${styles.chipMeta} mono`}>
+                                <span>{r.ocr?.date || "—"}</span>
+                                <span>{r.ocr?.total != null ? fmtMoney(r.ocr.total, r.ocr.currency) : t("receipts.noAmount")}</span>
+                                <ConfidenceTag confidence={r.confidence} />
                               </div>
-                            )}
+                              {/* The sum note covers every receipt, so it hangs off the last chip. Inside the chip
+                                  (rather than below the stack) the thumb stays centred against it. */}
+                              {mismatch && i === receipts.length - 1 && (
+                                <div className={styles.mismatch}>
+                                  {t("ledger.sumMismatch", { sum: fmtMoney(sum, tx.currency), amount: fmtMoney(amount, tx.currency) })}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className={styles.chipActions} onClick={(e) => e.stopPropagation()}>
-                            <ActionButton tooltip={t("button.preview")} onClick={() => onPreviewReceipt(r.id)}>
-                              <EyeIcon />
-                            </ActionButton>
-                            <ActionButton tooltip={t("button.unmatch")} onClick={() => unmatch(r.id)}>
-                              <UnlinkIcon />
-                            </ActionButton>
-                          </div>
-                        </div>
-                      ))}
-                    {/* The note is its own line under the chips, laid out like one: text on the left, its edit
-                        button on the right under the chips' buttons. It is always there, since the button is
-                        the only way to open the reconciliation editor; on an unmatched row with no note the
-                        line holds just the button. */}
-                    <div className={styles.noteRow}>
-                      <div className={styles.note}>{tx.memo}</div>
-                      <div className={styles.matchActions} onClick={(e) => e.stopPropagation()}>
-                        <ActionButton tooltip={t("button.edit")} onClick={() => setEditingMatch(tx)}>
-                          <EditIcon />
-                        </ActionButton>
-                      </div>
+                        ))}
+                      {/* The note typed on the reconciliation sits under the chips, or alone on an unmatched row. */}
+                      {tx.memo && <div className={styles.note}>{tx.memo}</div>}
+                    </div>
+                    {/* The cell's one button opens the reconciliation editor, where receipts are unmatched
+                        and the note typed. It keeps the right edge, centred on the stack beside it. */}
+                    <div className={styles.matchActions} onClick={(e) => e.stopPropagation()}>
+                      <ActionButton tooltip={t("button.edit")} onClick={() => setEditingMatch(tx)}>
+                        <EditIcon />
+                      </ActionButton>
                     </div>
                   </div>
                 </div>
@@ -327,8 +298,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
           onSaved={(saved) => onMonthChange(saved.date.slice(0, 7))}
         />
       )}
-      {editingMatch && <MatchEditor tx={editingMatch} onClose={() => setEditingMatch(null)} />}
-      {picking && <ReceiptPicker tx={picking} onClose={() => setPicking(null)} />}
+      {editingMatch && <MatchEditor tx={editingMatch} onClose={() => setEditingMatch(null)} onPreview={onPreviewReceipt} />}
     </div>
   );
 }
