@@ -4,12 +4,17 @@ fin
 
 Auto reconciliation of financial transactions.
 
-Bank accounts are set up by hand on the left (bank, branch, account number, holder). A statement
-is dropped onto its account: the bank's CSV export, or photos, scans and PDFs of the passbook
-(通帳). The model reads it into rows on the ledger, the way it reads receipts (a CSV in parts of
-about a hundred rows so nothing is lost), and what a passbook cover says about the account fills
-in the details not typed in yet. Receipts on the right are uploaded as images or PDFs, read by
-OCR, and matched to the rows. The ledger shows one account (or all of them) and one month at a time.
+Bank accounts live on the left. A photo, scan or PDF of the passbook (通帳) dropped there is read
+by the model for the account on its cover (bank, branch, account number, holder) and makes the
+account, or completes one with that number; its rows are never read. The bank's CSV export is
+what the rows come from: dropping one asks which account it belongs to (or makes a new one), then
+the model reads it into rows on the ledger, in parts of about a hundred rows so nothing is lost;
+it never touches the account's details, which are typed in or come from the passbook. Neither
+file is kept: it is uploaded to be read and removed once the result is in. A read can be
+called off while it runs, and a page reloaded mid-read picks it up again (the server runs the
+model once per file and lets a second asker join). Receipts on the right are uploaded as images
+or PDFs, kept, read by OCR, and matched to the rows. The ledger shows one account (or all of
+them) and one month at a time.
 
 
 Setup
@@ -47,8 +52,8 @@ Data lives under `data/` (`DATA_DIR` in `.env`):
 ```
 data/
 ├── users.json                 login accounts
-├── state.json                 banks, statements, transactions, receipts, matches
-└── uploads/<unix ms>/         one folder per upload (a CSV statement or a receipt)
+├── state.json                 banks, transactions, receipts, matches
+└── uploads/<unix ms>/         one folder per receipt (a statement is here only while being read)
     ├── <original file name>   byte-identical upload
     ├── meta.json
     ├── thumbnail.webp         images only

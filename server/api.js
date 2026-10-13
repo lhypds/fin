@@ -1,11 +1,13 @@
-// The app's HTTP API: uploads (CSV statements and receipts), thumbnails, OCR, and the reconciliation state.
+// The app's HTTP API: uploads, thumbnails, OCR, and the reconciliation state. Receipts stay as
+// uploads; a statement (CSV, or a passbook image) is uploaded only to be read, and the client
+// deletes it once the result is in.
 // Returned as an express app so the same code mounts on the Vite dev server and on server/index.js.
 //
 //   data/
-//   ├── state.json                 banks, statements, transactions, receipts, matches
+//   ├── state.json                 banks, transactions, receipts, matches
 //   └── uploads/<unix ms>/         one folder per upload
 //       ├── <original file name>   byte-identical to what was uploaded
-//       ├── meta.json              name, type, size, uploadedAt, thumbnail
+//       ├── meta.json              name, type, size, role, uploadedAt, thumbnail
 //       ├── thumbnail.webp         images only
 //       └── ocr.json               written when OCR has run (raw model output + model, time)
 
@@ -19,6 +21,7 @@ import { createAuthApp, USERS_FILE } from "./auth.js";
 
 const ID_RE = /^\d{13,16}$/;
 const ACCEPTED_TYPES = new Set(["text/csv", "image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"]);
+const ROLES = new Set(["receipt", "statement"]);
 const META = "meta.json";
 const THUMB = "thumbnail.webp";
 const OCR = "ocr.json";
@@ -65,16 +68,31 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
   const exists = (file) => fsp.access(file).then(() => true, () => false);
 
   // `ocr` tells the client a result is on disk, so after a reload it can pick up a run whose
-  // response no page was around to receive.
+  // response no page was around to receive. `role` is what the upload was for (receipt or
+  // statement); a statement still here is one whose read was cut off, and `name`, `type` and
+  // `bankId` are what the client needs to finish it.
   async function listFiles() {
     const out = [];
     for (const name of (await fsp.readdir(uploadsDir)).sort()) {
       if (!ID_RE.test(name)) continue;
       const meta = await readMeta(name);
-      if (meta) out.push({ id: name, thumbnail: !!meta.thumbnail, ocr: await exists(path.join(dirOf(name), OCR)) });
+      if (!meta) continue;
+      out.push({
+        id: name,
+        name: meta.name,
+        type: meta.type,
+        role: meta.role || null,
+        bankId: meta.bankId || null,
+        thumbnail: !!meta.thumbnail,
+        ocr: await exists(path.join(dirOf(name), OCR)),
+      });
     }
     return out;
   }
+
+  // One model run per file at a time: a page that reloads while a read is under way asks again,
+  // and joins the run already going rather than starting another.
+  const running = new Map();
 
   // Folder name = upload time in ms; bump by one when two uploads land in the same millisecond.
   async function newUploadDir() {
@@ -120,7 +138,8 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
     }
   });
 
-  // Upload: raw body, mime type in content-type, original name URL-encoded in x-file-name.
+  // Upload: raw body, mime type in content-type, original name URL-encoded in x-file-name, and
+  // what it is for in x-file-role (receipt, or statement: a file read once and then removed).
   app.post("/api/files", express.raw({ type: () => true, limit: maxUpload }), async (req, res, next) => {
     try {
       const type = (req.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
@@ -133,6 +152,11 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
         /* malformed encoding → invalid */
       }
       if (!validFileName(name)) return fail(res, 400, "Invalid file name");
+      const role = ROLES.has(req.headers["x-file-role"]) ? req.headers["x-file-role"] : null;
+      // The account a statement is for, kept with the file so a page that reloads mid-read can
+      // pick the read up again and put the result where it was meant to go.
+      const bankHeader = req.headers["x-file-bank"];
+      const bankId = typeof bankHeader === "string" && /^[\w-]{1,64}$/.test(bankHeader) ? bankHeader : null;
 
       const id = await newUploadDir();
       const dir = dirOf(id);
@@ -152,7 +176,7 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
         }
       }
 
-      const meta = { id, name, type, size: req.body.length, uploadedAt: new Date(Number(id)).toISOString(), thumbnail };
+      const meta = { id, name, type, size: req.body.length, role, bankId, uploadedAt: new Date(Number(id)).toISOString(), thumbnail };
       await fsp.writeFile(path.join(dir, META), JSON.stringify(meta, null, 2));
       res.json(meta);
     } catch (err) {
@@ -206,12 +230,29 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
       if (!OCR_KINDS.includes(kind)) return fail(res, 400, `kind must be one of: ${OCR_KINDS.join(", ")}`);
       const meta = await readMeta(req.params.id);
       if (!meta) return fail(res, 404, "File not found");
-      const dir = dirOf(req.params.id);
-      const started = Date.now();
-      const result = await runOcr({ kind, filePath: path.join(dir, meta.name), type: meta.type, name: meta.name, apiKey, baseUrl, model });
-      const record = { kind, model, at: new Date().toISOString(), durationMs: Date.now() - started, result };
-      await fsp.writeFile(path.join(dir, OCR), JSON.stringify(record, null, 2));
-      res.json(record);
+      // Rows come from CSV exports only; a passbook is read for the account, never for rows.
+      if (kind === "statement" && meta.type !== "text/csv") return fail(res, 415, "A statement must be a CSV file");
+      if (kind !== "statement" && meta.type === "text/csv") return fail(res, 415, "A CSV can only be read as a statement");
+      const id = req.params.id;
+      const dir = dirOf(id);
+      let job = running.get(id);
+      if (!job || job.kind !== kind) {
+        const promise = (async () => {
+          const started = Date.now();
+          const result = await runOcr({ kind, filePath: path.join(dir, meta.name), type: meta.type, name: meta.name, apiKey, baseUrl, model });
+          const record = { kind, model, at: new Date().toISOString(), durationMs: Date.now() - started, result };
+          // The file may have been removed while the model was reading it (a read called off).
+          if (await exists(dir)) await fsp.writeFile(path.join(dir, OCR), JSON.stringify(record, null, 2));
+          return record;
+        })();
+        job = { kind, promise };
+        running.set(id, job);
+        const done = () => {
+          if (running.get(id) === job) running.delete(id);
+        };
+        promise.then(done, done);
+      }
+      res.json(await job.promise);
     } catch (err) {
       next(err);
     }

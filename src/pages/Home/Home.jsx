@@ -175,7 +175,7 @@ export default function Home() {
 
       <div className={styles.body}>
         <aside className={styles.drawer} data-open={leftOpen}>
-          <BankPanel selectedId={activeBankId} onSelect={selectBank} onImported={handleImported} onPreview={(id) => setPreview({ kind: "statement", id })} />
+          <BankPanel selectedId={activeBankId} onSelect={selectBank} onImported={handleImported} />
         </aside>
         <button
           type="button"
@@ -188,7 +188,7 @@ export default function Home() {
         </button>
 
         <main className={styles.main}>
-          <Ledger bankId={activeBankId} month={month} onMonthChange={setMonth} query={query} onPreviewReceipt={(id) => setPreview({ kind: "receipt", id })} />
+          <Ledger bankId={activeBankId} month={month} onMonthChange={setMonth} query={query} onPreviewReceipt={setPreview} />
         </main>
 
         <button
@@ -201,7 +201,7 @@ export default function Home() {
           {rightOpen ? <ChevronRightIcon /> : <ChevronLeftIcon />}
         </button>
         <aside className={styles.drawer} data-open={rightOpen}>
-          <ReceiptPanel onPreview={(id) => setPreview({ kind: "receipt", id })} />
+          <ReceiptPanel onPreview={setPreview} />
         </aside>
       </div>
 
@@ -224,7 +224,7 @@ export default function Home() {
         </span>
       </footer>
 
-      {preview && <PreviewModal kind={preview.kind} id={preview.id} onClose={closePreview} />}
+      {preview && <PreviewModal id={preview} onClose={closePreview} />}
     </div>
   );
 }

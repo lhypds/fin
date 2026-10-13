@@ -13,7 +13,7 @@ export const RECEIPT_DRAG_TYPE = "application/x-receipt";
 
 export default function ReceiptPanel({ onPreview }) {
   const { t } = useTranslation();
-  const { receipts, importFiles, ocrPending, removeFileItem, unmatch, unmatchAll, progress } = useReconcile();
+  const { receipts, importReceipts, ocrPending, removeReceipt, unmatch, unmatchAll, progress } = useReconcile();
   const [showMatched, setShowMatched] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -28,7 +28,7 @@ export default function ReceiptPanel({ onPreview }) {
   async function runOcr(ids) {
     setBusy(true);
     try {
-      const { ok, errors, lastError } = await ocrPending("receipt", ids);
+      const { ok, errors, lastError } = await ocrPending(ids);
       if (!ok && !errors) showToast(t("toast.nothingPending"));
       else if (errors) showToast(t("toast.ocrFailed", { message: lastError?.message || "" }), 6000);
       else showToast(t("toast.ocrDone", { ok, errors }));
@@ -38,7 +38,7 @@ export default function ReceiptPanel({ onPreview }) {
   }
 
   async function handleFiles(files) {
-    const { added, rejected, duplicates, failed, lastError, ids } = await importFiles("receipt", files);
+    const { added, rejected, duplicates, failed, lastError, ids } = await importReceipts(files);
     if (rejected) showToast(t("dropzone.rejected", { count: rejected }));
     if (duplicates) showToast(t("dropzone.duplicate", { count: duplicates }));
     if (failed) showToast(t("toast.uploadFailed", { count: failed, message: lastError?.message || "" }), 6000);
@@ -47,7 +47,7 @@ export default function ReceiptPanel({ onPreview }) {
 
   async function handleDelete(r) {
     if (!window.confirm(t("receipts.deleteConfirm"))) return;
-    await removeFileItem("receipt", r.id);
+    await removeReceipt(r.id);
   }
 
   // A receipt that has been read already is only read again on confirmation: the new result

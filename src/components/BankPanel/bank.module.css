@@ -127,34 +127,13 @@
   gap: 2px;
 }
 
-/* Statement files, listed the way receipts are: a thumb, the name and size, the status and the
-   buttons. Under an account they sit below a line under its details; files still waiting for
-   their account sit in a block of their own under the row for all accounts. */
-.fileList {
+/* A statement while it is being read: an item after the accounts, drawn like a receipt card, with
+   a thumb, the name, the account it is for, the status and a way to stop. */
+.pending {
   display: flex;
-  flex-direction: column;
   gap: 8px;
-}
-
-.files {
-  margin-top: 6px;
-  padding-top: 8px;
-  border-top: var(--line) solid var(--border);
-  cursor: default;
-}
-
-.unassigned {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
   padding: 8px 12px;
   border-bottom: var(--line) solid var(--border);
-}
-
-.file {
-  display: flex;
-  gap: 8px;
-  cursor: pointer;
 }
 
 .fileInfo {
@@ -166,14 +145,6 @@
 }
 
 .fileName {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.fileError {
-  color: var(--err);
-  font-size: 10px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -193,6 +164,83 @@
   left: auto;
   right: 0;
   transform: none;
+}
+
+/* Choosing the account a CSV goes onto: the file names, then the accounts as a stack of rows with a
+   square radio dot, drawn like the checkbox. */
+.fileNames {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.targets {
+  display: flex;
+  flex-direction: column;
+  border: var(--line) solid var(--border);
+}
+
+.target {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: var(--line) solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.target:last-child {
+  border-bottom: none;
+}
+
+.target:hover,
+.target[data-active="true"] {
+  background: var(--bg-hover);
+}
+
+/* The native radio stays in the DOM for keyboard and screen-reader access, but is not drawn. */
+.radio {
+  position: absolute;
+  width: 0;
+  height: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+}
+
+.target[data-active="true"] .dot {
+  background: var(--border);
+}
+
+.radio:focus-visible + .dot {
+  outline: var(--line) solid var(--focus);
+  outline-offset: 2px;
+}
+
+.targetName {
+  flex: none;
+}
+
+.targetMeta {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* The account form in its dialog. */

@@ -54,6 +54,12 @@ export function toNumberOrNull(v) {
   return Number.isFinite(n) ? n : null;
 }
 
+// "渋谷支店 · 普通 1234567 · カ）エイタイ": whichever of an account's details are filled in.
+export function fmtAccount(bank) {
+  const account = [bank.accountType, bank.accountNumber].filter(Boolean).join(" ");
+  return [bank.branch, account, bank.holder].filter(Boolean).join(" · ");
+}
+
 export function confidenceLevel(c) {
   if (c == null) return "manual";
   if (c >= 0.7) return "high";

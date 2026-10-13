@@ -54,7 +54,7 @@
     "title": "Bank accounts",
     "add": "Add",
     "all": "All accounts",
-    "empty": "Drop a CSV statement or passbook photos. The rows go on the ledger, and the account is set up from what the file shows.",
+    "empty": "Drop a passbook photo to set up an account, then its CSV statements to read the rows.",
     "rowCount": "{{count}} rows",
     "deleteConfirm": "Delete {{name}} and its {{count}} transactions?",
     "unnamed": "New account"
@@ -70,13 +70,10 @@
     "currency": "Currency",
     "nameRequired": "Enter the bank's name"
   },
-  "statements": {
-    "ocrAll": "Read all",
-    "txCount": "{{count}} rows",
-    "deleteConfirm": "Delete this file and its {{count}} transactions?",
-    "rerunConfirm": "This statement has already been read. Reading it again calls the model once more, and rows it reads differently this time are added as new transactions. Read it again?",
-    "rerunAllConfirm": "All {{count}} statements have been read. Reading them again calls the model once more per file, rows it reads differently this time are added as new transactions, and every match is undone. Read them all again?",
-    "unassigned": "Account not known yet"
+  "importTarget": {
+    "title": "Which account is this statement for?",
+    "newAccount": "New account",
+    "confirm": "Read"
   },
   "ledger": {
     "title": "Bank transactions",
@@ -139,9 +136,7 @@
     "expense": "Expense",
     "income": "Income",
     "unknown": "Unknown",
-    "noPreview": "File data is missing. It was cleared from browser storage.",
-    "transactions": "Extracted rows",
-    "notes": "Notes"
+    "noPreview": "File data is missing. It was cleared from browser storage."
   },
   "txEditor": {
     "title": "Edit transaction",
@@ -174,7 +169,8 @@
     "saved": "Saved",
     "uploadFailed": "{{count}} file(s) failed to upload: {{message}}",
     "saveFailed": "Failed to save to the server: {{message}}",
-    "rowsAdded": "{{count}} rows extracted"
+    "rowsAdded": "{{count}} rows extracted",
+    "accountRead": "Account details read"
   },
   "panel": {
     "openLeft": "Show bank accounts",

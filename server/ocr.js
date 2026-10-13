@@ -1,6 +1,6 @@
-// Reading files through the OpenAI Responses API with Structured Outputs: bank statements (a CSV
-// export, or photos, scans and PDFs of a passbook) into ledger rows and account details, receipts
-// into their fields. Runs on the server so the file never leaves data/ except to go to OpenAI.
+// Reading files through the OpenAI Responses API with Structured Outputs: CSV bank statements into
+// ledger rows, passbook photos and PDFs into the account's details, receipts into their fields.
+// Runs on the server so the file never leaves data/ except to go to OpenAI.
 
 import fsp from "node:fs/promises";
 import sharp from "sharp";
@@ -36,7 +36,20 @@ const STATEMENT_SCHEMA = {
         required: ["date", "description", "withdrawal", "deposit", "balance"],
       },
     },
-    // What a passbook's cover (or a CSV's first lines) says about the account itself.
+    notes: { type: "string", description: "Short remarks about rows that could not be read or assumptions made, empty if none" },
+  },
+  required: ["bank", "currency", "transactions", "notes"],
+};
+
+// A passbook cover or account document: who the account is, and nothing of what moved on it. A
+// CSV is never asked about the account: its rows are all that is wanted from it, and the details
+// are typed in or read off the passbook.
+const ACCOUNT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    bank: STATEMENT_SCHEMA.properties.bank,
+    currency: STATEMENT_SCHEMA.properties.currency,
     account: {
       type: "object",
       additionalProperties: false,
@@ -48,9 +61,9 @@ const STATEMENT_SCHEMA = {
       },
       required: ["branch", "accountType", "accountNumber", "holder"],
     },
-    notes: { type: "string", description: "Short remarks about rows that could not be read or assumptions made, empty if none" },
+    notes: { type: "string", description: "Short remarks about details that could not be read, empty if none" },
   },
-  required: ["bank", "currency", "transactions", "account", "notes"],
+  required: ["bank", "currency", "account", "notes"],
 };
 
 const RECEIPT_SCHEMA = {
@@ -100,21 +113,17 @@ Rules:
 - withdrawal = money out: お支払金額 / 支払金額 / 出金 / お引出し / 引落. deposit = money in: お預り金額 / 預り金額 / 入金 / お預入れ. A single signed amount column (入出金, 金額, 取引金額): a negative number is a withdrawal, a positive one a deposit. A separate 入/出 or 入金/出金 marker column decides the side of an unsigned amount. Amounts are plain numbers: drop commas, spaces, ¥ and 円; △, ▲, a leading minus or parentheses mean negative. Never put the same number in both withdrawal and deposit.
 - balance = the 残高 / 差引残高 / 取引後残高 column when there is one, else null.
 - description = the 摘要 / 内容 / お取引内容 / 入出金内容 text exactly as written: keep half-width katakana, abbreviations like カ） and ATM, and spacing. When the file splits it over two columns (摘要 and 摘要内容), join them with one space.
-- account = the branch, account type, account number and holder when the lines before the header name them; null for anything the file does not say.
 - Skip the header line, lines before it (account number, holder, period, export date), totals, and blank lines. A row with a date but no amount (繰越) may be kept with null amounts.`;
 
-const PASSBOOK_INSTRUCTIONS = `You are an OCR engine for bank passbooks (日本の銀行通帳) and printed bank statements, photographed or scanned.
-Extract every transaction row that is visible, in printed order. Do not invent rows.
+const PASSBOOK_INSTRUCTIONS = `You are an OCR engine for the cover and header of Japanese bank passbooks (通帳) and other account documents (キャッシュカード, 口座開設の書類, 当座勘定照合表の見出し), photographed or scanned.
+Read who the account is. Ignore the transaction rows entirely; they are not wanted.
 Rules:
 - bank = the institution's usual short name, the way people say it, 2 to 6 characters: 株式会社三井住友銀行 → 三井住友, みずほ銀行 → みずほ, 三菱UFJ銀行 → 三菱UFJ, きらぼし銀行 → きらぼし, SBJ銀行 → SBJ, ゆうちょ銀行 → ゆうちょ, 城南信用金庫 → 城南信金. Read it from the logo, header, stamp or branch line. null when no bank is identifiable.
-- account = what the cover or the header prints about the account: branch (支店名, e.g. 渋谷支店), accountType (普通 / 当座 / 貯蓄), accountNumber (口座番号, digits only), holder (口座名義 as printed, e.g. カ）エイタイトウシコウコ). null for anything not visible.
-- Dates must be Gregorian YYYY-MM-DD. Japanese passbooks print dates as YY-MM-DD in the Reiwa era (令和): a two-digit year from 01 to 12 means Reiwa, so add 2018 (e.g. 06-10-08 → 2024-10-08). A year from 20 to 99 means 20YY. "R6" or "令和6" also means 2024. Heisei (平成, H) year N → 1988 + N.
-- Amounts are plain numbers without commas or currency symbols. withdrawal = お支払金額 / 出金 / お引出し. deposit = お預り金額 / 入金 / お預入れ. Never put the same number in both.
-- balance = 差引残高 column if present.
-- description = the 摘要 / お取引内容 text as printed, including abbreviations like カ）, ATM, 振込, 給与.
-- Rows that only carry a balance (繰越, 繰越残高) may be included with description "繰越" and null amounts.
-- Skip headers, footers, page numbers and stamps.
-- If the image contains multiple pages or two facing pages, read them left to right, top to bottom.`;
+- account.branch = the branch name as printed (支店名, e.g. 渋谷支店), without the 店番 number.
+- account.accountType = 普通 / 当座 / 貯蓄 as printed.
+- account.accountNumber = the 口座番号, digits only.
+- account.holder = the 口座名義 exactly as printed, usually katakana (e.g. カ）エイタイトウシコウコ), without 様 or 御中.
+- null for anything that is not visible. currency = JPY unless the document says otherwise.`;
 
 const RECEIPT_INSTRUCTIONS = `You are an OCR engine for receipts, invoices, payment confirmations and bank transfer slips (レシート, 領収書, 請求書, 振込明細, PDF invoices, app screenshots).
 Extract the fields precisely. Rules:
@@ -130,6 +139,9 @@ Extract the fields precisely. Rules:
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+// statement: a CSV export, read into rows (and whatever it says about the account).
+// passbook: a photo, scan or PDF of the passbook, read for the account's identity only.
+// receipt: a receipt, invoice or slip, read into its fields.
 const SPECS = {
   statement: {
     instructions: STATEMENT_INSTRUCTIONS,
@@ -140,6 +152,12 @@ const SPECS = {
     schema: STATEMENT_SCHEMA,
     schemaName: "statement",
   },
+  passbook: {
+    instructions: PASSBOOK_INSTRUCTIONS,
+    prompt: () => `Read the bank and the account details from this passbook or account document.`,
+    schema: ACCOUNT_SCHEMA,
+    schemaName: "account",
+  },
   receipt: {
     instructions: RECEIPT_INSTRUCTIONS,
     prompt: () => `Today is ${today()}. Extract the payment details from this document.`,
@@ -149,14 +167,6 @@ const SPECS = {
 };
 
 export const OCR_KINDS = Object.keys(SPECS);
-
-// A statement that is a photo, scan or PDF rather than a CSV: the same result, read off the page.
-const PASSBOOK_SPEC = {
-  instructions: PASSBOOK_INSTRUCTIONS,
-  prompt: () => `Today is ${today()}. Extract the account details and all transactions from this bank passbook / statement.`,
-  schema: STATEMENT_SCHEMA,
-  schemaName: "statement",
-};
 
 function httpError(status, message) {
   const err = new Error(message);
@@ -231,14 +241,12 @@ async function callModel({ spec, content, apiKey, baseUrl, model }) {
   }
 }
 
-const EMPTY_ACCOUNT = { branch: null, accountType: null, accountNumber: null, holder: null };
-
-// A CSV statement is read part by part and the parts joined: the rows in file order, the bank,
-// currency and account details from the first part that names them, the remarks from every part.
+// A CSV statement is read part by part and the parts joined: the rows in file order, the bank and
+// currency from the first part that names them, the remarks from every part.
 async function readCsvStatement({ spec, filePath, apiKey, baseUrl, model }) {
   const text = decodeCsv(await fsp.readFile(filePath));
   const parts = statementParts(text, STATEMENT_PART_ROWS);
-  const merged = { bank: null, currency: "", transactions: [], account: { ...EMPTY_ACCOUNT }, notes: [] };
+  const merged = { bank: null, currency: "", transactions: [], notes: [] };
   for (let i = 0; i < parts.length; i++) {
     const content = [
       { type: "input_text", text: spec.prompt(i + 1, parts.length) },
@@ -248,22 +256,18 @@ async function readCsvStatement({ spec, filePath, apiKey, baseUrl, model }) {
     merged.bank ||= result.bank || null;
     merged.currency ||= result.currency || "";
     merged.transactions.push(...(result.transactions || []));
-    for (const key of Object.keys(EMPTY_ACCOUNT)) merged.account[key] ||= result.account?.[key] || null;
     if (result.notes && !merged.notes.includes(result.notes)) merged.notes.push(result.notes);
   }
   return { ...merged, currency: merged.currency || "JPY", notes: merged.notes.join(" / ") };
 }
 
 export async function runOcr({ kind, filePath, type, name, apiKey, baseUrl, model }) {
-  let spec = SPECS[kind];
+  const spec = SPECS[kind];
   if (!spec) throw httpError(400, `Unknown OCR kind: ${kind}`);
   if (!apiKey) {
     throw httpError(500, "OPENAI_API_KEY is not set. Put it in .env, then restart the server (./restart.sh or npm run dev).");
   }
-  if (kind === "statement") {
-    if (type === "text/csv") return readCsvStatement({ spec, filePath, apiKey, baseUrl, model });
-    spec = PASSBOOK_SPEC;
-  }
+  if (kind === "statement") return readCsvStatement({ spec, filePath, apiKey, baseUrl, model });
   const content = [{ type: "input_text", text: spec.prompt() }, await buildInputPart(filePath, type, name)];
   return callModel({ spec, content, apiKey, baseUrl, model });
 }

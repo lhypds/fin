@@ -54,7 +54,7 @@
     "title": "银行账户",
     "add": "添加",
     "all": "全部账户",
-    "empty": "拖入银行流水 CSV 或通帳照片。识别后生成流水行，账户也会自动建好。",
+    "empty": "拖入通帳照片新建账户，再拖入流水 CSV 读取流水。",
     "rowCount": "{{count}} 行",
     "deleteConfirm": "删除 {{name}} 及其 {{count}} 条流水？",
     "unnamed": "新账户"
@@ -70,13 +70,10 @@
     "currency": "币种",
     "nameRequired": "请填写银行名"
   },
-  "statements": {
-    "ocrAll": "识别全部",
-    "txCount": "{{count}} 行",
-    "deleteConfirm": "删除此文件及其 {{count}} 条流水？",
-    "rerunConfirm": "这份流水已经识别过。重新识别会再次调用模型，这次读法不同的行会作为新流水追加。要重新识别吗？",
-    "rerunAllConfirm": "{{count}} 份流水都已经识别过。重新识别会对每份再调用一次模型，这次读法不同的行会作为新流水追加，现有的对账会全部撤销。要全部重新识别吗？",
-    "unassigned": "账户待识别"
+  "importTarget": {
+    "title": "流水读取到哪个账户？",
+    "newAccount": "新建账户",
+    "confirm": "读取"
   },
   "ledger": {
     "title": "银行流水",
@@ -139,9 +136,7 @@
     "expense": "支出",
     "income": "收入",
     "unknown": "未知",
-    "noPreview": "文件数据丢失，已从浏览器存储中清除。",
-    "transactions": "提取的流水",
-    "notes": "备注"
+    "noPreview": "文件数据丢失，已从浏览器存储中清除。"
   },
   "txEditor": {
     "title": "编辑流水",
@@ -174,7 +169,8 @@
     "saved": "已保存",
     "uploadFailed": "{{count}} 个文件上传失败：{{message}}",
     "saveFailed": "保存到服务器失败：{{message}}",
-    "rowsAdded": "提取了 {{count}} 行流水"
+    "rowsAdded": "提取了 {{count}} 行流水",
+    "accountRead": "已识别账户信息"
   },
   "panel": {
     "openLeft": "显示银行账户",

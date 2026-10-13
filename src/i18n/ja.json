@@ -54,7 +54,7 @@
     "title": "銀行口座",
     "add": "追加",
     "all": "すべての口座",
-    "empty": "明細 CSV か通帳の写真をドロップ。取引行になり、口座も自動で作られます。",
+    "empty": "通帳の写真をドロップして口座を作り、明細 CSV をドロップして取引を読み取ります。",
     "rowCount": "{{count}} 行",
     "deleteConfirm": "{{name}} とその取引 {{count}} 件を削除しますか？",
     "unnamed": "新しい口座"
@@ -70,13 +70,10 @@
     "currency": "通貨",
     "nameRequired": "銀行名を入力してください"
   },
-  "statements": {
-    "ocrAll": "すべて読取",
-    "txCount": "{{count}} 行",
-    "deleteConfirm": "このファイルと {{count}} 件の取引を削除しますか？",
-    "rerunConfirm": "この明細は読取済です。再読取ではモデルを再度呼び出し、今回読み方が異なる行は新しい取引として追加されます。再読取しますか？",
-    "rerunAllConfirm": "{{count}} 件の明細はすべて読取済です。再読取ではファイルごとにモデルを再度呼び出し、今回読み方が異なる行は新しい取引として追加され、現在の照合はすべて解除されます。すべて再読取しますか？",
-    "unassigned": "口座はまだ未確定"
+  "importTarget": {
+    "title": "どの口座の明細ですか？",
+    "newAccount": "新しい口座",
+    "confirm": "読み取る"
   },
   "ledger": {
     "title": "銀行取引",
@@ -139,9 +136,7 @@
     "expense": "支出",
     "income": "収入",
     "unknown": "不明",
-    "noPreview": "ファイルデータがありません。ブラウザのストレージから削除されました。",
-    "transactions": "抽出した取引",
-    "notes": "備考"
+    "noPreview": "ファイルデータがありません。ブラウザのストレージから削除されました。"
   },
   "txEditor": {
     "title": "取引を編集",
@@ -174,7 +169,8 @@
     "saved": "保存しました",
     "uploadFailed": "{{count}} 件のアップロードに失敗：{{message}}",
     "saveFailed": "サーバーへの保存に失敗：{{message}}",
-    "rowsAdded": "{{count}} 行を抽出しました"
+    "rowsAdded": "{{count}} 行を抽出しました",
+    "accountRead": "口座情報を読み取りました"
   },
   "panel": {
     "openLeft": "銀行口座を表示",

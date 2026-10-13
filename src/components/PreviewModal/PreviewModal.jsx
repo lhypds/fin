@@ -2,41 +2,11 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, showToast } from "@ui";
 import { useReconcile } from "@store";
-import { isPdf, isCsv } from "@utils/files";
+import { isPdf } from "@utils/files";
 import { fmtMoney, txAmount, toNumberOrNull } from "@utils/format";
 import StatusTag from "../StatusTag";
 import { PlayIcon, LoaderIcon, UnlinkIcon } from "../icons";
 import styles from "./preview.module.css";
-
-// A CSV's bytes as text, decoded the way the server decodes them: UTF-8 when it is, else Shift_JIS.
-function decodeText(buffer) {
-  const bytes = new Uint8Array(buffer);
-  const body = bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf ? bytes.subarray(3) : bytes;
-  try {
-    return new TextDecoder("utf-8", { fatal: true }).decode(body);
-  } catch {
-    return new TextDecoder("shift_jis").decode(body);
-  }
-}
-
-function CsvViewer({ item }) {
-  const [text, setText] = useState("");
-  useEffect(() => {
-    let cancelled = false;
-    fetch(item.url)
-      .then((r) => r.arrayBuffer())
-      .then((buffer) => {
-        if (!cancelled) setText(decodeText(buffer));
-      })
-      .catch((err) => {
-        if (!cancelled) setText(err.message);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [item.url]);
-  return <pre className={`${styles.csv} mono`}>{text}</pre>;
-}
 
 function Viewer({ item }) {
   const { t } = useTranslation();
@@ -51,63 +21,10 @@ function Viewer({ item }) {
   if (isPdf(item.type)) {
     return <iframe className={styles.frame} src={item.url} title={item.name} />;
   }
-  if (isCsv(item.type)) {
-    return <CsvViewer item={item} />;
-  }
   return (
     <div className={styles.viewer} data-zoom={zoom} onClick={() => setZoom((z) => !z)}>
       <img src={item.url} alt={item.name} draggable={false} />
     </div>
-  );
-}
-
-// A statement file: its status, the model's remarks, and the rows read from it.
-function StatementDetails({ item }) {
-  const { t } = useTranslation();
-  const { transactions, ocrPending } = useReconcile();
-  const rows = transactions.filter((tx) => tx.statementId === item.id);
-  const busy = item.status === "processing";
-
-  async function run() {
-    if (item.status === "done" && !window.confirm(t("statements.rerunConfirm"))) return;
-    const { errors, lastError, results } = await ocrPending("statement", [item.id]);
-    if (errors) showToast(t("toast.ocrFailed", { message: lastError?.message || "" }), 6000);
-    else showToast(t("toast.rowsAdded", { count: results.reduce((a, r) => a + (r?.added || 0), 0) }));
-  }
-
-  return (
-    <>
-      <div className={styles.statusRow}>
-        <StatusTag status={item.missing ? "missing" : item.status} />
-        <button type="button" className="btn" disabled={busy || item.missing} onClick={run}>
-          {busy ? <LoaderIcon className="spin" /> : <PlayIcon />}
-          {item.status === "done" ? t("preview.rerun") : t("preview.run")}
-        </button>
-      </div>
-      {item.error && <div className={styles.error}>{item.error}</div>}
-      {item.notes && (
-        <div className="field">
-          <label>{t("preview.notes")}</label>
-          <div className={styles.notes}>{item.notes}</div>
-        </div>
-      )}
-      <div className="field">
-        <label>
-          {t("preview.transactions")} ({rows.length})
-        </label>
-        <div className={`${styles.rows} scroll-y`}>
-          {rows.map((tx) => (
-            <div key={tx.id} className={`${styles.txRow} mono`}>
-              <span>{tx.date || "—"}</span>
-              <span className={styles.txDesc}>{tx.description}</span>
-              <span className={`${styles.txAmount} ${tx.withdrawal ? styles.withdrawal : styles.deposit}`}>
-                {tx.withdrawal ? `-${fmtMoney(tx.withdrawal, tx.currency)}` : fmtMoney(tx.deposit, tx.currency)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </>
   );
 }
 
@@ -159,7 +76,7 @@ function ReceiptDetails({ item }) {
 
   async function run() {
     if (item.status === "done" && !window.confirm(t("receipts.rerunConfirm"))) return;
-    const { errors, lastError } = await ocrPending("receipt", [item.id]);
+    const { errors, lastError } = await ocrPending([item.id]);
     if (errors) showToast(t("toast.ocrFailed", { message: lastError?.message || "" }), 6000);
     else showToast(t("toast.ocrDone", { ok: 1, errors: 0 }));
   }
@@ -268,10 +185,10 @@ function ReceiptDetails({ item }) {
   );
 }
 
-// A file beside what was read from it: a statement (its rows) or a receipt (its fields).
-export default function PreviewModal({ kind, id, onClose }) {
-  const { statements, receiptById } = useReconcile();
-  const item = kind === "statement" ? statements.find((s) => s.id === id) : receiptById.get(id);
+// A receipt: the file itself beside what was read from it.
+export default function PreviewModal({ id, onClose }) {
+  const { receiptById } = useReconcile();
+  const item = receiptById.get(id);
 
   useEffect(() => {
     if (!item) onClose();
@@ -284,7 +201,7 @@ export default function PreviewModal({ kind, id, onClose }) {
       <div className={styles.body}>
         <Viewer item={item} />
         <aside className={`${styles.side} scroll-y`}>
-          {kind === "statement" ? <StatementDetails item={item} /> : <ReceiptDetails item={item} />}
+          <ReceiptDetails item={item} />
         </aside>
       </div>
     </Modal>

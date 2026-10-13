@@ -46,24 +46,23 @@ export async function logout() {
 export const fileUrl = (id) => `${API}/files/${id}`;
 export const thumbnailUrl = (id) => `${API}/files/${id}/thumbnail`;
 
-// Resolves to the upload's meta: { id, name, type, size, uploadedAt, thumbnail }.
-export async function uploadFile(file, type) {
-  const res = await check(
-    await fetch(`${API}/files`, {
-      method: "POST",
-      headers: {
-        "content-type": type || file.type || "application/octet-stream",
-        "x-file-name": encodeURIComponent(file.name),
-      },
-      body: file,
-    }),
-  );
+// Resolves to the upload's meta: { id, name, type, size, role, bankId, uploadedAt, thumbnail }.
+// `role` is "receipt" or "statement"; `bankId` is the account a statement is for, if known.
+export async function uploadFile(file, type, role, bankId = null) {
+  const headers = {
+    "content-type": type || file.type || "application/octet-stream",
+    "x-file-name": encodeURIComponent(file.name),
+    "x-file-role": role,
+  };
+  if (bankId) headers["x-file-bank"] = bankId;
+  const res = await check(await fetch(`${API}/files`, { method: "POST", headers, body: file }));
   return res.json();
 }
 
-// Runs OCR on the server; resolves to { kind, model, at, durationMs, result }.
-export async function runOcr(id, kind) {
-  const res = await check(await fetch(`${API}/files/${id}/ocr`, { method: "POST", ...json({ kind }) }));
+// Runs OCR on the server; resolves to { kind, model, at, durationMs, result }. Asking again for a
+// file the server is already reading joins that run. `signal` gives up waiting, not the run.
+export async function runOcr(id, kind, signal) {
+  const res = await check(await fetch(`${API}/files/${id}/ocr`, { method: "POST", signal, ...json({ kind }) }));
   return res.json();
 }
 
@@ -82,7 +81,7 @@ export async function saveState(state) {
   await check(await fetch(`${API}/state`, { method: "PUT", ...json(state) }));
 }
 
-// Resolves to { state, files: [{ id, thumbnail, ocr }], config: { model, hasApiKey } }.
+// Resolves to { state, files: [{ id, name, type, role, bankId, thumbnail, ocr }], config: { model, hasApiKey } }.
 export async function loadState() {
   const res = await check(await fetch(`${API}/state`, { cache: "no-store" }));
   return res.json();
