@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./toast.module.css";
 import { register } from "./toastApi";
 
+// At the bottom, the toast clears the 24px status bar (pages/Home/home.module.css) by 12px.
 const POSITION_STYLES = {
   top: { top: 24, bottom: "auto" },
   center: { top: "50%", bottom: "auto", transform: "translate(-50%, -50%)" },
-  bottom: { bottom: 24, top: "auto" },
+  bottom: { bottom: 36, top: "auto" },
 };
 
 const Toast = () => {
