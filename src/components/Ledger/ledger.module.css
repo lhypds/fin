@@ -1,9 +1,9 @@
 .ledger {
   /* Two equal halves: bank transactions | reconciliation. The left half keeps a minimum so its
      fixed columns never collapse; below 1024px the split stops being 50/50 and the table scrolls. */
-  --halves: minmax(464px, 1fr) minmax(240px, 1fr);
-  /* date | bank | description | amount | actions. 72px holds a short bank name such as 三菱UFJ. */
-  --cols-left: 92px 72px minmax(108px, 1fr) 120px 72px;
+  --halves: minmax(488px, 1fr) minmax(240px, 1fr);
+  /* date | bank | description | amount | actions. 96px holds a six-character bank name such as 三菱UFJ銀行. */
+  --cols-left: 92px 96px minmax(108px, 1fr) 120px 72px;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -144,8 +144,8 @@
 .scroll {
   flex: 1;
   min-height: 0;
-  /* 464 + 240: fits a 1440px screen with both drawers open. Wider than the pane, it makes .scrollX scroll. */
-  min-width: 704px;
+  /* 488 + 240: fits a 1440px screen with both drawers open. Wider than the pane, it makes .scrollX scroll. */
+  min-width: 728px;
 }
 
 .table {
@@ -212,11 +212,11 @@
   background: var(--bg-hover);
 }
 
-/* A matched row is a button: yellow across both halves until a person clicks it to confirm the
+/* A matched row is a button: blue across both halves until a person clicks it to confirm the
    match, then green, and a second click takes the confirmation back. Both colours sit after
-   :hover so they hold while hovered, and before data-over so a drop target still turns blue. */
+   :hover so they hold while hovered, and before data-over so a drop target still stands out. */
 .row[data-matched="true"] {
-  background: var(--warn-bg);
+  background: var(--info-bg);
   cursor: pointer;
 }
 
@@ -229,8 +229,11 @@
   background: var(--ok-bg);
 }
 
+/* A drop target turns blue and gets an inset outline, since a matched row is already blue. */
 .row[data-over="true"] {
   background: var(--info-bg);
+  outline: var(--line) solid var(--focus);
+  outline-offset: -2px;
 }
 
 .head {
@@ -277,9 +280,10 @@
   overflow: visible;
 }
 
-/* The whole row is the drop target for a receipt; an unmatched cell is simply empty. The min-height
-   is the height of one chip plus the padding, so unmatched rows are as tall as matched ones.
-   The chips and the note stack on the left; the cell's own edit button keeps the right edge. */
+/* The whole row is the drop target for a receipt. The cell is a stack of lines: one chip per
+   matched receipt, then the note line, each with its own buttons on the right. The min-height is
+   the height of one chip plus the padding, so a row with only the note line is as tall as one
+   with a single chip. overflow stays visible so the buttons' tooltips are not clipped. */
 .row > .cMatch {
   border-left: var(--line) solid var(--border);
   padding: 6px 12px;
@@ -287,23 +291,23 @@
   white-space: normal;
   overflow: visible;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  align-self: stretch;
-}
-
-.matchBody {
-  flex: 1;
-  min-width: 0;
-  display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 4px;
+  align-self: stretch;
 }
 
-/* The note typed on the reconciliation, kept line for line. */
+/* The note line is laid out like a chip, so its edit button lines up under the chips' buttons. */
+.noteRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The note typed on the reconciliation, kept line for line, in the row's own text colour. */
 .note {
-  color: var(--muted);
+  flex: 1;
+  min-width: 0;
   line-height: 16px;
   white-space: pre-wrap;
   word-break: break-word;

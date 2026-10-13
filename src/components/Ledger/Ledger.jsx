@@ -257,55 +257,58 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                   </div>
 
                   <div className={styles.cMatch} {...pickProps}>
-                    <div className={styles.matchBody}>
-                      {matched &&
-                        receipts.map((r, i) => (
-                          // The thumbnail is the chip's one button and opens the receipt preview. The
-                          // rest of the chip belongs to the row, so a click there confirms the match.
-                          <div key={r.id} className={styles.chip}>
-                            <button
-                              type="button"
-                              className={styles.chipThumb}
-                              title={t("button.preview")}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onPreviewReceipt(r.id);
-                              }}
-                            >
-                              <FileThumb item={r} size={28} />
-                            </button>
-                            <div className={styles.chipInfo}>
-                              <div className={styles.chipTitle}>{r.ocr?.vendor || r.name}</div>
-                              <div className={`${styles.chipMeta} mono`}>
-                                <span>{r.ocr?.date || "—"}</span>
-                                <span>{r.ocr?.total != null ? fmtMoney(r.ocr.total, r.ocr.currency) : t("receipts.noAmount")}</span>
-                                <ConfidenceTag confidence={r.confidence} />
+                    {matched &&
+                      receipts.map((r, i) => (
+                        // The thumbnail is the chip's one button and opens the receipt preview. The
+                        // rest of the chip belongs to the row, so a click there confirms the match.
+                        <div key={r.id} className={styles.chip}>
+                          <button
+                            type="button"
+                            className={styles.chipThumb}
+                            title={t("button.preview")}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onPreviewReceipt(r.id);
+                            }}
+                          >
+                            <FileThumb item={r} size={28} />
+                          </button>
+                          <div className={styles.chipInfo}>
+                            <div className={styles.chipTitle}>{r.ocr?.vendor || r.name}</div>
+                            <div className={`${styles.chipMeta} mono`}>
+                              <span>{r.ocr?.date || "—"}</span>
+                              <span>{r.ocr?.total != null ? fmtMoney(r.ocr.total, r.ocr.currency) : t("receipts.noAmount")}</span>
+                              <ConfidenceTag confidence={r.confidence} />
+                            </div>
+                            {/* The sum note covers every receipt, so it hangs off the last chip. Inside the chip
+                                (rather than below the stack) the thumb and buttons stay centred against it. */}
+                            {mismatch && i === receipts.length - 1 && (
+                              <div className={styles.mismatch}>
+                                {t("ledger.sumMismatch", { sum: fmtMoney(sum, tx.currency), amount: fmtMoney(amount, tx.currency) })}
                               </div>
-                              {/* The sum note covers every receipt, so it hangs off the last chip. Inside the chip
-                                  (rather than below the stack) the thumb and buttons stay centred against it. */}
-                              {mismatch && i === receipts.length - 1 && (
-                                <div className={styles.mismatch}>
-                                  {t("ledger.sumMismatch", { sum: fmtMoney(sum, tx.currency), amount: fmtMoney(amount, tx.currency) })}
-                                </div>
-                              )}
-                            </div>
-                            <div className={styles.chipActions} onClick={(e) => e.stopPropagation()}>
-                              <ActionButton tooltip={t("button.preview")} onClick={() => onPreviewReceipt(r.id)}>
-                                <EyeIcon />
-                              </ActionButton>
-                              <ActionButton tooltip={t("button.unmatch")} onClick={() => unmatch(r.id)}>
-                                <UnlinkIcon />
-                              </ActionButton>
-                            </div>
+                            )}
                           </div>
-                        ))}
-                      {/* The note typed on the reconciliation sits under the chips, or alone on an unmatched row. */}
-                      {tx.memo && <div className={styles.note}>{tx.memo}</div>}
-                    </div>
-                    <div className={styles.matchActions} onClick={(e) => e.stopPropagation()}>
-                      <ActionButton tooltip={t("button.edit")} onClick={() => setEditingMatch(tx)}>
-                        <EditIcon />
-                      </ActionButton>
+                          <div className={styles.chipActions} onClick={(e) => e.stopPropagation()}>
+                            <ActionButton tooltip={t("button.preview")} onClick={() => onPreviewReceipt(r.id)}>
+                              <EyeIcon />
+                            </ActionButton>
+                            <ActionButton tooltip={t("button.unmatch")} onClick={() => unmatch(r.id)}>
+                              <UnlinkIcon />
+                            </ActionButton>
+                          </div>
+                        </div>
+                      ))}
+                    {/* The note is its own line under the chips, laid out like one: text on the left, its edit
+                        button on the right under the chips' buttons. It is always there, since the button is
+                        the only way to open the reconciliation editor; on an unmatched row with no note the
+                        line holds just the button. */}
+                    <div className={styles.noteRow}>
+                      <div className={styles.note}>{tx.memo}</div>
+                      <div className={styles.matchActions} onClick={(e) => e.stopPropagation()}>
+                        <ActionButton tooltip={t("button.edit")} onClick={() => setEditingMatch(tx)}>
+                          <EditIcon />
+                        </ActionButton>
+                      </div>
                     </div>
                   </div>
                 </div>

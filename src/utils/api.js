@@ -87,10 +87,6 @@ export async function loadState() {
   return res.json();
 }
 
-export async function clearAll() {
-  await check(await fetch(`${API}/data`, { method: "DELETE" }));
-}
-
 // The backups of the state, newest first: [{ id, at, size, banks, transactions, receipts }].
 // `id` is the time the backup was taken, in ms, and names its folder under data/backups/.
 export async function listBackups() {

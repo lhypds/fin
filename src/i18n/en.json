@@ -16,8 +16,8 @@
   },
   "header": {
     "autoMatch": "Auto match",
-    "clearAll": "Clear all",
-    "clearConfirm": "Delete all bank accounts, transactions and receipts? This cannot be undone.",
+    "clear": "Clear",
+    "clearConfirm": "Clear the reconciliation result of the transactions shown? Their matched receipts, confirmations and notes will be removed.",
     "search": "Search…",
     "clearSearch": "Clear search",
     "backup": "Backup"
@@ -184,7 +184,7 @@
     "matched": "{{count}} matched automatically",
     "noMatches": "No new matches found",
     "nothingPending": "Nothing pending",
-    "cleared": "All data cleared",
+    "cleared": "Reconciliation result cleared for {{count}} transactions",
     "saved": "Saved",
     "uploadFailed": "{{count}} file(s) failed to upload: {{message}}",
     "saveFailed": "Failed to save to the server: {{message}}",

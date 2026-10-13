@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, BackupModal } from "@components";
-import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, TrashIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon } from "@components/icons";
+import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, UnlinkIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon } from "@components/icons";
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
 import { ledgerView } from "@utils/transactions";
@@ -32,7 +32,7 @@ const writeFlag = (key, value) => writePref(key, value ? "1" : "0");
 
 export default function Home() {
   const { t } = useTranslation();
-  const { ready, loadError, config, stats, progress, banks, transactions, runAutoMatch, clearEverything } = useReconcile();
+  const { ready, loadError, config, stats, progress, banks, transactions, runAutoMatch, clearResults } = useReconcile();
   const { user, logout } = useAuth();
   const ocrTotal = progress.statement.total + progress.receipt.total;
   const ocrDone = progress.statement.done + progress.receipt.done;
@@ -48,6 +48,7 @@ export default function Home() {
   // accounts are left as they are.
   const shown = useMemo(() => ledgerView(transactions, activeBankId, month), [transactions, activeBankId, month]);
   const canAutoMatch = shown.rows.some((tx) => !tx.receiptIds?.length) && stats.unmatchedReceipts > 0;
+  const canClear = shown.rows.some((tx) => tx.receiptIds?.length || tx.confirmed || tx.memo);
   const [preview, setPreview] = useState(null);
   const [backupOpen, setBackupOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -89,10 +90,11 @@ export default function Home() {
     showToast(n ? t("toast.matched", { count: n }) : t("toast.noMatches"));
   }
 
-  async function handleClear() {
+  // Clears the reconciliation result of the rows on screen only, the same rows auto-match pairs.
+  function handleClear() {
     if (!window.confirm(t("header.clearConfirm"))) return;
-    await clearEverything();
-    showToast(t("toast.cleared"));
+    const n = clearResults(shown.rows);
+    showToast(t("toast.cleared", { count: n }));
   }
 
   if (loadError) {
@@ -143,9 +145,9 @@ export default function Home() {
             <ZapIcon />
             {t("header.autoMatch")}
           </button>
-          <button type="button" className="btn" onClick={handleClear} disabled={!stats.tx && !stats.receipts && !banks.length}>
-            <TrashIcon />
-            {t("header.clearAll")}
+          <button type="button" className="btn" onClick={handleClear} disabled={!canClear}>
+            <UnlinkIcon />
+            {t("header.clear")}
           </button>
           <button type="button" className="btn" onClick={() => setBackupOpen(true)}>
             <ArchiveIcon />

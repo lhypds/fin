@@ -51,11 +51,16 @@
   user-select: none;
 }
 
-/* The button sits at the box's right edge: anchor its tooltip to the right so it is not clipped. */
+/* The box scrolls, so it clips whatever sticks out of it: a tooltip above the top row's button
+   lies wholly outside the box and no z-index lifts it past that clip. The tooltip goes to the left
+   of the button instead, centred on its row, where it stays inside the box whichever row is at
+   the top. */
 .item > button::after {
   left: auto;
-  right: 0;
-  transform: none;
+  right: calc(100% + 6px);
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
 }
 
 .item:last-child {

@@ -9,7 +9,6 @@ import {
   deleteFile,
   saveState,
   loadState,
-  clearAll as clearServer,
   restoreBackup as restoreOnServer,
   fileUrl,
   thumbnailUrl,
@@ -81,8 +80,6 @@ function reducer(state, action) {
   switch (action.type) {
     case "hydrate":
       return { ...initialState, ...action.state };
-    case "clear":
-      return initialState;
 
     case "addBank":
       return { ...state, banks: [...state.banks, action.bank] };
@@ -133,6 +130,18 @@ function reducer(state, action) {
         transactions: state.transactions.map((t) => (t.receiptIds?.length || t.confirmed ? { ...t, receiptIds: [], confirmed: false } : t)),
         receipts: state.receipts.map((r) => (r.txId || r.confidence != null ? { ...r, txId: null, confidence: null } : r)),
       };
+    // The reconciliation result of the given rows only (what the ledger shows): their receipts are
+    // freed, and their confirmation and note dropped. Other rows keep theirs.
+    case "clearResults": {
+      const ids = new Set(action.txIds);
+      return {
+        ...state,
+        transactions: state.transactions.map((t) =>
+          ids.has(t.id) && (t.receiptIds?.length || t.confirmed || t.memo) ? { ...t, receiptIds: [], confirmed: false, memo: "" } : t,
+        ),
+        receipts: state.receipts.map((r) => (r.txId && ids.has(r.txId) ? { ...r, txId: null, confidence: null } : r)),
+      };
+    }
 
     default:
       return state;
@@ -655,13 +664,16 @@ export function ReconcileProvider({ children }) {
     [dispatch],
   );
 
-  const clearEverything = useCallback(async () => {
-    dispatch({ type: "clear" });
-    await clearServer().catch((err) => {
-      console.error("Failed to clear server data", err);
-      showToast(i18n.t("toast.saveFailed", { message: err.message }), 6000);
-    });
-  }, [dispatch]);
+  // Clears the reconciliation result of the given rows (what the ledger shows) and returns how many
+  // of them had one.
+  const clearResults = useCallback(
+    (transactions) => {
+      const dirty = transactions.filter((t) => t.receiptIds?.length || t.confirmed || t.memo);
+      if (dirty.length) dispatch({ type: "clearResults", txIds: dirty.map((t) => t.id) });
+      return dirty.length;
+    },
+    [dispatch],
+  );
 
   const derived = useMemo(() => {
     const receiptById = new Map(state.receipts.map((r) => [r.id, r]));
@@ -709,7 +721,7 @@ export function ReconcileProvider({ children }) {
       removeTransaction,
       updateReceipt,
       removeReceipt,
-      clearEverything,
+      clearResults,
       restoreBackup,
     }),
     [
@@ -737,7 +749,7 @@ export function ReconcileProvider({ children }) {
       removeTransaction,
       updateReceipt,
       removeReceipt,
-      clearEverything,
+      clearResults,
       restoreBackup,
     ],
   );

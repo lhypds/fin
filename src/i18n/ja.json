@@ -16,8 +16,8 @@
   },
   "header": {
     "autoMatch": "自動照合",
-    "clearAll": "すべて削除",
-    "clearConfirm": "銀行口座・取引・証憑をすべて削除しますか？元に戻せません。",
+    "clear": "クリア",
+    "clearConfirm": "表示中の取引の照合結果をクリアしますか？照合した証憑・確認・メモが消えます。",
     "search": "検索…",
     "clearSearch": "検索をクリア",
     "backup": "バックアップ"
@@ -184,7 +184,7 @@
     "matched": "{{count}} 件を自動照合しました",
     "noMatches": "新しい照合は見つかりませんでした",
     "nothingPending": "未読取のファイルはありません",
-    "cleared": "すべてのデータを削除しました",
+    "cleared": "{{count}} 件の取引の照合結果をクリアしました",
     "saved": "保存しました",
     "uploadFailed": "{{count}} 件のアップロードに失敗：{{message}}",
     "saveFailed": "サーバーへの保存に失敗：{{message}}",
