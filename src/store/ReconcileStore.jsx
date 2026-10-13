@@ -24,7 +24,8 @@ const initialState = { banks: [], transactions: [], receipts: [] };
 
 // Bumped when the saved shape changes; `migrate` brings older files up to it.
 const STATE_VERSION = 4;
-const OCR_CONCURRENCY = 2;
+// How many statements or receipts are read by the model at once.
+const OCR_CONCURRENCY = 5;
 const EMPTY_PROGRESS = { total: 0, done: 0 };
 const NO_PROGRESS = { statement: EMPTY_PROGRESS, receipt: EMPTY_PROGRESS };
 
