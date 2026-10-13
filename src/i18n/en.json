@@ -19,7 +19,20 @@
     "clearAll": "Clear all",
     "clearConfirm": "Delete all bank accounts, transactions and receipts? This cannot be undone.",
     "search": "Search…",
-    "clearSearch": "Clear search"
+    "clearSearch": "Clear search",
+    "backup": "Backup"
+  },
+  "backup": {
+    "title": "Backup and restore",
+    "backupSection": "Back up",
+    "backupHint": "Saves the data as it is now to a folder under data/backups named by the time.",
+    "backupNow": "Back up now",
+    "restoreSection": "Restore",
+    "restoreHint": "Pick a backup and restore it; the data as it is now is replaced by it.",
+    "empty": "No backups yet.",
+    "restore": "Restore",
+    "restoreConfirm": "Restore the backup from {{time}}? The current data will be overwritten. This cannot be undone.",
+    "summary": "{{banks}} accounts · {{transactions}} rows · {{receipts}} receipts"
   },
   "statusBar": {
     "transactions": "{{tx}} transactions · {{matched}} matched · {{unmatched}} open",
@@ -170,7 +183,12 @@
     "uploadFailed": "{{count}} file(s) failed to upload: {{message}}",
     "saveFailed": "Failed to save to the server: {{message}}",
     "rowsAdded": "{{count}} rows extracted",
-    "accountRead": "Account details read"
+    "accountRead": "Account details read",
+    "backedUp": "Backed up",
+    "restored": "Restored",
+    "backupFailed": "Backup failed: {{message}}",
+    "restoreFailed": "Restore failed: {{message}}",
+    "backupsFailed": "Could not list the backups: {{message}}"
   },
   "panel": {
     "openLeft": "Show bank accounts",

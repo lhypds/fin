@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal } from "@components";
-import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, TrashIcon, SearchIcon, XIcon, UserIcon } from "@components/icons";
+import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, BackupModal } from "@components";
+import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, TrashIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon } from "@components/icons";
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
 import styles from "./home.module.css";
@@ -44,6 +44,7 @@ export default function Home() {
   const [month, setMonth] = useState(() => readPref("ledger.month", ""));
   const activeBankId = banks.some((b) => b.id === bankId) ? bankId : null;
   const [preview, setPreview] = useState(null);
+  const [backupOpen, setBackupOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -141,6 +142,10 @@ export default function Home() {
             <TrashIcon />
             {t("header.clearAll")}
           </button>
+          <button type="button" className="btn" onClick={() => setBackupOpen(true)}>
+            <ArchiveIcon />
+            {t("header.backup")}
+          </button>
           {/* The account, as stash's bar has it: the language switcher with a profile button
               joined to it, which opens a menu holding the name and the way out. */}
           <div className={styles.account}>
@@ -225,6 +230,7 @@ export default function Home() {
       </footer>
 
       {preview && <PreviewModal id={preview} onClose={closePreview} />}
+      {backupOpen && <BackupModal onClose={() => setBackupOpen(false)} />}
     </div>
   );
 }

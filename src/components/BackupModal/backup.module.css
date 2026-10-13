@@ -1,0 +1,107 @@
+/* Backup above, restore below, a hairline between them. The 6px of top padding plus the modal
+   header's 10px make the same 16px that the content keeps below the buttons. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 6px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section + .section {
+  padding-top: 12px;
+  border-top: var(--line) solid var(--border);
+}
+
+.heading {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hint,
+.empty {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* The backups as a stack of rows with a square radio dot, drawn like the account rows a CSV is
+   read onto (BankPanel/bank.module.css). The box scrolls once it holds more than a few. */
+.list {
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  border: var(--line) solid var(--border);
+}
+
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: var(--line) solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.item:hover,
+.item[data-active="true"] {
+  background: var(--bg-hover);
+}
+
+/* The native radio stays in the DOM for keyboard and screen-reader access, but is not drawn. */
+.radio {
+  position: absolute;
+  width: 0;
+  height: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+}
+
+.item[data-active="true"] .dot {
+  background: var(--border);
+}
+
+.radio:focus-visible + .dot {
+  outline: var(--line) solid var(--focus);
+  outline-offset: 2px;
+}
+
+.time {
+  flex: none;
+}
+
+.meta {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}

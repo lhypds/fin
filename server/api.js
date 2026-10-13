@@ -5,6 +5,8 @@
 //
 //   data/
 //   ├── state.json                 banks, transactions, receipts, matches
+//   ├── backups/<unix ms>/         one folder per backup, taken on request
+//   │   └── state.json             state.json as it was at that time
 //   └── uploads/<unix ms>/         one folder per upload
 //       ├── <original file name>   byte-identical to what was uploaded
 //       ├── meta.json              name, type, size, role, uploadedAt, thumbnail
@@ -22,6 +24,7 @@ import { createAuthApp, USERS_FILE } from "./auth.js";
 const ID_RE = /^\d{13,16}$/;
 const ACCEPTED_TYPES = new Set(["text/csv", "image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"]);
 const ROLES = new Set(["receipt", "statement"]);
+const STATE = "state.json";
 const META = "meta.json";
 const THUMB = "thumbnail.webp";
 const OCR = "ocr.json";
@@ -42,8 +45,10 @@ function validFileName(name) {
 
 export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, maxUpload = "64mb" }) {
   const uploadsDir = path.join(dataDir, "uploads");
-  const statePath = path.join(dataDir, "state.json");
+  const backupsDir = path.join(dataDir, "backups");
+  const statePath = path.join(dataDir, STATE);
   fs.mkdirSync(uploadsDir, { recursive: true });
+  fs.mkdirSync(backupsDir, { recursive: true });
 
   const app = express();
   app.disable("x-powered-by");
@@ -53,6 +58,7 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
 
   const fail = (res, status, message) => res.status(status).json({ error: { message } });
   const dirOf = (id) => path.join(uploadsDir, id);
+  const backupOf = (id) => path.join(backupsDir, id, STATE);
 
   async function readJson(file) {
     try {
@@ -94,12 +100,12 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
   // and joins the run already going rather than starting another.
   const running = new Map();
 
-  // Folder name = upload time in ms; bump by one when two uploads land in the same millisecond.
-  async function newUploadDir() {
+  // Folder name = the time in ms; bump by one when two land in the same millisecond.
+  async function newDir(parent) {
     let id = Date.now();
     for (;;) {
       try {
-        await fsp.mkdir(dirOf(String(id)));
+        await fsp.mkdir(path.join(parent, String(id)));
         return String(id);
       } catch (err) {
         if (err.code !== "EEXIST") throw err;
@@ -108,17 +114,94 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
     }
   }
 
-  // State writes are serialized and atomic (tmp + rename) so a crash never leaves a half-written file.
+  // Everything that touches state.json goes through one queue, so a backup copies the file as it
+  // stands between two writes and a restore is not overwritten by a write that came in before it.
+  // Writes are atomic (tmp + rename) so a crash never leaves a half-written file.
   let writing = Promise.resolve();
-  function writeState(json) {
-    const run = async () => {
+  function withState(fn) {
+    const next = writing.then(fn, fn);
+    writing = next.catch(() => {});
+    return next;
+  }
+  const writeState = (json) =>
+    withState(async () => {
       const tmp = `${statePath}.tmp`;
       await fsp.writeFile(tmp, json);
       await fsp.rename(tmp, statePath);
+    });
+
+  // A backup as the list shows it: when it was taken, how big it is, and what it holds. One whose
+  // file is missing or unreadable is left out, since it could not be restored anyway.
+  async function describeBackup(id) {
+    const file = backupOf(id);
+    let saved;
+    let size;
+    try {
+      size = (await fsp.stat(file)).size;
+      saved = JSON.parse(await fsp.readFile(file, "utf8"));
+    } catch {
+      return null;
+    }
+    const count = (list) => (Array.isArray(list) ? list.length : 0);
+    return {
+      id,
+      at: new Date(Number(id)).toISOString(),
+      size,
+      banks: count(saved?.banks),
+      transactions: count(saved?.transactions),
+      receipts: count(saved?.receipts),
     };
-    writing = writing.then(run, run);
-    return writing;
   }
+
+  // Newest first.
+  async function listBackups() {
+    const out = [];
+    for (const name of (await fsp.readdir(backupsDir)).filter((n) => ID_RE.test(n)).sort().reverse()) {
+      const info = await describeBackup(name);
+      if (info) out.push(info);
+    }
+    return out;
+  }
+
+  app.get("/api/backups", async (_req, res, next) => {
+    try {
+      res.json({ backups: await listBackups() });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Copies state.json as it is now into a new backup folder.
+  app.post("/api/backups", async (_req, res, next) => {
+    try {
+      const id = await withState(async () => {
+        if (!(await exists(statePath))) return null;
+        const id = await newDir(backupsDir);
+        await fsp.copyFile(statePath, backupOf(id));
+        return id;
+      });
+      if (!id) return fail(res, 404, "There is no data to back up yet");
+      res.json(await describeBackup(id));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Puts a backup in place of state.json. The client loads the state again afterwards.
+  app.post("/api/backups/:id/restore", async (req, res, next) => {
+    try {
+      const file = backupOf(req.params.id);
+      if (!(await exists(file))) return fail(res, 404, "Backup not found");
+      await withState(async () => {
+        const tmp = `${statePath}.tmp`;
+        await fsp.copyFile(file, tmp);
+        await fsp.rename(tmp, statePath);
+      });
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
 
   app.get("/api/state", async (_req, res, next) => {
     try {
@@ -158,7 +241,7 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
       const bankHeader = req.headers["x-file-bank"];
       const bankId = typeof bankHeader === "string" && /^[\w-]{1,64}$/.test(bankHeader) ? bankHeader : null;
 
-      const id = await newUploadDir();
+      const id = await newDir(uploadsDir);
       const dir = dirOf(id);
       await fsp.writeFile(path.join(dir, name), req.body);
 

@@ -90,3 +90,21 @@ export async function loadState() {
 export async function clearAll() {
   await check(await fetch(`${API}/data`, { method: "DELETE" }));
 }
+
+// The backups of the state, newest first: [{ id, at, size, banks, transactions, receipts }].
+// `id` is the time the backup was taken, in ms, and names its folder under data/backups/.
+export async function listBackups() {
+  const res = await check(await fetch(`${API}/backups`, { cache: "no-store" }));
+  return (await res.json()).backups;
+}
+
+// Backs up the state as it is on the server now; resolves to the new backup as listBackups has it.
+export async function createBackup() {
+  const res = await check(await fetch(`${API}/backups`, { method: "POST" }));
+  return res.json();
+}
+
+// Puts a backup in place of the state on the server. Load the state again afterwards.
+export async function restoreBackup(id) {
+  await check(await fetch(`${API}/backups/${id}/restore`, { method: "POST" }));
+}

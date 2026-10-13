@@ -2,7 +2,18 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import i18n from "../i18n/index.js";
 import { showToast } from "@ui";
 import { uid, isAccepted, isCsv, isCsvFile, isStatementFile, CSV_TYPE, hashFile, isSameFile } from "@utils/files";
-import { uploadFile, runOcr, fetchOcr, deleteFile, saveState, loadState, clearAll as clearServer, fileUrl, thumbnailUrl } from "@utils/api";
+import {
+  uploadFile,
+  runOcr,
+  fetchOcr,
+  deleteFile,
+  saveState,
+  loadState,
+  clearAll as clearServer,
+  restoreBackup as restoreOnServer,
+  fileUrl,
+  thumbnailUrl,
+} from "@utils/api";
 import { autoMatch as computeMatches } from "@utils/matching";
 import { splitNew } from "@utils/transactions";
 import { ReconcileContext } from "./context";
@@ -336,40 +347,76 @@ export function ReconcileProvider({ children }) {
     deleteFile(id).catch((err) => console.error("Failed to delete file", err));
   }, []);
 
-  // Load the state from the server; `files` tells us which uploads still exist on disk and which
-  // have an OCR result there.
+  // Loads the state from the server and puts it in place of what is here; `files` tells us which
+  // uploads still exist on disk and which have an OCR result there. Returns what came back for
+  // the pick-ups below, or null when `isCancelled` says the caller has gone away meanwhile.
+  const hydrate = useCallback(
+    async (isCancelled = () => false) => {
+      const { state: saved, files, config: serverConfig } = await loadState();
+      if (isCancelled()) return null;
+      if (serverConfig) setConfig(serverConfig);
+      const present = new Map((files || []).map((f) => [f.id, f]));
+      const loaded = migrate(saved);
+      const receipts = (loaded?.receipts || []).map((it) => {
+        const f = present.get(it.id);
+        return {
+          ...it,
+          url: f ? fileUrl(it.id) : null,
+          thumbUrl: f?.thumbnail ? thumbnailUrl(it.id) : null,
+          missing: !f,
+          status: it.status === "processing" ? "pending" : it.status,
+        };
+      });
+      // Always a new state object, so the save effect runs once and takes the skip below.
+      dispatch({ type: "hydrate", state: loaded ? { ...loaded, receipts } : {} });
+      // Whatever we just loaded (or the empty default) does not need to be written back; a file
+      // that was just brought up to the current shape does.
+      skipNextSaveRef.current = !saved || versionOf(saved) >= STATE_VERSION;
+      setReady(true);
+      return { loaded, files: files || [], present };
+    },
+    [dispatch],
+  );
+
+  // A receipt run whose response no page received (the page was reloaded mid-run) still left its
+  // result on the server, with the file stuck on "pending" here. Pick it up. A receipt that
+  // already has an OCR record keeps it and is just marked done, because the late result is
+  // another model run that may read the same file differently.
+  const pickUpReceipts = useCallback(
+    async (loaded, present, isCancelled = () => false) => {
+      if (!loaded) return;
+      const waiting = loaded.receipts.filter((it) => present.get(it.id)?.ocr && (it.status === "pending" || it.status === "processing"));
+      for (const rc of waiting) {
+        let record = null;
+        try {
+          record = await fetchOcr(rc.id);
+        } catch (err) {
+          console.error(`Failed to fetch the saved OCR result for ${rc.id}`, err);
+        }
+        if (isCancelled()) return;
+        if (record?.kind !== "receipt" || !record.result) continue;
+        if (rc.ocr) dispatch({ type: "updateReceipt", id: rc.id, patch: { status: "done", error: null } });
+        else applyReceiptResult(rc.id, record.result);
+      }
+    },
+    [applyReceiptResult, dispatch],
+  );
+
+  // Load the state on mount, then pick up whatever was cut off by the last reload.
   useEffect(() => {
     let cancelled = false;
+    const isCancelled = () => cancelled;
     (async () => {
       try {
-        const { state: saved, files, config: serverConfig } = await loadState();
-        if (cancelled) return;
-        if (serverConfig) setConfig(serverConfig);
-        const present = new Map((files || []).map((f) => [f.id, f]));
-        const loaded = migrate(saved);
-        if (loaded) {
-          const receipts = loaded.receipts.map((it) => {
-            const f = present.get(it.id);
-            return {
-              ...it,
-              url: f ? fileUrl(it.id) : null,
-              thumbUrl: f?.thumbnail ? thumbnailUrl(it.id) : null,
-              missing: !f,
-              status: it.status === "processing" ? "pending" : it.status,
-            };
-          });
-          dispatch({ type: "hydrate", state: { ...loaded, receipts } });
-        }
-        // Whatever we just loaded (or the empty default) does not need to be written back; a file
-        // that was just brought up to the current shape does.
-        skipNextSaveRef.current = !saved || versionOf(saved) >= STATE_VERSION;
-        setReady(true);
+        const result = await hydrate(isCancelled);
+        if (!result) return;
+        const { loaded, files, present } = result;
 
         // Statements are read and removed, so one still on disk is a read this page (or another)
         // was cut off from, by a reload mid-run. It is picked up where it was left: the result
         // the server has, or the run it is still on, goes to the account the file was for.
         const keep = new Set((loaded?.receipts || []).map((r) => r.id));
-        const leftovers = (files || []).filter((f) => f.role === "statement" && !keep.has(f.id));
+        const leftovers = files.filter((f) => f.role === "statement" && !keep.has(f.id));
         if (leftovers.length) {
           const items = leftovers.map((f) => ({ id: f.id, name: f.name, type: f.type, kind: isCsv(f.type) ? "statement" : "passbook", bankId: f.bankId || null }));
           runReads(items, { resume: true }).then(({ errors, lastError, results }) => {
@@ -381,24 +428,7 @@ export function ReconcileProvider({ children }) {
           });
         }
 
-        // A receipt run whose response no page received (the page was reloaded mid-run) still
-        // left its result on the server, with the file stuck on "pending" here. Pick it up. A
-        // receipt that already has an OCR record keeps it and is just marked done, because the
-        // late result is another model run that may read the same file differently.
-        if (!loaded) return;
-        const waiting = loaded.receipts.filter((it) => present.get(it.id)?.ocr && (it.status === "pending" || it.status === "processing"));
-        for (const rc of waiting) {
-          let record = null;
-          try {
-            record = await fetchOcr(rc.id);
-          } catch (err) {
-            console.error(`Failed to fetch the saved OCR result for ${rc.id}`, err);
-          }
-          if (cancelled) return;
-          if (record?.kind !== "receipt" || !record.result) continue;
-          if (rc.ocr) dispatch({ type: "updateReceipt", id: rc.id, patch: { status: "done", error: null } });
-          else applyReceiptResult(rc.id, record.result);
-        }
+        await pickUpReceipts(loaded, present, isCancelled);
       } catch (err) {
         console.error("Failed to load state from server", err);
         if (!cancelled) setLoadError(err.message || String(err));
@@ -407,7 +437,7 @@ export function ReconcileProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [applyReceiptResult, dispatch, runReads]);
+  }, [hydrate, pickUpReceipts, runReads]);
 
   // Persist on change (debounced, writes serialized). `url`, `thumbUrl` and `missing` are runtime-only.
   const saveChainRef = useRef(Promise.resolve());
@@ -434,6 +464,23 @@ export function ReconcileProvider({ children }) {
     }, 300);
     return () => clearTimeout(timer);
   }, [state, ready]);
+
+  // Puts a backup in place of the data, on the server and then here. A save still on its way
+  // lands first, so none can land after the restore and undo it. Statement reads under way are
+  // left alone: their results go onto the restored state when they come.
+  const restoreBackup = useCallback(
+    async (id) => {
+      let last;
+      do {
+        last = saveChainRef.current;
+        await last;
+      } while (last !== saveChainRef.current);
+      await restoreOnServer(id);
+      const { loaded, present } = await hydrate();
+      await pickUpReceipts(loaded, present);
+    },
+    [hydrate, pickUpReceipts],
+  );
 
   const addBank = useCallback(
     (fields) => {
@@ -660,6 +707,7 @@ export function ReconcileProvider({ children }) {
       updateReceipt,
       removeReceipt,
       clearEverything,
+      restoreBackup,
     }),
     [
       state,
@@ -687,6 +735,7 @@ export function ReconcileProvider({ children }) {
       updateReceipt,
       removeReceipt,
       clearEverything,
+      restoreBackup,
     ],
   );
 

@@ -52,6 +52,7 @@
   border-bottom: var(--line) solid var(--border);
   cursor: pointer;
   outline: none;
+  user-select: none;
 }
 
 .all {

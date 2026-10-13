@@ -35,6 +35,14 @@ export function fmtDate(iso) {
   return iso;
 }
 
+// "2026-10-14 15:32:10", local time, from a time in ms.
+export function fmtDateTime(ms) {
+  const d = new Date(Number(ms));
+  if (Number.isNaN(d.getTime())) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
 export function txAmount(tx) {
   if (!tx) return 0;
   if (tx.withdrawal) return Number(tx.withdrawal);

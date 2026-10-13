@@ -43,8 +43,10 @@ body {
   height: 100vh;
 }
 
+/* A button's label is never selected: a double-click or a drag that starts on one highlights nothing. */
 button {
   font: inherit;
+  user-select: none;
 }
 
 h1,

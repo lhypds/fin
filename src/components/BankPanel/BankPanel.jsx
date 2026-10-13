@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { ActionButton, showToast } from "@ui";
 import { useReconcile } from "@store";
 import { STATEMENT_ACCEPT, isCsvFile } from "@utils/files";
-import { fmtAccount } from "@utils/format";
 import DropZone from "../DropZone";
 import FileThumb from "../FileThumb";
 import StatusTag from "../StatusTag";
@@ -139,8 +138,9 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
           </div>
           {banks.length === 0 && reads.length === 0 && <p className={styles.empty}>{t("banks.empty")}</p>}
           {banks.map((bank) => {
-            const count = transactions.filter((tx) => tx.bankId === bank.id).length;
-            const details = fmtAccount(bank);
+            // The card: the bank, then the branch and number, then the holder, each line only
+            // once filled in (an account just made for a CSV has only its bank).
+            const account = [bank.branch, bank.accountNumber].filter(Boolean).join(" ");
             return (
               <article
                 key={bank.id}
@@ -178,8 +178,8 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
                     </ActionButton>
                   </div>
                 </div>
-                {details && <div className={styles.meta}>{details}</div>}
-                <div className={`${styles.meta} mono`}>{t("banks.rowCount", { count })}</div>
+                {account && <div className={styles.meta}>{account}</div>}
+                {bank.holder && <div className={styles.meta}>{bank.holder}</div>}
               </article>
             );
           })}

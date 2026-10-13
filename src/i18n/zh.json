@@ -19,7 +19,20 @@
     "clearAll": "清空全部",
     "clearConfirm": "删除所有银行账户、流水和收据？此操作不可撤销。",
     "search": "搜索…",
-    "clearSearch": "清除搜索"
+    "clearSearch": "清除搜索",
+    "backup": "备份"
+  },
+  "backup": {
+    "title": "备份与还原",
+    "backupSection": "备份",
+    "backupHint": "把当前数据保存到 data/backups 下以时间命名的文件夹里。",
+    "backupNow": "立即备份",
+    "restoreSection": "还原",
+    "restoreHint": "选择一个备份并还原，当前数据会被它覆盖。",
+    "empty": "还没有备份。",
+    "restore": "还原",
+    "restoreConfirm": "还原到 {{time}} 的备份？当前数据会被覆盖，此操作不可撤销。",
+    "summary": "{{banks}} 个账户 · {{transactions}} 条流水 · {{receipts}} 张收据"
   },
   "statusBar": {
     "transactions": "流水 {{tx}} 笔 · 已对账 {{matched}} · 未对账 {{unmatched}}",
@@ -170,7 +183,12 @@
     "uploadFailed": "{{count}} 个文件上传失败：{{message}}",
     "saveFailed": "保存到服务器失败：{{message}}",
     "rowsAdded": "提取了 {{count}} 行流水",
-    "accountRead": "已识别账户信息"
+    "accountRead": "已识别账户信息",
+    "backedUp": "已备份",
+    "restored": "已还原",
+    "backupFailed": "备份失败：{{message}}",
+    "restoreFailed": "还原失败：{{message}}",
+    "backupsFailed": "无法获取备份列表：{{message}}"
   },
   "panel": {
     "openLeft": "显示银行账户",

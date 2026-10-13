@@ -19,7 +19,20 @@
     "clearAll": "すべて削除",
     "clearConfirm": "銀行口座・取引・証憑をすべて削除しますか？元に戻せません。",
     "search": "検索…",
-    "clearSearch": "検索をクリア"
+    "clearSearch": "検索をクリア",
+    "backup": "バックアップ"
+  },
+  "backup": {
+    "title": "バックアップと復元",
+    "backupSection": "バックアップ",
+    "backupHint": "現在のデータを data/backups の下に、日時の名前のフォルダーとして保存します。",
+    "backupNow": "今すぐバックアップ",
+    "restoreSection": "復元",
+    "restoreHint": "バックアップを選んで復元すると、現在のデータはその内容に置き換わります。",
+    "empty": "バックアップはまだありません。",
+    "restore": "復元",
+    "restoreConfirm": "{{time}} のバックアップに復元しますか？現在のデータは上書きされ、元に戻せません。",
+    "summary": "口座 {{banks}} · 取引 {{transactions}} · 証憑 {{receipts}}"
   },
   "statusBar": {
     "transactions": "取引 {{tx}} 件 · 照合済 {{matched}} · 未照合 {{unmatched}}",
@@ -170,7 +183,12 @@
     "uploadFailed": "{{count}} 件のアップロードに失敗：{{message}}",
     "saveFailed": "サーバーへの保存に失敗：{{message}}",
     "rowsAdded": "{{count}} 行を抽出しました",
-    "accountRead": "口座情報を読み取りました"
+    "accountRead": "口座情報を読み取りました",
+    "backedUp": "バックアップしました",
+    "restored": "復元しました",
+    "backupFailed": "バックアップに失敗：{{message}}",
+    "restoreFailed": "復元に失敗：{{message}}",
+    "backupsFailed": "バックアップ一覧の取得に失敗：{{message}}"
   },
   "panel": {
     "openLeft": "銀行口座を表示",

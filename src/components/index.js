@@ -6,3 +6,4 @@ export { default as BankPanel } from "./BankPanel";
 export { default as ReceiptPanel } from "./ReceiptPanel";
 export { default as Ledger } from "./Ledger";
 export { default as PreviewModal } from "./PreviewModal";
+export { default as BackupModal } from "./BackupModal";
