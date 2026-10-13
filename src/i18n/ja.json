@@ -32,6 +32,7 @@
     "empty": "バックアップはまだありません。",
     "restore": "復元",
     "restoreConfirm": "{{time}} のバックアップに復元しますか？現在のデータは上書きされ、元に戻せません。",
+    "deleteConfirm": "{{time}} のバックアップを削除しますか？元に戻せません。",
     "summary": "口座 {{banks}} · 取引 {{transactions}} · 証憑 {{receipts}}"
   },
   "statusBar": {
@@ -81,6 +82,7 @@
     "accountNumber": "口座番号",
     "holder": "口座名義",
     "currency": "通貨",
+    "memo": "メモ",
     "nameRequired": "銀行名を入力してください"
   },
   "importTarget": {
@@ -188,7 +190,9 @@
     "restored": "復元しました",
     "backupFailed": "バックアップに失敗：{{message}}",
     "restoreFailed": "復元に失敗：{{message}}",
-    "backupsFailed": "バックアップ一覧の取得に失敗：{{message}}"
+    "backupsFailed": "バックアップ一覧の取得に失敗：{{message}}",
+    "backupDeleted": "バックアップを削除しました",
+    "deleteBackupFailed": "バックアップの削除に失敗：{{message}}"
   },
   "panel": {
     "openLeft": "銀行口座を表示",

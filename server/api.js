@@ -203,6 +203,17 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
     }
   });
 
+  // Removes a backup folder. Queued behind the state writes so a restore under way never finds
+  // its backup half removed. One already gone is fine: the list the client has may be stale.
+  app.delete("/api/backups/:id", async (req, res, next) => {
+    try {
+      await withState(() => fsp.rm(path.join(backupsDir, req.params.id), { recursive: true, force: true }));
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   app.get("/api/state", async (_req, res, next) => {
     try {
       res.json({ state: await readJson(statePath), files: await listFiles(), config: { model, hasApiKey: Boolean(apiKey) } });

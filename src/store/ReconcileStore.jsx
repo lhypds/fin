@@ -142,7 +142,7 @@ function reducer(state, action) {
 const versionOf = (saved) => Number(saved?.version) || 1;
 
 function newBank(id, name, currency) {
-  return { id, name, branch: "", accountType: "", accountNumber: "", holder: "", currency: currency || "JPY", createdAt: Date.now() };
+  return { id, name, branch: "", accountType: "", accountNumber: "", holder: "", memo: "", currency: currency || "JPY", createdAt: Date.now() };
 }
 
 // The account a read belongs to, or null for a new one. A CSV goes where the person said. A

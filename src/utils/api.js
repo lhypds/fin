@@ -108,3 +108,7 @@ export async function createBackup() {
 export async function restoreBackup(id) {
   await check(await fetch(`${API}/backups/${id}/restore`, { method: "POST" }));
 }
+
+export async function deleteBackup(id) {
+  await check(await fetch(`${API}/backups/${id}`, { method: "DELETE" }));
+}

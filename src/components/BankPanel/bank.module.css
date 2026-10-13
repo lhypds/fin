@@ -109,17 +109,12 @@
   font-weight: 600;
 }
 
-.count,
 .meta {
   color: var(--muted);
   font-size: 10px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.count {
-  flex: none;
 }
 
 .actions {
@@ -266,6 +261,10 @@
   gap: 12px;
 }
 
+/* Three lines of memo to start with; the handle makes it taller. Keep in step with the editor's minHeight. */
+.memo {
+  min-height: 68px;
+}
 .error {
   color: var(--err);
 }

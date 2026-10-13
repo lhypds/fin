@@ -32,6 +32,7 @@
     "empty": "No backups yet.",
     "restore": "Restore",
     "restoreConfirm": "Restore the backup from {{time}}? The current data will be overwritten. This cannot be undone.",
+    "deleteConfirm": "Delete the backup from {{time}}? This cannot be undone.",
     "summary": "{{banks}} accounts · {{transactions}} rows · {{receipts}} receipts"
   },
   "statusBar": {
@@ -81,6 +82,7 @@
     "accountNumber": "Account no.",
     "holder": "Account holder",
     "currency": "Currency",
+    "memo": "Memo",
     "nameRequired": "Enter the bank's name"
   },
   "importTarget": {
@@ -188,7 +190,9 @@
     "restored": "Restored",
     "backupFailed": "Backup failed: {{message}}",
     "restoreFailed": "Restore failed: {{message}}",
-    "backupsFailed": "Could not list the backups: {{message}}"
+    "backupsFailed": "Could not list the backups: {{message}}",
+    "backupDeleted": "Backup deleted",
+    "deleteBackupFailed": "Could not delete the backup: {{message}}"
   },
   "panel": {
     "openLeft": "Show bank accounts",

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, showToast } from "@ui";
+import { Modal, TextArea, showToast } from "@ui";
 import { useReconcile } from "@store";
 import styles from "./bank.module.css";
 
-// An account's details: the bank, and whatever of branch, type, number and holder is worth noting.
+// An account's details: the bank, whatever of branch, type, number and holder is worth noting,
+// and a memo in the person's own words.
 export default function BankEditor({ bank, onClose, onCreated }) {
   const { t } = useTranslation();
   const { addBank, updateBank } = useReconcile();
@@ -15,6 +16,7 @@ export default function BankEditor({ bank, onClose, onCreated }) {
     accountNumber: bank?.accountNumber || "",
     holder: bank?.holder || "",
     currency: bank?.currency || "JPY",
+    memo: bank?.memo || "",
   }));
   const [error, setError] = useState(null);
 
@@ -31,6 +33,7 @@ export default function BankEditor({ bank, onClose, onCreated }) {
       accountNumber: form.accountNumber.trim(),
       holder: form.holder.trim(),
       currency: form.currency.trim().toUpperCase() || "JPY",
+      memo: form.memo.trim(),
     };
     if (bank) updateBank(bank.id, fields);
     else onCreated?.(addBank(fields));
@@ -68,6 +71,10 @@ export default function BankEditor({ bank, onClose, onCreated }) {
             <label htmlFor="bank-currency">{t("bankEditor.currency")}</label>
             <input id="bank-currency" className="input mono" value={form.currency} onChange={set("currency")} maxLength={3} />
           </div>
+        </div>
+        <div className="field">
+          <label htmlFor="bank-memo">{t("bankEditor.memo")}</label>
+          <TextArea id="bank-memo" className={styles.memo} value={form.memo} onChange={set("memo")} minHeight={68} />
         </div>
         {error && <div className={styles.error}>{error}</div>}
         <div className={styles.footer}>

@@ -134,12 +134,12 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
             onKeyDown={selectOnKey(null)}
           >
             <span className={styles.name}>{t("banks.all")}</span>
-            <span className={styles.count}>{t("banks.rowCount", { count: transactions.length })}</span>
           </div>
           {banks.length === 0 && reads.length === 0 && <p className={styles.empty}>{t("banks.empty")}</p>}
           {banks.map((bank) => {
             // The card: the bank, then the branch and number, then the holder, each line only
-            // once filled in (an account just made for a CSV has only its bank).
+            // once filled in (an account just made for a CSV has only its bank). The memo stays
+            // in the editor.
             const account = [bank.branch, bank.accountNumber].filter(Boolean).join(" ");
             return (
               <article

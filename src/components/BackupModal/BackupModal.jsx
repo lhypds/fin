@@ -1,21 +1,22 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, showToast } from "@ui";
+import { Modal, ActionButton, showToast } from "@ui";
 import { useReconcile } from "@store";
-import { listBackups, createBackup } from "@utils/api";
+import { listBackups, createBackup, deleteBackup } from "@utils/api";
 import { fmtDateTime } from "@utils/format";
-import { ArchiveIcon, LoaderIcon } from "../icons";
+import { ArchiveIcon, LoaderIcon, TrashIcon } from "../icons";
 import styles from "./backup.module.css";
 
 // Backup above, restore below. A backup copies the data as it is now into data/backups/<time>/;
 // restoring puts one of those copies back in place of the data. Only the state is kept and put
-// back (accounts, rows, receipts and matches); the uploaded files stay as they are.
+// back (accounts, rows, receipts and matches); the uploaded files stay as they are. A backup no
+// longer wanted is deleted from its row.
 export default function BackupModal({ onClose }) {
   const { t } = useTranslation();
   const { restoreBackup } = useReconcile();
   const [backups, setBackups] = useState(null); // null until the list has come
   const [choice, setChoice] = useState(null);
-  const [busy, setBusy] = useState(null); // null | "backup" | "restore"
+  const [busy, setBusy] = useState(null); // null | "backup" | "restore" | "delete"
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +63,22 @@ export default function BackupModal({ onClose }) {
     }
   }
 
-  // Nothing closes the dialog while a backup or restore is under way.
+  async function remove(b) {
+    if (!window.confirm(t("backup.deleteConfirm", { time: fmtDateTime(b.id) }))) return;
+    setBusy("delete");
+    try {
+      await deleteBackup(b.id);
+      setBackups((list) => list.filter((x) => x.id !== b.id));
+      setChoice((c) => (c === b.id ? null : c));
+      showToast(t("toast.backupDeleted"));
+    } catch (err) {
+      showToast(t("toast.deleteBackupFailed", { message: err.message }), 6000);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Nothing closes the dialog while a backup, restore or delete is under way.
   return (
     <Modal isOpen onClose={busy ? undefined : onClose} title={t("backup.title")}>
       <div className={styles.body}>
@@ -99,6 +115,10 @@ export default function BackupModal({ onClose }) {
                   <span className={styles.meta}>
                     {t("backup.summary", { banks: b.banks, transactions: b.transactions, receipts: b.receipts })}
                   </span>
+                  {/* A button inside a label is its own control: clicking it does not pick the radio. */}
+                  <ActionButton tooltip={t("button.delete")} onClick={() => remove(b)} disabled={!!busy}>
+                    <TrashIcon />
+                  </ActionButton>
                 </label>
               ))}
             </div>

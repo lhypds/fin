@@ -12,9 +12,15 @@
   height: 22px;
 }
 
-.actionButton:hover {
+.actionButton:hover:not(:disabled) {
   background: black;
   color: white;
+}
+
+/* Dimmed like .btn:disabled in global.css. */
+.actionButton:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .icon {

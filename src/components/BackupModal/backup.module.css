@@ -30,7 +30,8 @@
 }
 
 /* The backups as a stack of rows with a square radio dot, drawn like the account rows a CSV is
-   read onto (BankPanel/bank.module.css). The box scrolls once it holds more than a few. */
+   read onto (BankPanel/bank.module.css), each with a delete button at its right end. The box
+   scrolls once it holds more than a few. */
 .list {
   display: flex;
   flex-direction: column;
@@ -38,15 +39,23 @@
   border: var(--line) solid var(--border);
 }
 
+/* 6px of padding around the 22px button makes the row the 34px it was before the button. */
 .item {
   position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 6px 10px;
   border-bottom: var(--line) solid var(--border);
   cursor: pointer;
   user-select: none;
+}
+
+/* The button sits at the box's right edge: anchor its tooltip to the right so it is not clipped. */
+.item > button::after {
+  left: auto;
+  right: 0;
+  transform: none;
 }
 
 .item:last-child {
