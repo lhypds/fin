@@ -17,7 +17,7 @@
   "header": {
     "autoMatch": "Auto match",
     "clearAll": "Clear all",
-    "clearConfirm": "Delete all passbook files, transactions and receipts? This cannot be undone.",
+    "clearConfirm": "Delete all bank accounts, transactions and receipts? This cannot be undone.",
     "search": "Search…",
     "clearSearch": "Clear search"
   },
@@ -47,16 +47,36 @@
     "hint": "Drop files here or click to upload",
     "types": "PNG · JPG · WEBP · PDF",
     "rejected": "{{count}} file(s) skipped: unsupported type",
-    "duplicate": "{{count}} file(s) skipped: already uploaded"
+    "duplicate": "{{count}} file(s) skipped: already uploaded",
+    "rejectedStatement": "{{count}} file(s) skipped: a statement is a CSV, an image or a PDF"
   },
-  "sources": {
-    "title": "Passbook files",
+  "banks": {
+    "title": "Bank accounts",
+    "add": "Add",
+    "all": "All accounts",
+    "empty": "Drop a CSV statement or passbook photos. The rows go on the ledger, and the account is set up from what the file shows.",
+    "rowCount": "{{count}} rows",
+    "deleteConfirm": "Delete {{name}} and its {{count}} transactions?",
+    "unnamed": "New account"
+  },
+  "bankEditor": {
+    "title": "Edit bank account",
+    "addTitle": "Add bank account",
+    "name": "Bank",
+    "branch": "Branch",
+    "accountType": "Account type",
+    "accountNumber": "Account no.",
+    "holder": "Account holder",
+    "currency": "Currency",
+    "nameRequired": "Enter the bank's name"
+  },
+  "statements": {
     "ocrAll": "Read all",
-    "empty": "Upload passbook (通帳) photos or statement PDFs. OCR turns them into rows on the ledger.",
     "txCount": "{{count}} rows",
     "deleteConfirm": "Delete this file and its {{count}} transactions?",
-    "rerunConfirm": "This passbook has already been read. Reading it again calls the model once more, and rows it reads differently this time are added as new transactions. Read it again?",
-    "rerunAllConfirm": "All {{count}} passbook files have been read. Reading them again calls the model once more per file, rows it reads differently this time are added as new transactions, and every match is undone. Read them all again?"
+    "rerunConfirm": "This statement has already been read. Reading it again calls the model once more, and rows it reads differently this time are added as new transactions. Read it again?",
+    "rerunAllConfirm": "All {{count}} statements have been read. Reading them again calls the model once more per file, rows it reads differently this time are added as new transactions, and every match is undone. Read them all again?",
+    "unassigned": "Account not known yet"
   },
   "ledger": {
     "title": "Bank transactions",
@@ -69,7 +89,12 @@
     "filterAll": "All",
     "filterUnmatched": "Unmatched",
     "filterMatched": "Matched",
-    "empty": "No transactions yet. Upload a passbook image on the left and run OCR, or add a row by hand.",
+    "month": "Month",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "undated": "No date",
+    "empty": "No transactions yet. Add a bank account on the left and drop its statement onto it, or add a row by hand.",
+    "emptyMonth": "No transactions in {{month}}.",
     "emptyFiltered": "Nothing here.",
     "emptySearch": "No transactions match the search.",
     "sumMismatch": "Receipts total {{sum}} ≠ {{amount}}",
@@ -107,21 +132,22 @@
     "paymentMethod": "Payment",
     "items": "Items",
     "summary": "Summary",
-    "notes": "Notes",
     "matchedTo": "Matched to",
     "noOcr": "No OCR result yet.",
     "rerun": "Run OCR again",
     "run": "Run OCR",
-    "transactions": "Extracted rows",
     "expense": "Expense",
     "income": "Income",
     "unknown": "Unknown",
     "noPreview": "File data is missing. It was cleared from browser storage.",
-    "error": "Error"
+    "transactions": "Extracted rows",
+    "notes": "Notes"
   },
   "txEditor": {
     "title": "Edit transaction",
     "addTitle": "Add transaction",
+    "memo": "Memo",
+    "noBank": "—",
     "dateRequired": "Date is required (YYYY-MM-DD)",
     "amountRequired": "Enter a withdrawal or a deposit"
   },
@@ -146,14 +172,13 @@
     "nothingPending": "Nothing pending",
     "cleared": "All data cleared",
     "saved": "Saved",
-    "filesAdded": "{{count}} file(s) added",
     "uploadFailed": "{{count}} file(s) failed to upload: {{message}}",
     "saveFailed": "Failed to save to the server: {{message}}",
     "rowsAdded": "{{count}} rows extracted"
   },
   "panel": {
-    "openLeft": "Show passbook files",
-    "closeLeft": "Hide passbook files",
+    "openLeft": "Show bank accounts",
+    "closeLeft": "Hide bank accounts",
     "openRight": "Show receipts",
     "closeRight": "Hide receipts"
   }

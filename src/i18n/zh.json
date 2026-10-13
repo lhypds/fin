@@ -17,7 +17,7 @@
   "header": {
     "autoMatch": "自动对账",
     "clearAll": "清空全部",
-    "clearConfirm": "删除所有账本文件、流水和收据？此操作不可撤销。",
+    "clearConfirm": "删除所有银行账户、流水和收据？此操作不可撤销。",
     "search": "搜索…",
     "clearSearch": "清除搜索"
   },
@@ -47,16 +47,36 @@
     "hint": "拖拽文件到这里，或点击上传",
     "types": "PNG · JPG · WEBP · PDF",
     "rejected": "已跳过 {{count}} 个不支持的文件",
-    "duplicate": "已跳过 {{count}} 个重复文件"
+    "duplicate": "已跳过 {{count}} 个重复文件",
+    "rejectedStatement": "已跳过 {{count}} 个文件：流水只能是 CSV、图片或 PDF"
   },
-  "sources": {
-    "title": "账本原件",
+  "banks": {
+    "title": "银行账户",
+    "add": "添加",
+    "all": "全部账户",
+    "empty": "拖入银行流水 CSV 或通帳照片。识别后生成流水行，账户也会自动建好。",
+    "rowCount": "{{count}} 行",
+    "deleteConfirm": "删除 {{name}} 及其 {{count}} 条流水？",
+    "unnamed": "新账户"
+  },
+  "bankEditor": {
+    "title": "编辑银行账户",
+    "addTitle": "添加银行账户",
+    "name": "银行",
+    "branch": "支店",
+    "accountType": "账户类型",
+    "accountNumber": "账号",
+    "holder": "户名",
+    "currency": "币种",
+    "nameRequired": "请填写银行名"
+  },
+  "statements": {
     "ocrAll": "识别全部",
-    "empty": "上传账本照片或流水 PDF，OCR 会把它们转换成中间的流水行。",
     "txCount": "{{count}} 行",
     "deleteConfirm": "删除此文件及其 {{count}} 条流水？",
-    "rerunConfirm": "这份账本已经识别过。重新识别会再次调用模型，这次读法不同的行会作为新流水追加。要重新识别吗？",
-    "rerunAllConfirm": "{{count}} 份账本都已经识别过。重新识别会对每份再调用一次模型，这次读法不同的行会作为新流水追加，现有的对账会全部撤销。要全部重新识别吗？"
+    "rerunConfirm": "这份流水已经识别过。重新识别会再次调用模型，这次读法不同的行会作为新流水追加。要重新识别吗？",
+    "rerunAllConfirm": "{{count}} 份流水都已经识别过。重新识别会对每份再调用一次模型，这次读法不同的行会作为新流水追加，现有的对账会全部撤销。要全部重新识别吗？",
+    "unassigned": "账户待识别"
   },
   "ledger": {
     "title": "银行流水",
@@ -69,7 +89,12 @@
     "filterAll": "全部",
     "filterUnmatched": "未对账",
     "filterMatched": "已对账",
-    "empty": "还没有流水。在左侧上传账本图片并运行识别，或手动添加一行。",
+    "month": "月份",
+    "prevMonth": "上个月",
+    "nextMonth": "下个月",
+    "undated": "无日期",
+    "empty": "还没有流水。在左侧添加银行账户并把流水拖进来识别，或手动添加一行。",
+    "emptyMonth": "{{month}} 没有流水。",
     "emptyFiltered": "没有符合条件的记录。",
     "emptySearch": "没有匹配的流水。",
     "sumMismatch": "收据合计 {{sum}} ≠ {{amount}}",
@@ -107,21 +132,22 @@
     "paymentMethod": "支付方式",
     "items": "明细",
     "summary": "摘要",
-    "notes": "备注",
     "matchedTo": "对应流水",
     "noOcr": "还没有识别结果。",
     "rerun": "重新识别",
     "run": "运行识别",
-    "transactions": "提取的流水",
     "expense": "支出",
     "income": "收入",
     "unknown": "未知",
     "noPreview": "文件数据丢失，已从浏览器存储中清除。",
-    "error": "错误"
+    "transactions": "提取的流水",
+    "notes": "备注"
   },
   "txEditor": {
     "title": "编辑流水",
     "addTitle": "添加流水",
+    "memo": "备注",
+    "noBank": "—",
     "dateRequired": "请填写日期（YYYY-MM-DD）",
     "amountRequired": "请填写支出或收入金额"
   },
@@ -146,14 +172,13 @@
     "nothingPending": "没有待处理的文件",
     "cleared": "已清空全部数据",
     "saved": "已保存",
-    "filesAdded": "已添加 {{count}} 个文件",
     "uploadFailed": "{{count}} 个文件上传失败：{{message}}",
     "saveFailed": "保存到服务器失败：{{message}}",
     "rowsAdded": "提取了 {{count}} 行流水"
   },
   "panel": {
-    "openLeft": "显示账本原件",
-    "closeLeft": "收起账本原件",
+    "openLeft": "显示银行账户",
+    "closeLeft": "收起银行账户",
     "openRight": "显示收据",
     "closeRight": "收起收据"
   }

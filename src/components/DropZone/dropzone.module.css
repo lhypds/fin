@@ -17,6 +17,14 @@
   color: var(--fg);
 }
 
+/* Nothing to drop onto yet (no account chosen): faint, and no lift on hover. */
+.zone[data-disabled="true"],
+.zone[data-disabled="true"]:hover {
+  background: var(--bg);
+  color: var(--faint);
+  cursor: default;
+}
+
 .icon {
   width: 16px;
   height: 16px;

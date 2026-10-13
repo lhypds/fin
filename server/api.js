@@ -1,8 +1,8 @@
-// The app's HTTP API: uploads, thumbnails, OCR, and the reconciliation state.
+// The app's HTTP API: uploads (CSV statements and receipts), thumbnails, OCR, and the reconciliation state.
 // Returned as an express app so the same code mounts on the Vite dev server and on server/index.js.
 //
 //   data/
-//   ├── state.json                 transactions, receipts, sources, matches
+//   ├── state.json                 banks, statements, transactions, receipts, matches
 //   └── uploads/<unix ms>/         one folder per upload
 //       ├── <original file name>   byte-identical to what was uploaded
 //       ├── meta.json              name, type, size, uploadedAt, thumbnail
@@ -18,7 +18,7 @@ import { runOcr, OCR_KINDS, DEFAULT_MODEL } from "./ocr.js";
 import { createAuthApp, USERS_FILE } from "./auth.js";
 
 const ID_RE = /^\d{13,16}$/;
-const ACCEPTED_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"]);
+const ACCEPTED_TYPES = new Set(["text/csv", "image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"]);
 const META = "meta.json";
 const THUMB = "thumbnail.webp";
 const OCR = "ocr.json";

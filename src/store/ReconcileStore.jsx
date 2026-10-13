@@ -1,15 +1,21 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import i18n from "../i18n/index.js";
 import { showToast } from "@ui";
-import { uid, isAccepted, hashFile, isSameFile } from "@utils/files";
+import { uid, isAccepted, isCsvFile, isStatementFile, CSV_TYPE, hashFile, isSameFile } from "@utils/files";
 import { uploadFile, runOcr, fetchOcr, deleteFile, saveState, loadState, clearAll as clearServer, fileUrl, thumbnailUrl } from "@utils/api";
 import { autoMatch as computeMatches } from "@utils/matching";
+import { splitNew } from "@utils/transactions";
 import { ReconcileContext } from "./context";
 
-const initialState = { sources: [], transactions: [], receipts: [] };
+// `statements` are the CSV files dropped onto an account, each read by the model into rows that
+// carry its id; `banks` are the accounts themselves, set up by hand.
+const initialState = { banks: [], statements: [], transactions: [], receipts: [] };
 
+// Bumped when the saved shape changes; `migrate` brings older files up to it.
+const STATE_VERSION = 3;
 const OCR_CONCURRENCY = 2;
 const EMPTY_PROGRESS = { total: 0, done: 0 };
+const NO_PROGRESS = { statement: EMPTY_PROGRESS, receipt: EMPTY_PROGRESS };
 
 function guessType(name) {
   const ext = (name.split(".").pop() || "").toLowerCase();
@@ -18,10 +24,6 @@ function guessType(name) {
   if (ext === "webp") return "image/webp";
   if (ext === "gif") return "image/gif";
   return "image/jpeg";
-}
-
-function txKey(t) {
-  return [t.date || "", (t.description || "").trim(), Number(t.withdrawal) || 0, Number(t.deposit) || 0, t.balance ?? ""].join("|");
 }
 
 function patchById(list, id, patch) {
@@ -54,6 +56,15 @@ function detach(state, receiptId) {
   };
 }
 
+// Drops the rows in `txIds` and frees the receipts that were matched to them.
+function dropTransactions(state, txIds) {
+  return {
+    ...state,
+    transactions: state.transactions.filter((t) => !txIds.has(t.id)),
+    receipts: state.receipts.map((r) => (txIds.has(r.txId) ? { ...r, txId: null, confidence: null } : r)),
+  };
+}
+
 function reducer(state, action) {
   switch (action.type) {
     case "hydrate":
@@ -61,45 +72,45 @@ function reducer(state, action) {
     case "clear":
       return initialState;
 
-    case "addSources":
-      return { ...state, sources: [...state.sources, ...action.items] };
-    case "updateSource":
-      return { ...state, sources: patchById(state.sources, action.id, action.patch) };
-    // The bank of a statement, written onto its rows too: all of them when the user set it, only
-    // the rows without one when it comes from OCR, so a hand-corrected row keeps its value.
-    case "setSourceBank": {
-      const bank = action.bank || "";
+    case "addBank":
+      return { ...state, banks: [...state.banks, action.bank] };
+    // A renamed account renames the bank on every row that belongs to it.
+    case "updateBank": {
+      const banks = patchById(state.banks, action.id, action.patch);
+      const name = action.patch.name;
+      if (name == null) return { ...state, banks };
       return {
         ...state,
-        sources: patchById(state.sources, action.id, { bank }),
-        transactions: state.transactions.map((t) =>
-          t.sourceId === action.id && (action.overwrite || !t.bank) && (t.bank || "") !== bank ? { ...t, bank } : t,
-        ),
+        banks,
+        transactions: state.transactions.map((t) => (t.bankId === action.id && t.bank !== name ? { ...t, bank: name } : t)),
       };
     }
-    case "removeSource": {
-      const txIds = new Set(state.transactions.filter((t) => t.sourceId === action.id).map((t) => t.id));
+    // An account goes with its statements and rows.
+    case "removeBank": {
+      const txIds = new Set(state.transactions.filter((t) => t.bankId === action.id).map((t) => t.id));
       return {
-        ...state,
-        sources: state.sources.filter((s) => s.id !== action.id),
-        transactions: state.transactions.filter((t) => !txIds.has(t.id)),
-        receipts: state.receipts.map((r) => (txIds.has(r.txId) ? { ...r, txId: null, confidence: null } : r)),
+        ...dropTransactions(state, txIds),
+        banks: state.banks.filter((b) => b.id !== action.id),
+        statements: state.statements.filter((s) => s.bankId !== action.id),
       };
+    }
+
+    case "addStatements":
+      return { ...state, statements: [...state.statements, ...action.items] };
+    case "updateStatement":
+      return { ...state, statements: patchById(state.statements, action.id, action.patch) };
+    // A statement goes with the rows read from it.
+    case "removeStatement": {
+      const txIds = new Set(state.transactions.filter((t) => t.statementId === action.id).map((t) => t.id));
+      return { ...dropTransactions(state, txIds), statements: state.statements.filter((s) => s.id !== action.id) };
     }
 
     case "addTransactions":
       return { ...state, transactions: [...state.transactions, ...action.items] };
     case "updateTransaction":
       return { ...state, transactions: patchById(state.transactions, action.id, action.patch) };
-    case "removeTransaction": {
-      const tx = state.transactions.find((t) => t.id === action.id);
-      const released = new Set(tx?.receiptIds || []);
-      return {
-        ...state,
-        transactions: state.transactions.filter((t) => t.id !== action.id),
-        receipts: state.receipts.map((r) => (released.has(r.id) ? { ...r, txId: null, confidence: null } : r)),
-      };
-    }
+    case "removeTransaction":
+      return dropTransactions(state, new Set([action.id]));
 
     case "addReceipts":
       return { ...state, receipts: [...state.receipts, ...action.items] };
@@ -130,6 +141,65 @@ function reducer(state, action) {
   }
 }
 
+const versionOf = (saved) => Number(saved?.version) || 1;
+
+function newBank(id, name, currency) {
+  return { id, name, branch: "", accountType: "", accountNumber: "", holder: "", currency: currency || "JPY", createdAt: Date.now() };
+}
+
+// The account a statement dropped onto no account belongs to, going by what the model read off
+// it: the one with the same account number, else the one with the same bank name unless their
+// numbers are known to differ. null when it is a new account.
+function findAccount(banks, result) {
+  const number = String(result.account?.accountNumber || "").trim();
+  const name = String(result.bank || "").trim();
+  if (number) {
+    const byNumber = banks.find((b) => b.accountNumber && b.accountNumber === number);
+    if (byNumber) return byNumber;
+  }
+  if (name) return banks.find((b) => b.name === name && (!number || !b.accountNumber || b.accountNumber === number)) || null;
+  return null;
+}
+
+// Older files brought up to the current shape. Version 1 kept statements as photos and PDFs read
+// by OCR (`sources`), each row naming its bank in words: every bank name becomes an account, a
+// file whose bank was not read becomes an account named after the file, and the rows and files
+// move under them. Version 2 had the accounts but no statement files. The ids are fixed rather
+// than random so two pages that migrate the same file agree on them.
+function migrate(saved) {
+  if (!saved) return null;
+  const version = versionOf(saved);
+  if (version >= STATE_VERSION) {
+    return { banks: saved.banks || [], statements: saved.statements || [], transactions: saved.transactions || [], receipts: saved.receipts || [] };
+  }
+  if (version === 2) {
+    return {
+      banks: (saved.banks || []).map(({ imports: _imports, ...b }) => b),
+      statements: [],
+      transactions: saved.transactions || [],
+      receipts: saved.receipts || [],
+    };
+  }
+  const transactions = saved.transactions || [];
+  const sources = saved.sources || [];
+  const nameOf = (s) => s.bank || String(s.name || "").replace(/\.[a-z0-9]+$/i, "") || "—";
+  const names = [];
+  for (const name of [...sources.map(nameOf), ...transactions.map((t) => t.bank)]) if (name && !names.includes(name)) names.push(name);
+  const banks = names.map((name, i) => newBank(`bank-${i + 1}`, name, transactions.find((t) => t.bank === name)?.currency));
+  const idByName = new Map(banks.map((b) => [b.name, b.id]));
+  const statements = sources.map(({ bank: _bank, ...s }) => ({ ...s, bankId: idByName.get(nameOf(s)) }));
+  const bankOfStatement = new Map(statements.map((s) => [s.id, s.bankId]));
+  return {
+    banks,
+    statements,
+    transactions: transactions.map(({ sourceId, ...t }) => {
+      const bankId = idByName.get(t.bank) || bankOfStatement.get(sourceId) || null;
+      return { ...t, statementId: sourceId || null, bankId, bank: bankId ? banks.find((b) => b.id === bankId).name : t.bank || "" };
+    }),
+    receipts: saved.receipts || [],
+  };
+}
+
 async function runQueue(ids, fn, concurrency) {
   let cursor = 0;
   let ok = 0;
@@ -153,57 +223,84 @@ async function runQueue(ids, fn, concurrency) {
 }
 
 export function ReconcileProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, rawDispatch] = useReducer(reducer, initialState);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [config, setConfig] = useState({ model: "", hasApiKey: true });
-  // Batch OCR progress per kind: total files queued in the current run and how many have finished.
-  const [progress, setProgress] = useState({ source: EMPTY_PROGRESS, receipt: EMPTY_PROGRESS });
-  const activeQueuesRef = useRef({ source: 0, receipt: 0 });
-  // Async actions (OCR, matching) read the latest state through this ref.
+  // Reading progress per kind: files queued in the current run and how many have finished.
+  const [progress, setProgress] = useState(NO_PROGRESS);
+  const activeQueuesRef = useRef({ statement: 0, receipt: 0 });
+  // Async actions (OCR, matching) read the latest state through this ref. It is brought forward
+  // on every dispatch, not on the next render: the reducer is pure, so applying it here gives the
+  // state React will render, and a file added a moment ago can be read at once instead of being
+  // missed because the render has not happened yet.
   const stateRef = useRef(state);
+  const dispatch = useCallback((action) => {
+    stateRef.current = reducer(stateRef.current, action);
+    rawDispatch(action);
+  }, []);
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
   // The state we just loaded does not need to be written back.
   const skipNextSaveRef = useRef(false);
 
-  // Turns a statement's OCR result into ledger rows. A row identical to one already there (same
-  // date, description, amounts and balance) is skipped. Returns the number of rows added.
-  const applySourceResult = useCallback((id, result) => {
-    const existing = stateRef.current.transactions;
-    const seen = new Set(existing.map(txKey));
-    const bank = result.bank || "";
-    const items = [];
-    for (const t of result.transactions || []) {
-      const tx = {
-        id: uid(),
-        sourceId: id,
-        bank,
-        date: t.date || null,
-        description: t.description || "",
-        withdrawal: Number(t.withdrawal) || 0,
-        deposit: Number(t.deposit) || 0,
-        balance: t.balance == null ? null : Number(t.balance),
-        currency: result.currency || "JPY",
-        receiptIds: [],
-      };
-      const key = txKey(tx);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      items.push(tx);
+  // Turns what the model read from a statement into rows of its account. A statement dropped onto
+  // no account goes to the account the file turns out to be from, made on the spot when there is
+  // none. A row already on the account (same date, description, amounts and balance) is skipped,
+  // so reading a file again adds nothing it added before. Returns how many rows were added, the
+  // newest date among them, and the account.
+  const applyStatementResult = useCallback((id, result) => {
+    const { statements, banks, transactions } = stateRef.current;
+    const st = statements.find((s) => s.id === id);
+    if (!st) return { added: 0, latest: null, bankId: null };
+    let bank = banks.find((b) => b.id === st.bankId);
+    if (!bank) {
+      bank = findAccount(banks, result);
+      if (!bank) {
+        bank = newBank(uid(), String(result.bank || "").trim() || i18n.t("banks.unnamed"), result.currency);
+        dispatch({ type: "addBank", bank });
+      }
+      dispatch({ type: "updateStatement", id, patch: { bankId: bank.id } });
     }
+    const existing = transactions.filter((t) => t.bankId === bank.id);
+    const rows = (result.transactions || []).map((t) => ({
+      date: t.date || null,
+      description: t.description || "",
+      withdrawal: Number(t.withdrawal) || 0,
+      deposit: Number(t.deposit) || 0,
+      balance: t.balance == null ? null : Number(t.balance),
+    }));
+    const { fresh } = splitNew(existing, rows);
+    const items = fresh.map((r) => ({
+      id: uid(),
+      bankId: bank.id,
+      bank: bank.name,
+      statementId: id,
+      ...r,
+      memo: "",
+      currency: bank.currency || result.currency || "JPY",
+      receiptIds: [],
+    }));
     if (items.length) dispatch({ type: "addTransactions", items });
-    const txCount = existing.filter((t) => t.sourceId === id).length + items.length;
-    dispatch({ type: "updateSource", id, patch: { status: "done", error: null, txCount, notes: result.notes || "" } });
-    // Rows from an earlier read of the same file get the bank as well.
-    if (bank) dispatch({ type: "setSourceBank", id, bank, overwrite: false });
-    return items.length;
-  }, []);
+    const txCount = existing.filter((t) => t.statementId === id).length + items.length;
+    dispatch({ type: "updateStatement", id, patch: { status: "done", error: null, txCount, notes: result.notes || "" } });
+    // A passbook cover names the branch, account number and holder: they fill in whatever the
+    // account does not have yet, and never replace what was typed in.
+    const seen = result.account || {};
+    const details = {};
+    for (const key of ["branch", "accountType", "accountNumber", "holder"]) {
+      const value = String(seen[key] || "").trim();
+      if (value && !bank[key]) details[key] = value;
+    }
+    if (Object.keys(details).length) dispatch({ type: "updateBank", id: bank.id, patch: details });
+    const latest = items.reduce((m, r) => (r.date && r.date > m ? r.date : m), "");
+    return { added: items.length, latest: latest || null, bankId: bank.id };
+  }, [dispatch]);
 
   const applyReceiptResult = useCallback((id, result) => {
     dispatch({ type: "updateReceipt", id, patch: { status: "done", error: null, ocr: result } });
-  }, []);
+  }, [dispatch]);
 
   // Load the state from the server; `files` tells us which uploads still exist on disk and which
   // have an OCR result there.
@@ -215,35 +312,31 @@ export function ReconcileProvider({ children }) {
         if (cancelled) return;
         if (serverConfig) setConfig(serverConfig);
         const present = new Map((files || []).map((f) => [f.id, f]));
-        if (saved) {
-          const withUrls = (items) =>
-            (items || []).map((it) => {
-              const f = present.get(it.id);
-              return {
-                ...it,
-                url: f ? fileUrl(it.id) : null,
-                thumbUrl: f?.thumbnail ? thumbnailUrl(it.id) : null,
-                missing: !f,
-                status: it.status === "processing" ? "pending" : it.status,
-              };
-            });
-          dispatch({
-            type: "hydrate",
-            state: { sources: withUrls(saved.sources), transactions: saved.transactions || [], receipts: withUrls(saved.receipts) },
+        const withUrls = (items) =>
+          (items || []).map((it) => {
+            const f = present.get(it.id);
+            return {
+              ...it,
+              url: f ? fileUrl(it.id) : null,
+              thumbUrl: f?.thumbnail ? thumbnailUrl(it.id) : null,
+              missing: !f,
+              status: it.status === "processing" ? "pending" : it.status,
+            };
           });
-        }
-        // Whatever we just loaded (or the empty default) does not need to be written back.
-        skipNextSaveRef.current = true;
+        const loaded = migrate(saved);
+        if (loaded) dispatch({ type: "hydrate", state: { ...loaded, statements: withUrls(loaded.statements), receipts: withUrls(loaded.receipts) } });
+        // Whatever we just loaded (or the empty default) does not need to be written back; a file
+        // that was just brought up to the current shape does.
+        skipNextSaveRef.current = !saved || versionOf(saved) >= STATE_VERSION;
         setReady(true);
 
         // A run whose response no page received (the page was reloaded mid-run) still left its
         // result on the server, with the file stuck on "pending" here. Pick it up. It only fills
         // gaps: a statement that already has rows, or a receipt that already has an OCR record,
         // keeps them and is just marked done, because the late result is another model run that
-        // may read the same page differently, and merging it would add near-duplicate rows.
-        if (!saved) return;
-        const waiting = (items) =>
-          (items || []).filter((it) => present.get(it.id)?.ocr && (it.status === "pending" || it.status === "processing"));
+        // may read the same file differently, and merging it would add near-duplicate rows.
+        if (!loaded) return;
+        const waiting = (items) => items.filter((it) => present.get(it.id)?.ocr && (it.status === "pending" || it.status === "processing"));
         const recover = async (id) => {
           try {
             return await fetchOcr(id);
@@ -252,20 +345,16 @@ export function ReconcileProvider({ children }) {
             return null;
           }
         };
-        const transactions = saved.transactions || [];
-        for (const src of waiting(saved.sources)) {
-          const record = await recover(src.id);
+        for (const st of waiting(loaded.statements)) {
+          const record = await recover(st.id);
           if (cancelled) return;
-          if (record?.kind !== "source" || !record.result) continue;
-          const rows = transactions.filter((t) => t.sourceId === src.id).length;
-          if (rows) {
-            dispatch({ type: "updateSource", id: src.id, patch: { status: "done", error: null, txCount: rows, notes: src.notes || record.result.notes || "" } });
-            if (record.result.bank) dispatch({ type: "setSourceBank", id: src.id, bank: record.result.bank, overwrite: false });
-          } else {
-            applySourceResult(src.id, record.result);
-          }
+          // "source" is what version 1 called a statement run.
+          if (!["statement", "source"].includes(record?.kind) || !record.result) continue;
+          const rows = loaded.transactions.filter((t) => t.statementId === st.id).length;
+          if (rows) dispatch({ type: "updateStatement", id: st.id, patch: { status: "done", error: null, txCount: rows, notes: st.notes || record.result.notes || "" } });
+          else applyStatementResult(st.id, record.result);
         }
-        for (const rc of waiting(saved.receipts)) {
+        for (const rc of waiting(loaded.receipts)) {
           const record = await recover(rc.id);
           if (cancelled) return;
           if (record?.kind !== "receipt" || !record.result) continue;
@@ -280,7 +369,7 @@ export function ReconcileProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [applySourceResult, applyReceiptResult]);
+  }, [applyStatementResult, applyReceiptResult, dispatch]);
 
   // Persist on change (debounced, writes serialized). `url`, `thumbUrl` and `missing` are runtime-only.
   const saveChainRef = useRef(Promise.resolve());
@@ -293,8 +382,9 @@ export function ReconcileProvider({ children }) {
     const timer = setTimeout(() => {
       const strip = (items) => items.map(({ url: _url, thumbUrl: _thumbUrl, missing: _missing, ...rest }) => rest);
       const snapshot = {
-        version: 1,
-        sources: strip(state.sources),
+        version: STATE_VERSION,
+        banks: state.banks,
+        statements: strip(state.statements),
         transactions: state.transactions,
         receipts: strip(state.receipts),
       };
@@ -308,19 +398,32 @@ export function ReconcileProvider({ children }) {
     return () => clearTimeout(timer);
   }, [state, ready]);
 
-  const importFiles = useCallback(async (kind, fileList) => {
+  const addBank = useCallback((fields) => {
+    const bank = { ...newBank(uid(), "", "JPY"), ...fields };
+    dispatch({ type: "addBank", bank });
+    return bank.id;
+  }, [dispatch]);
+  const updateBank = useCallback((id, patch) => dispatch({ type: "updateBank", id, patch }), [dispatch]);
+  const removeBank = useCallback(async (id) => {
+    const files = stateRef.current.statements.filter((s) => s.bankId === id && !s.missing).map((s) => s.id);
+    dispatch({ type: "removeBank", id });
+    for (const fileId of files) await deleteFile(fileId).catch((err) => console.error("Failed to delete file", err));
+  }, [dispatch]);
+
+  // Uploads files of one kind: statements (a CSV, or passbook photos and PDFs) onto an account, or
+  // receipts. A file already there is not uploaded twice; the same goes for a file dropped twice in
+  // one batch. Items whose upload has since vanished from disk are excluded, so re-uploading the
+  // file restores them instead of being blocked.
+  const importFiles = useCallback(async (kind, fileList, bankId = null) => {
     const files = Array.from(fileList || []);
-    const accepted = files.filter(isAccepted);
-    // A file already in this panel is not uploaded twice; the same goes for a file dropped twice in
-    // one batch. Items whose upload has since vanished from disk are excluded, so re-uploading the
-    // file restores them instead of being blocked.
-    const existing = (kind === "source" ? stateRef.current.sources : stateRef.current.receipts).filter((it) => !it.missing);
+    const accepted = files.filter(kind === "statement" ? isStatementFile : isAccepted);
+    const existing = (kind === "statement" ? stateRef.current.statements : stateRef.current.receipts).filter((it) => !it.missing);
     const items = [];
     let failed = 0;
     let duplicates = 0;
     let lastError = null;
     for (const file of accepted) {
-      const type = file.type || guessType(file.name);
+      const type = isCsvFile(file) ? CSV_TYPE : file.type || guessType(file.name);
       const hash = await hashFile(file);
       if (existing.some((it) => isSameFile(it, file, hash)) || items.some((it) => isSameFile(it, file, hash))) {
         duplicates++;
@@ -346,24 +449,24 @@ export function ReconcileProvider({ children }) {
         error: null,
         createdAt: Date.now(),
       };
-      items.push(kind === "source" ? { ...base, txCount: 0, notes: "" } : { ...base, ocr: null, txId: null, confidence: null });
+      items.push(kind === "statement" ? { ...base, bankId, txCount: 0, notes: "" } : { ...base, ocr: null, txId: null, confidence: null });
     }
-    if (items.length) dispatch({ type: kind === "source" ? "addSources" : "addReceipts", items });
+    if (items.length) dispatch({ type: kind === "statement" ? "addStatements" : "addReceipts", items });
     return { added: items.length, rejected: files.length - accepted.length, duplicates, failed, lastError, ids: items.map((i) => i.id) };
-  }, []);
+  }, [dispatch]);
 
-  const ocrSource = useCallback(async (id) => {
-    const src = stateRef.current.sources.find((s) => s.id === id);
-    if (!src || src.status === "processing") return 0;
-    dispatch({ type: "updateSource", id, patch: { status: "processing", error: null } });
+  const ocrStatement = useCallback(async (id) => {
+    const st = stateRef.current.statements.find((s) => s.id === id);
+    if (!st || st.status === "processing") return { added: 0, latest: null, bankId: st?.bankId || null };
+    dispatch({ type: "updateStatement", id, patch: { status: "processing", error: null } });
     try {
-      const { result } = await runOcr(id, "source");
-      return applySourceResult(id, result);
+      const { result } = await runOcr(id, "statement");
+      return applyStatementResult(id, result);
     } catch (err) {
-      dispatch({ type: "updateSource", id, patch: { status: "error", error: err.message } });
+      dispatch({ type: "updateStatement", id, patch: { status: "error", error: err.message } });
       throw err;
     }
-  }, [applySourceResult]);
+  }, [applyStatementResult, dispatch]);
 
   const ocrReceipt = useCallback(async (id) => {
     const rc = stateRef.current.receipts.find((r) => r.id === id);
@@ -376,17 +479,18 @@ export function ReconcileProvider({ children }) {
       dispatch({ type: "updateReceipt", id, patch: { status: "error", error: err.message } });
       throw err;
     }
-  }, [applyReceiptResult]);
+  }, [applyReceiptResult, dispatch]);
 
+  // Reads the given files of a kind, or every pending one when no ids are given.
   const ocrPending = useCallback(
     async (kind, ids) => {
-      const list = kind === "source" ? stateRef.current.sources : stateRef.current.receipts;
+      const list = kind === "statement" ? stateRef.current.statements : stateRef.current.receipts;
       const targets = (ids || list.filter((it) => it.status === "pending").map((it) => it.id)).filter((id) =>
         list.some((it) => it.id === id && it.status !== "processing"),
       );
       if (!targets.length) return { ok: 0, errors: 0, lastError: null, results: [] };
 
-      const fn = kind === "source" ? ocrSource : ocrReceipt;
+      const fn = kind === "statement" ? ocrStatement : ocrReceipt;
       activeQueuesRef.current[kind]++;
       setProgress((p) => ({ ...p, [kind]: { total: p[kind].total + targets.length, done: p[kind].done } }));
       const tracked = async (id) => {
@@ -403,7 +507,7 @@ export function ReconcileProvider({ children }) {
         if (--activeQueuesRef.current[kind] === 0) setProgress((p) => ({ ...p, [kind]: EMPTY_PROGRESS }));
       }
     },
-    [ocrSource, ocrReceipt],
+    [ocrStatement, ocrReceipt],
   );
 
   const runAutoMatch = useCallback(() => {
@@ -411,31 +515,30 @@ export function ReconcileProvider({ children }) {
     const matches = computeMatches(transactions, receipts);
     if (matches.length) dispatch({ type: "applyMatches", matches });
     return matches.length;
-  }, []);
+  }, [dispatch]);
 
   const match = useCallback((txId, receiptId, confidence = null) => {
     dispatch({ type: "match", txId, receiptId, confidence });
-  }, []);
+  }, [dispatch]);
 
-  const unmatch = useCallback((receiptId) => dispatch({ type: "unmatch", receiptId }), []);
-  const unmatchAll = useCallback(() => dispatch({ type: "unmatchAll" }), []);
+  const unmatch = useCallback((receiptId) => dispatch({ type: "unmatch", receiptId }), [dispatch]);
+  const unmatchAll = useCallback(() => dispatch({ type: "unmatchAll" }), [dispatch]);
 
-  const updateTransaction = useCallback((id, patch) => dispatch({ type: "updateTransaction", id, patch }), []);
+  const updateTransaction = useCallback((id, patch) => dispatch({ type: "updateTransaction", id, patch }), [dispatch]);
   const addTransaction = useCallback((tx) => {
-    const item = { id: uid(), sourceId: null, bank: "", receiptIds: [], currency: "JPY", withdrawal: 0, deposit: 0, balance: null, ...tx };
+    const item = { id: uid(), bankId: null, bank: "", statementId: null, memo: "", receiptIds: [], currency: "JPY", withdrawal: 0, deposit: 0, balance: null, ...tx };
     dispatch({ type: "addTransactions", items: [item] });
     return item.id;
-  }, []);
-  const removeTransaction = useCallback((id) => dispatch({ type: "removeTransaction", id }), []);
-  // Sets the bank of a statement and of every row that came from it.
-  const setSourceBank = useCallback((id, bank) => dispatch({ type: "setSourceBank", id, bank, overwrite: true }), []);
+  }, [dispatch]);
+  const removeTransaction = useCallback((id) => dispatch({ type: "removeTransaction", id }), [dispatch]);
 
-  const updateReceipt = useCallback((id, patch) => dispatch({ type: "updateReceipt", id, patch }), []);
+  const updateReceipt = useCallback((id, patch) => dispatch({ type: "updateReceipt", id, patch }), [dispatch]);
 
+  // Removes an uploaded file (a statement with its rows, or a receipt) here and on the server.
   const removeFileItem = useCallback(async (kind, id) => {
-    dispatch({ type: kind === "source" ? "removeSource" : "removeReceipt", id });
+    dispatch({ type: kind === "statement" ? "removeStatement" : "removeReceipt", id });
     await deleteFile(id).catch((err) => console.error("Failed to delete file", err));
-  }, []);
+  }, [dispatch]);
 
   const clearEverything = useCallback(async () => {
     dispatch({ type: "clear" });
@@ -443,17 +546,19 @@ export function ReconcileProvider({ children }) {
       console.error("Failed to clear server data", err);
       showToast(i18n.t("toast.saveFailed", { message: err.message }), 6000);
     });
-  }, []);
+  }, [dispatch]);
 
   const derived = useMemo(() => {
     const receiptById = new Map(state.receipts.map((r) => [r.id, r]));
     const txById = new Map(state.transactions.map((t) => [t.id, t]));
+    const bankById = new Map(state.banks.map((b) => [b.id, b]));
     const matchedTx = state.transactions.filter((t) => t.receiptIds?.length).length;
     const unmatchedReceipts = state.receipts.filter((r) => !r.txId).length;
-    const processing = state.sources.filter((s) => s.status === "processing").length + state.receipts.filter((r) => r.status === "processing").length;
+    const processing = state.statements.filter((s) => s.status === "processing").length + state.receipts.filter((r) => r.status === "processing").length;
     return {
       receiptById,
       txById,
+      bankById,
       stats: {
         tx: state.transactions.length,
         matchedTx,
@@ -473,8 +578,11 @@ export function ReconcileProvider({ children }) {
       loadError,
       config,
       progress,
+      addBank,
+      updateBank,
+      removeBank,
       importFiles,
-      ocrSource,
+      ocrStatement,
       ocrReceipt,
       ocrPending,
       runAutoMatch,
@@ -484,7 +592,6 @@ export function ReconcileProvider({ children }) {
       updateTransaction,
       addTransaction,
       removeTransaction,
-      setSourceBank,
       updateReceipt,
       removeFileItem,
       clearEverything,
@@ -496,8 +603,11 @@ export function ReconcileProvider({ children }) {
       loadError,
       config,
       progress,
+      addBank,
+      updateBank,
+      removeBank,
       importFiles,
-      ocrSource,
+      ocrStatement,
       ocrReceipt,
       ocrPending,
       runAutoMatch,
@@ -507,7 +617,6 @@ export function ReconcileProvider({ children }) {
       updateTransaction,
       addTransaction,
       removeTransaction,
-      setSourceBank,
       updateReceipt,
       removeFileItem,
       clearEverything,

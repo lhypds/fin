@@ -8,29 +8,37 @@ function hasFiles(e) {
   return Array.from(e.dataTransfer?.types || []).includes("Files");
 }
 
-export default function DropZone({ onFiles }) {
+// A place to drop files or click for the picker. By default it takes receipts; `accept`, `hint`
+// and `types` make it take something else. Disabled, it still swallows a drop so the browser does
+// not open the file, but passes nothing on.
+export default function DropZone({ onFiles, accept = ACCEPT_ATTR, hint, types, disabled = false }) {
   const { t } = useTranslation();
   const inputRef = useRef(null);
   const [over, setOver] = useState(false);
 
   function handleFiles(files) {
-    if (files?.length) onFiles(files);
+    if (files?.length && !disabled) onFiles(files);
   }
+
+  const typesText = types ?? t("dropzone.types");
 
   return (
     <div
       className={styles.zone}
       data-over={over}
+      data-disabled={disabled}
       role="button"
-      tabIndex={0}
-      onClick={() => inputRef.current?.click()}
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled}
+      onClick={() => !disabled && inputRef.current?.click()}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
       }}
       onDragOver={(e) => {
         if (!hasFiles(e)) return;
         e.preventDefault();
-        setOver(true);
+        e.dataTransfer.dropEffect = disabled ? "none" : "copy";
+        if (!disabled) setOver(true);
       }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => {
@@ -42,15 +50,16 @@ export default function DropZone({ onFiles }) {
     >
       <UploadIcon className={styles.icon} />
       <div className={styles.text}>
-        <span>{t("dropzone.hint")}</span>
-        <span className={styles.types}>{t("dropzone.types")}</span>
+        <span>{hint ?? t("dropzone.hint")}</span>
+        {typesText && <span className={styles.types}>{typesText}</span>}
       </div>
       <input
         ref={inputRef}
         type="file"
         multiple
-        accept={ACCEPT_ATTR}
+        accept={accept}
         hidden
+        disabled={disabled}
         onChange={(e) => {
           handleFiles(e.target.files);
           e.target.value = "";

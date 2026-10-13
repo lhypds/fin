@@ -2,11 +2,41 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, showToast } from "@ui";
 import { useReconcile } from "@store";
-import { isPdf } from "@utils/files";
+import { isPdf, isCsv } from "@utils/files";
 import { fmtMoney, txAmount, toNumberOrNull } from "@utils/format";
 import StatusTag from "../StatusTag";
 import { PlayIcon, LoaderIcon, UnlinkIcon } from "../icons";
 import styles from "./preview.module.css";
+
+// A CSV's bytes as text, decoded the way the server decodes them: UTF-8 when it is, else Shift_JIS.
+function decodeText(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const body = bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf ? bytes.subarray(3) : bytes;
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(body);
+  } catch {
+    return new TextDecoder("shift_jis").decode(body);
+  }
+}
+
+function CsvViewer({ item }) {
+  const [text, setText] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    fetch(item.url)
+      .then((r) => r.arrayBuffer())
+      .then((buffer) => {
+        if (!cancelled) setText(decodeText(buffer));
+      })
+      .catch((err) => {
+        if (!cancelled) setText(err.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [item.url]);
+  return <pre className={`${styles.csv} mono`}>{text}</pre>;
+}
 
 function Viewer({ item }) {
   const { t } = useTranslation();
@@ -21,6 +51,9 @@ function Viewer({ item }) {
   if (isPdf(item.type)) {
     return <iframe className={styles.frame} src={item.url} title={item.name} />;
   }
+  if (isCsv(item.type)) {
+    return <CsvViewer item={item} />;
+  }
   return (
     <div className={styles.viewer} data-zoom={zoom} onClick={() => setZoom((z) => !z)}>
       <img src={item.url} alt={item.name} draggable={false} />
@@ -28,32 +61,18 @@ function Viewer({ item }) {
   );
 }
 
-function SourceDetails({ item }) {
+// A statement file: its status, the model's remarks, and the rows read from it.
+function StatementDetails({ item }) {
   const { t } = useTranslation();
-  const { transactions, ocrPending, setSourceBank } = useReconcile();
-  const rows = transactions.filter((tx) => tx.sourceId === item.id);
+  const { transactions, ocrPending } = useReconcile();
+  const rows = transactions.filter((tx) => tx.statementId === item.id);
   const busy = item.status === "processing";
-  // The bank is edited in place; a new OCR result resets the draft (state-from-props, adjusted during render).
-  const [bank, setBank] = useState(item.bank || "");
-  const [seenBank, setSeenBank] = useState(item.bank);
-  if (seenBank !== item.bank) {
-    setSeenBank(item.bank);
-    setBank(item.bank || "");
-  }
 
   async function run() {
-    if (item.status === "done" && !window.confirm(t("sources.rerunConfirm"))) return;
-    const { errors, lastError, results } = await ocrPending("source", [item.id]);
+    if (item.status === "done" && !window.confirm(t("statements.rerunConfirm"))) return;
+    const { errors, lastError, results } = await ocrPending("statement", [item.id]);
     if (errors) showToast(t("toast.ocrFailed", { message: lastError?.message || "" }), 6000);
-    else showToast(t("toast.rowsAdded", { count: results.reduce((a, b) => a + (b || 0), 0) }));
-  }
-
-  // Writes the bank onto the file and all of its rows.
-  function commitBank() {
-    const value = bank.trim();
-    if (value === (item.bank || "")) return;
-    setSourceBank(item.id, value);
-    showToast(t("toast.saved"));
+    else showToast(t("toast.rowsAdded", { count: results.reduce((a, r) => a + (r?.added || 0), 0) }));
   }
 
   return (
@@ -66,23 +85,6 @@ function SourceDetails({ item }) {
         </button>
       </div>
       {item.error && <div className={styles.error}>{item.error}</div>}
-      <div className="field">
-        <label htmlFor="src-bank">{t("ledger.bank")}</label>
-        <input
-          id="src-bank"
-          className="input"
-          value={bank}
-          onChange={(e) => setBank(e.target.value)}
-          onBlur={commitBank}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              e.currentTarget.blur();
-            }
-          }}
-          placeholder="みずほ · 三井住友 · SBJ"
-        />
-      </div>
       {item.notes && (
         <div className="field">
           <label>{t("preview.notes")}</label>
@@ -266,10 +268,10 @@ function ReceiptDetails({ item }) {
   );
 }
 
+// A file beside what was read from it: a statement (its rows) or a receipt (its fields).
 export default function PreviewModal({ kind, id, onClose }) {
-  const store = useReconcile();
-  const list = kind === "source" ? store.sources : store.receipts;
-  const item = list.find((x) => x.id === id);
+  const { statements, receiptById } = useReconcile();
+  const item = kind === "statement" ? statements.find((s) => s.id === id) : receiptById.get(id);
 
   useEffect(() => {
     if (!item) onClose();
@@ -282,7 +284,7 @@ export default function PreviewModal({ kind, id, onClose }) {
       <div className={styles.body}>
         <Viewer item={item} />
         <aside className={`${styles.side} scroll-y`}>
-          {kind === "source" ? <SourceDetails item={item} /> : <ReceiptDetails item={item} />}
+          {kind === "statement" ? <StatementDetails item={item} /> : <ReceiptDetails item={item} />}
         </aside>
       </div>
     </Modal>

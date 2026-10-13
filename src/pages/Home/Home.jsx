@@ -1,37 +1,48 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LanguageSwitcher, SourcePanel, ReceiptPanel, Ledger, PreviewModal } from "@components";
+import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal } from "@components";
 import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, TrashIcon, SearchIcon, XIcon, UserIcon } from "@components/icons";
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
 import styles from "./home.module.css";
 
-function readFlag(key, fallback) {
+function readPref(key, fallback) {
   try {
     const v = localStorage.getItem(key);
-    return v == null ? fallback : v === "1";
+    return v == null ? fallback : v;
   } catch {
     return fallback;
   }
 }
 
-function writeFlag(key, value) {
+function writePref(key, value) {
   try {
-    localStorage.setItem(key, value ? "1" : "0");
+    localStorage.setItem(key, value);
   } catch {
     /* ignore */
   }
 }
 
+const readFlag = (key, fallback) => {
+  const v = readPref(key, null);
+  return v == null ? fallback : v === "1";
+};
+const writeFlag = (key, value) => writePref(key, value ? "1" : "0");
+
 export default function Home() {
   const { t } = useTranslation();
-  const { ready, loadError, config, stats, progress, runAutoMatch, clearEverything } = useReconcile();
+  const { ready, loadError, config, stats, progress, banks, runAutoMatch, clearEverything } = useReconcile();
   const { user, logout } = useAuth();
-  const ocrTotal = progress.source.total + progress.receipt.total;
-  const ocrDone = progress.source.done + progress.receipt.done;
+  const ocrTotal = progress.statement.total + progress.receipt.total;
+  const ocrDone = progress.statement.done + progress.receipt.done;
   const ocrPercent = ocrTotal ? Math.round((ocrDone / ocrTotal) * 100) : 0;
   const [leftOpen, setLeftOpen] = useState(() => readFlag("panel.left", true));
   const [rightOpen, setRightOpen] = useState(() => readFlag("panel.right", true));
+  // What the ledger shows: one account or all of them, and one month. Both are remembered across
+  // reloads; an account that has since been deleted falls back to all of them.
+  const [bankId, setBankId] = useState(() => readPref("bank.selected", ""));
+  const [month, setMonth] = useState(() => readPref("ledger.month", ""));
+  const activeBankId = banks.some((b) => b.id === bankId) ? bankId : null;
   const [preview, setPreview] = useState(null);
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -39,6 +50,8 @@ export default function Home() {
 
   useEffect(() => writeFlag("panel.left", leftOpen), [leftOpen]);
   useEffect(() => writeFlag("panel.right", rightOpen), [rightOpen]);
+  useEffect(() => writePref("bank.selected", activeBankId || ""), [activeBankId]);
+  useEffect(() => writePref("ledger.month", month), [month]);
 
   // The account menu closes the way stash's does: on a press anywhere outside it, or on Escape.
   useEffect(() => {
@@ -58,6 +71,12 @@ export default function Home() {
   }, [menuOpen]);
 
   const closePreview = useCallback(() => setPreview(null), []);
+  const selectBank = useCallback((id) => setBankId(id || ""), []);
+  // An import shows what it brought in: the account it went to, at its newest month.
+  const handleImported = useCallback((id, latestMonth) => {
+    setBankId(id);
+    if (latestMonth) setMonth(latestMonth);
+  }, []);
 
   function handleAutoMatch() {
     const n = runAutoMatch();
@@ -114,11 +133,11 @@ export default function Home() {
           )}
         </div>
         <div className={styles.actions}>
-          <button type="button" className="btn primary" onClick={handleAutoMatch} disabled={!stats.unmatchedTx || !stats.unmatchedReceipts}>
+          <button type="button" className="btn" onClick={handleAutoMatch} disabled={!stats.unmatchedTx || !stats.unmatchedReceipts}>
             <ZapIcon />
             {t("header.autoMatch")}
           </button>
-          <button type="button" className="btn" onClick={handleClear} disabled={!stats.tx && !stats.receipts}>
+          <button type="button" className="btn" onClick={handleClear} disabled={!stats.tx && !stats.receipts && !banks.length}>
             <TrashIcon />
             {t("header.clearAll")}
           </button>
@@ -156,7 +175,7 @@ export default function Home() {
 
       <div className={styles.body}>
         <aside className={styles.drawer} data-open={leftOpen}>
-          <SourcePanel onPreview={(id) => setPreview({ kind: "source", id })} />
+          <BankPanel selectedId={activeBankId} onSelect={selectBank} onImported={handleImported} onPreview={(id) => setPreview({ kind: "statement", id })} />
         </aside>
         <button
           type="button"
@@ -169,7 +188,7 @@ export default function Home() {
         </button>
 
         <main className={styles.main}>
-          <Ledger query={query} onPreviewReceipt={(id) => setPreview({ kind: "receipt", id })} />
+          <Ledger bankId={activeBankId} month={month} onMonthChange={setMonth} query={query} onPreviewReceipt={(id) => setPreview({ kind: "receipt", id })} />
         </main>
 
         <button

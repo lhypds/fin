@@ -16,10 +16,29 @@ export function isPdf(type) {
   return type === "application/pdf";
 }
 
+// Receipts: the images and PDFs above. Statements: CSV only.
 export function isAccepted(file) {
   if (ACCEPTED_TYPES.includes(file.type)) return true;
   // Some browsers leave `type` empty for drag-dropped files; fall back to the extension.
   return /\.(png|jpe?g|webp|gif|pdf)$/i.test(file.name);
+}
+
+export const CSV_TYPE = "text/csv";
+export const CSV_ACCEPT = ".csv,text/csv";
+
+export const isCsv = (type) => type === CSV_TYPE;
+
+// Windows reports a .csv as an Excel type and a dropped file may carry no type at all, so the
+// name decides.
+export function isCsvFile(file) {
+  return /\.csv$/i.test(file.name || "") || file.type === CSV_TYPE;
+}
+
+// A statement is the bank's CSV export, or photos, scans and PDFs of the passbook.
+export const STATEMENT_ACCEPT = `${CSV_ACCEPT},${ACCEPT_ATTR}`;
+
+export function isStatementFile(file) {
+  return isCsvFile(file) || isAccepted(file);
 }
 
 // SHA-256 of the file's bytes as hex, or null where WebCrypto is unavailable: crypto.subtle only

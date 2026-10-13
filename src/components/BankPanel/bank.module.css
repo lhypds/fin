@@ -1,0 +1,229 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 320px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-bottom: var(--line) solid var(--border);
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.headActions {
+  display: flex;
+  gap: 6px;
+}
+
+.drop {
+  padding: 8px 12px;
+  border-bottom: var(--line) solid var(--border);
+}
+
+.list {
+  flex: 1;
+}
+
+/* The bottom padding keeps the last card's border off the status bar when scrolled to the end. */
+.listInner {
+  padding-bottom: 12px;
+}
+
+.empty {
+  padding: 16px 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* The row for every account at once, and a card per account. The one the ledger shows sits on
+   the same grey the others take under the pointer, and keeps it. */
+.all,
+.card {
+  border-bottom: var(--line) solid var(--border);
+  cursor: pointer;
+  outline: none;
+}
+
+.all {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+}
+
+.all:hover,
+.card:hover {
+  background: var(--bg-hover);
+}
+
+.all:focus-visible,
+.card:focus-visible {
+  outline: var(--line) solid var(--focus);
+  outline-offset: -2px;
+}
+
+.all[data-active="true"],
+.card[data-active="true"] {
+  background: var(--bg-hover);
+}
+
+/* A CSV held over the card. After the active colour so a drop target shows on the chosen account too. */
+.card[data-over="true"] {
+  background: var(--info-bg);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.name {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card .name {
+  font-weight: 600;
+}
+
+.count,
+.meta {
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.count {
+  flex: none;
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  gap: 2px;
+}
+
+/* Statement files, listed the way receipts are: a thumb, the name and size, the status and the
+   buttons. Under an account they sit below a line under its details; files still waiting for
+   their account sit in a block of their own under the row for all accounts. */
+.fileList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.files {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: var(--line) solid var(--border);
+  cursor: default;
+}
+
+.unassigned {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: var(--line) solid var(--border);
+}
+
+.file {
+  display: flex;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.fileInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fileName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileError {
+  color: var(--err);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileSide {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+/* Rightmost button is 12px from the drawer edge: anchor its tooltip to the right so it is not clipped. */
+.actions > button:last-child::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+/* The account form in its dialog. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* 6 + the modal header's 10px bottom padding = 16px above the first field, the same as the
+     16px the content keeps below the buttons and the 12 + 4 between the last field and them. */
+  padding-top: 6px;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.grid3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 72px;
+  gap: 12px;
+}
+
+.error {
+  color: var(--err);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}

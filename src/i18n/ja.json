@@ -17,7 +17,7 @@
   "header": {
     "autoMatch": "自動照合",
     "clearAll": "すべて削除",
-    "clearConfirm": "通帳ファイル・取引・証憑をすべて削除しますか？元に戻せません。",
+    "clearConfirm": "銀行口座・取引・証憑をすべて削除しますか？元に戻せません。",
     "search": "検索…",
     "clearSearch": "検索をクリア"
   },
@@ -47,16 +47,36 @@
     "hint": "ここにドロップ、またはクリックしてアップロード",
     "types": "PNG · JPG · WEBP · PDF",
     "rejected": "非対応のファイル {{count}} 件をスキップしました",
-    "duplicate": "重複するファイル {{count}} 件をスキップしました"
+    "duplicate": "重複するファイル {{count}} 件をスキップしました",
+    "rejectedStatement": "{{count}} 件をスキップしました：明細は CSV・画像・PDF のみ"
   },
-  "sources": {
-    "title": "通帳原本",
+  "banks": {
+    "title": "銀行口座",
+    "add": "追加",
+    "all": "すべての口座",
+    "empty": "明細 CSV か通帳の写真をドロップ。取引行になり、口座も自動で作られます。",
+    "rowCount": "{{count}} 行",
+    "deleteConfirm": "{{name}} とその取引 {{count}} 件を削除しますか？",
+    "unnamed": "新しい口座"
+  },
+  "bankEditor": {
+    "title": "銀行口座を編集",
+    "addTitle": "銀行口座を追加",
+    "name": "銀行",
+    "branch": "支店",
+    "accountType": "口座種別",
+    "accountNumber": "口座番号",
+    "holder": "口座名義",
+    "currency": "通貨",
+    "nameRequired": "銀行名を入力してください"
+  },
+  "statements": {
     "ocrAll": "すべて読取",
-    "empty": "通帳の写真や明細PDFをアップロードすると、OCRで取引行に変換されます。",
     "txCount": "{{count}} 行",
     "deleteConfirm": "このファイルと {{count}} 件の取引を削除しますか？",
-    "rerunConfirm": "この通帳は読取済です。再読取ではモデルを再度呼び出し、今回読み方が異なる行は新しい取引として追加されます。再読取しますか？",
-    "rerunAllConfirm": "{{count}} 件の通帳はすべて読取済です。再読取ではファイルごとにモデルを再度呼び出し、今回読み方が異なる行は新しい取引として追加され、現在の照合はすべて解除されます。すべて再読取しますか？"
+    "rerunConfirm": "この明細は読取済です。再読取ではモデルを再度呼び出し、今回読み方が異なる行は新しい取引として追加されます。再読取しますか？",
+    "rerunAllConfirm": "{{count}} 件の明細はすべて読取済です。再読取ではファイルごとにモデルを再度呼び出し、今回読み方が異なる行は新しい取引として追加され、現在の照合はすべて解除されます。すべて再読取しますか？",
+    "unassigned": "口座はまだ未確定"
   },
   "ledger": {
     "title": "銀行取引",
@@ -69,7 +89,12 @@
     "filterAll": "すべて",
     "filterUnmatched": "未照合",
     "filterMatched": "照合済",
-    "empty": "取引がありません。左側で通帳画像をアップロードして読取するか、手動で追加してください。",
+    "month": "月",
+    "prevMonth": "前の月",
+    "nextMonth": "次の月",
+    "undated": "日付なし",
+    "empty": "取引がありません。左側で銀行口座を追加して明細をドロップして読み取るか、手動で追加してください。",
+    "emptyMonth": "{{month}} の取引はありません。",
     "emptyFiltered": "該当なし。",
     "emptySearch": "該当する取引がありません。",
     "sumMismatch": "証憑合計 {{sum}} ≠ {{amount}}",
@@ -107,21 +132,22 @@
     "paymentMethod": "支払方法",
     "items": "明細",
     "summary": "概要",
-    "notes": "備考",
     "matchedTo": "照合先",
     "noOcr": "まだ読取結果がありません。",
     "rerun": "再読取",
     "run": "読取",
-    "transactions": "抽出した取引",
     "expense": "支出",
     "income": "収入",
     "unknown": "不明",
     "noPreview": "ファイルデータがありません。ブラウザのストレージから削除されました。",
-    "error": "エラー"
+    "transactions": "抽出した取引",
+    "notes": "備考"
   },
   "txEditor": {
     "title": "取引を編集",
     "addTitle": "取引を追加",
+    "memo": "メモ",
+    "noBank": "—",
     "dateRequired": "日付を入力してください（YYYY-MM-DD）",
     "amountRequired": "お支払またはお預りの金額を入力してください"
   },
@@ -146,14 +172,13 @@
     "nothingPending": "未読取のファイルはありません",
     "cleared": "すべてのデータを削除しました",
     "saved": "保存しました",
-    "filesAdded": "{{count}} 件のファイルを追加しました",
     "uploadFailed": "{{count}} 件のアップロードに失敗：{{message}}",
     "saveFailed": "サーバーへの保存に失敗：{{message}}",
     "rowsAdded": "{{count}} 行を抽出しました"
   },
   "panel": {
-    "openLeft": "通帳原本を表示",
-    "closeLeft": "通帳原本を隠す",
+    "openLeft": "銀行口座を表示",
+    "closeLeft": "銀行口座を隠す",
     "openRight": "証憑を表示",
     "closeRight": "証憑を隠す"
   }

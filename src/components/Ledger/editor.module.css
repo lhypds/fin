@@ -7,6 +7,13 @@
   padding-top: 6px;
 }
 
+/* The date and the account it was on. */
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
 /* The amounts row: withdrawal, deposit and the currency they are in. */
 .grid {
   display: grid;

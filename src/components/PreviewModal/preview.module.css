@@ -53,6 +53,20 @@
   background: var(--bg-alt);
 }
 
+/* A CSV as the file has it, line for line; long lines scroll sideways rather than wrap. */
+.csv {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  border: var(--line) solid var(--border);
+  background: var(--bg-alt);
+  font-size: 10px;
+  line-height: 16px;
+  white-space: pre;
+}
+
 /* Scrolls vertically via the global .scroll-y class when the fields overflow the modal. */
 .side {
   width: 320px;

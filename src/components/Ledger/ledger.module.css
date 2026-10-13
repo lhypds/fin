@@ -20,6 +20,80 @@
   border-bottom: var(--line) solid var(--border);
 }
 
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The month picker: a step back, the month itself (a select that opens the list), a step forward,
+   joined like the filter tabs beside it. */
+.months {
+  display: flex;
+  align-items: center;
+}
+
+.monthBtn {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.monthBtn:hover:not(:disabled) {
+  background: var(--border);
+  color: var(--bg);
+}
+
+.monthBtn:disabled {
+  color: var(--faint);
+  cursor: default;
+}
+
+.monthBtn svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Overlaps the buttons' hairlines on both sides so the three share two lines, not four. */
+.monthSelect {
+  height: 22px;
+  margin: 0 calc(-1 * var(--line));
+  padding: 0 8px;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  text-align-last: center;
+  cursor: pointer;
+  appearance: none;
+  outline: none;
+}
+
+.monthSelect:hover {
+  background: var(--bg-hover);
+}
+
+.monthSelect:focus-visible {
+  outline: var(--line) solid var(--focus);
+  outline-offset: -2px;
+}
+
 .filters {
   display: flex;
 }

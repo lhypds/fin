@@ -5,18 +5,19 @@ import { useReconcile } from "@store";
 import { fmtMoney, txAmount } from "@utils/format";
 import { amountGap } from "@utils/matching";
 import { transactionHaystack, matchesQuery } from "@utils/search";
+import { monthOf, currentMonth, UNDATED } from "@utils/transactions";
 import FileThumb from "../FileThumb";
 import { ConfidenceTag } from "../StatusTag";
 import { RECEIPT_DRAG_TYPE } from "../ReceiptPanel";
 import TxEditor from "./TxEditor";
 import ReceiptPicker from "./ReceiptPicker";
-import { EditIcon, TrashIcon, EyeIcon, UnlinkIcon, PlusIcon } from "../icons";
+import { EditIcon, TrashIcon, EyeIcon, UnlinkIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon } from "../icons";
 import styles from "./ledger.module.css";
 
 const FILTERS = ["all", "unmatched", "matched"];
 
 /* Newest first; rows without a date sink to the bottom. Rows on the same day keep the order
-   they were extracted in, since the statement's printed order is the only within-day clue. */
+   they were imported in, since the statement's printed order is the only within-day clue. */
 function sortByDate(list) {
   return list
     .map((tx, index) => ({ tx, index }))
@@ -33,7 +34,9 @@ function isReceiptDrag(e) {
   return Array.from(e.dataTransfer?.types || []).includes(RECEIPT_DRAG_TYPE);
 }
 
-export default function Ledger({ onPreviewReceipt, query = "" }) {
+// One month of one account (or of all of them) at a time. `bankId` is the account chosen on the
+// left, `month` the one chosen here, both held by the page so an import can move them.
+export default function Ledger({ bankId = null, month = "", onMonthChange, onPreviewReceipt, query = "" }) {
   const { t } = useTranslation();
   const { transactions, receiptById, match, unmatch, removeTransaction, updateTransaction } = useReconcile();
   const [filter, setFilter] = useState("all");
@@ -41,15 +44,39 @@ export default function Ledger({ onPreviewReceipt, query = "" }) {
   const [picking, setPicking] = useState(null);
   const [overId, setOverId] = useState(null);
 
-  // The header search narrows the list first; the filter tabs then split what it left.
+  const scoped = useMemo(() => (bankId ? transactions.filter((tx) => tx.bankId === bankId) : transactions), [transactions, bankId]);
+
+  // The months the rows fall in, newest first, with the rows that carry no date as a last entry.
+  // An empty ledger offers the current month so the picker is never blank.
+  const months = useMemo(() => {
+    const counts = new Map();
+    for (const tx of scoped) {
+      const key = monthOf(tx);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    const undated = counts.get(UNDATED) || 0;
+    counts.delete(UNDATED);
+    const list = [...counts].sort((a, b) => (a[0] > b[0] ? -1 : 1)).map(([key, count]) => ({ key, count }));
+    if (!list.length) list.push({ key: currentMonth(), count: 0 });
+    if (undated) list.push({ key: UNDATED, count: undated });
+    return list;
+  }, [scoped]);
+  // The chosen month, or the newest one when the chosen one has no rows here.
+  const index = Math.max(0, months.findIndex((m) => m.key === month));
+  const current = months[index].key;
+  const monthLabel = (m) => (m.key === UNDATED ? t("ledger.undated") : m.key);
+
+  const inMonth = useMemo(() => scoped.filter((tx) => monthOf(tx) === current), [scoped, current]);
+
+  // The header search narrows the month first; the filter tabs then split what it left.
   const searched = useMemo(() => {
-    const sorted = sortByDate(transactions);
+    const sorted = sortByDate(inMonth);
     if (!query.trim()) return sorted;
     return sorted.filter((tx) => {
       const receipts = (tx.receiptIds || []).map((id) => receiptById.get(id)).filter(Boolean);
       return matchesQuery(transactionHaystack(tx, receipts), query);
     });
-  }, [transactions, receiptById, query]);
+  }, [inMonth, receiptById, query]);
 
   const rows = useMemo(() => {
     if (filter === "unmatched") return searched.filter((tx) => !tx.receiptIds?.length);
@@ -71,22 +98,61 @@ export default function Ledger({ onPreviewReceipt, query = "" }) {
     updateTransaction(tx.id, { confirmed: !tx.confirmed });
   }
 
+  const emptyText = () => {
+    if (transactions.length === 0) return t("ledger.empty");
+    if (inMonth.length === 0) return t("ledger.emptyMonth", { month: monthLabel(months[index]) });
+    if (searched.length === 0) return t("ledger.emptySearch");
+    return t("ledger.emptyFiltered");
+  };
+
   return (
     <div className={styles.ledger}>
       <div className={styles.toolbar}>
-        <div className={styles.filters}>
-          {FILTERS.map((f) => (
+        <div className={styles.toolbarLeft}>
+          {/* Newest month first in the list, so "previous" steps down it and "next" steps up. */}
+          <div className={styles.months}>
             <button
-              key={f}
               type="button"
-              className={styles.filterBtn}
-              data-active={filter === f}
-              onClick={() => setFilter(f)}
+              className={styles.monthBtn}
+              disabled={index >= months.length - 1}
+              onClick={() => onMonthChange(months[index + 1].key)}
+              title={t("ledger.prevMonth")}
+              aria-label={t("ledger.prevMonth")}
             >
-              {t(`ledger.filter${f[0].toUpperCase()}${f.slice(1)}`)}
-              <span className={styles.count}>{counts[f]}</span>
+              <ChevronLeftIcon />
             </button>
-          ))}
+            <select className={styles.monthSelect} value={current} onChange={(e) => onMonthChange(e.target.value)} aria-label={t("ledger.month")}>
+              {months.map((m) => (
+                <option key={m.key} value={m.key}>
+                  {monthLabel(m)} · {m.count}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className={styles.monthBtn}
+              disabled={index <= 0}
+              onClick={() => onMonthChange(months[index - 1].key)}
+              title={t("ledger.nextMonth")}
+              aria-label={t("ledger.nextMonth")}
+            >
+              <ChevronRightIcon />
+            </button>
+          </div>
+          <div className={styles.filters}>
+            {FILTERS.map((f) => (
+              <button
+                key={f}
+                type="button"
+                className={styles.filterBtn}
+                data-active={filter === f}
+                onClick={() => setFilter(f)}
+              >
+                {t(`ledger.filter${f[0].toUpperCase()}${f.slice(1)}`)}
+                <span className={styles.count}>{counts[f]}</span>
+              </button>
+            ))}
+          </div>
         </div>
         <button type="button" className="btn" onClick={() => setEditing("new")}>
           <PlusIcon />
@@ -115,11 +181,7 @@ export default function Ledger({ onPreviewReceipt, query = "" }) {
               </div>
             </div>
 
-            {rows.length === 0 && (
-              <p className={styles.empty}>
-                {transactions.length === 0 ? t("ledger.empty") : searched.length === 0 ? t("ledger.emptySearch") : t("ledger.emptyFiltered")}
-              </p>
-            )}
+            {rows.length === 0 && <p className={styles.empty}>{emptyText()}</p>}
 
             {rows.map((tx) => {
               const receipts = (tx.receiptIds || []).map((id) => receiptById.get(id)).filter(Boolean);
@@ -192,7 +254,10 @@ export default function Ledger({ onPreviewReceipt, query = "" }) {
                   <div className={styles.left}>
                     <div className="mono">{tx.date || <span className="muted">{t("ledger.noDate")}</span>}</div>
                     <div title={tx.bank || undefined}>{tx.bank}</div>
-                    <div className={styles.desc}>{tx.description}</div>
+                    {/* The statement's memo column, when it has one, shows on hover. */}
+                    <div className={styles.desc} title={tx.memo || undefined}>
+                      {tx.description}
+                    </div>
                     <div className={`${styles.num} ${styles.withdrawal} mono`}>{tx.withdrawal ? fmtMoney(tx.withdrawal, tx.currency) : ""}</div>
                     <div className={`${styles.num} ${styles.deposit} mono`}>{tx.deposit ? fmtMoney(tx.deposit, tx.currency) : ""}</div>
                     <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
@@ -255,7 +320,15 @@ export default function Ledger({ onPreviewReceipt, query = "" }) {
         </div>
       </div>
 
-      {editing && <TxEditor tx={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
+      {editing && (
+        <TxEditor
+          tx={editing === "new" ? null : editing}
+          defaultBankId={bankId}
+          onClose={() => setEditing(null)}
+          // A row saved into another month is shown, not lost from view.
+          onSaved={(saved) => onMonthChange(saved.date.slice(0, 7))}
+        />
+      )}
       {picking && <ReceiptPicker tx={picking} onClose={() => setPicking(null)} />}
     </div>
   );

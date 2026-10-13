@@ -22,9 +22,10 @@ export function receiptHaystack(r) {
   );
 }
 
-/* Everything a ledger row shows: the transaction's own cells plus the chips of its matched receipts. */
+/* Everything a ledger row shows (and its memo, which only shows on hover) plus the chips of its
+   matched receipts. */
 export function transactionHaystack(tx, receipts = []) {
-  const own = [tx.date, tx.bank, tx.description, amountText(tx.withdrawal, tx.currency), amountText(tx.deposit, tx.currency)];
+  const own = [tx.date, tx.bank, tx.description, tx.memo, amountText(tx.withdrawal, tx.currency), amountText(tx.deposit, tx.currency)];
   return normalize(own.join(" ")) + " " + receipts.map(receiptHaystack).join(" ");
 }
 
