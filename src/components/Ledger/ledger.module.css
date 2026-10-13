@@ -213,8 +213,9 @@
 }
 
 /* Every data row is a button (the header is not): a click confirms it, green across both halves,
-   and a second click takes the confirmation back. A matched row is blue until then. Both colours
-   sit after :hover so they hold while hovered, green after blue so it wins on a matched row. */
+   and a second click takes the confirmation back. A matched row, or one the auto memo wrote, is
+   blue until then. Both colours sit after :hover so they hold while hovered, green after blue so
+   it wins on a matched row. */
 .row[role="button"] {
   cursor: pointer;
 }
@@ -224,7 +225,8 @@
   outline-offset: -2px;
 }
 
-.row[data-matched="true"] {
+.row[data-matched="true"],
+.row[data-noted="true"] {
   background: var(--info-bg);
 }
 

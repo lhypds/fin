@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, BackupModal } from "@components";
-import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, UnlinkIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon } from "@components/icons";
+import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, EditIcon, UnlinkIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon } from "@components/icons";
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
 import { ledgerView } from "@utils/transactions";
@@ -32,7 +32,7 @@ const writeFlag = (key, value) => writePref(key, value ? "1" : "0");
 
 export default function Home() {
   const { t } = useTranslation();
-  const { ready, loadError, config, stats, progress, banks, transactions, runAutoMatch, clearResults } = useReconcile();
+  const { ready, loadError, config, stats, progress, banks, transactions, runAutoMatch, runAutoMemo, clearResults } = useReconcile();
   const { user, logout } = useAuth();
   const ocrTotal = progress.statement.total + progress.receipt.total;
   const ocrDone = progress.statement.done + progress.receipt.done;
@@ -90,6 +90,12 @@ export default function Home() {
     showToast(n ? t("toast.matched", { count: n }) : t("toast.noMatches"));
   }
 
+  // Writes the memos the rows on screen earn by rule; so far only the internal transfer one.
+  function handleAutoMemo() {
+    const n = runAutoMemo(shown.rows);
+    showToast(n ? t("toast.memoed", { count: n }) : t("toast.noTransfers"));
+  }
+
   // Clears the reconciliation result of the rows on screen only, the same rows auto-match pairs.
   function handleClear() {
     if (!window.confirm(t("header.clearConfirm"))) return;
@@ -144,6 +150,10 @@ export default function Home() {
           <button type="button" className="btn" onClick={handleAutoMatch} disabled={!canAutoMatch}>
             <ZapIcon />
             {t("header.autoMatch")}
+          </button>
+          <button type="button" className="btn" onClick={handleAutoMemo} disabled={!shown.rows.length}>
+            <EditIcon />
+            {t("header.autoMemo")}
           </button>
           <button type="button" className="btn" onClick={handleClear} disabled={!canClear}>
             <UnlinkIcon />

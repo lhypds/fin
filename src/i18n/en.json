@@ -16,6 +16,7 @@
   },
   "header": {
     "autoMatch": "Auto match",
+    "autoMemo": "Auto memo",
     "clear": "Clear",
     "clearConfirm": "Clear the reconciliation result of the transactions shown? Their matched receipts, confirmations and notes will be removed.",
     "search": "Search…",
@@ -172,11 +173,17 @@
     "match": "Match",
     "close": "Close"
   },
+  "memo": {
+    "transferTo": "Internal transfer to {{bank}}",
+    "transferFrom": "Internal transfer from {{bank}}"
+  },
   "toast": {
     "ocrDone": "OCR finished: {{ok}} ok, {{errors}} failed",
     "ocrFailed": "OCR failed: {{message}}",
     "matched": "{{count}} matched automatically",
     "noMatches": "No new matches found",
+    "memoed": "Memo written on {{count}} transactions",
+    "noTransfers": "No internal transfers found",
     "nothingPending": "Nothing pending",
     "cleared": "Reconciliation result cleared for {{count}} transactions",
     "saved": "Saved",

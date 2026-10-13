@@ -14,6 +14,7 @@ import {
   thumbnailUrl,
 } from "@utils/api";
 import { autoMatch as computeMatches } from "@utils/matching";
+import { findInternalTransfers } from "@utils/transfers";
 import { splitNew } from "@utils/transactions";
 import { ReconcileContext } from "./context";
 
@@ -105,6 +106,9 @@ function reducer(state, action) {
       return { ...state, transactions: [...state.transactions, ...action.items] };
     case "updateTransaction":
       return { ...state, transactions: patchById(state.transactions, action.id, action.patch) };
+    // Several rows patched in one step, so one save covers them all.
+    case "patchTransactions":
+      return { ...state, transactions: action.patches.reduce((txs, p) => patchById(txs, p.id, p.patch), state.transactions) };
     case "removeTransaction":
       return dropTransactions(state, new Set([action.id]));
 
@@ -138,7 +142,9 @@ function reducer(state, action) {
       return {
         ...state,
         transactions: state.transactions.map((t) =>
-          ids.has(t.id) && (t.receiptIds?.length || t.confirmed || t.memo) ? { ...t, receiptIds: [], confirmed: false, memo: "" } : t,
+          ids.has(t.id) && (t.receiptIds?.length || t.confirmed || t.memo)
+            ? { ...t, receiptIds: [], confirmed: false, memo: "", autoMemo: null }
+            : t,
         ),
         receipts: state.receipts.map((r) => (r.txId && ids.has(r.txId) ? { ...r, txId: null, confidence: null } : r)),
       };
@@ -634,6 +640,33 @@ export function ReconcileProvider({ children }) {
     [dispatch],
   );
 
+  // Writes the memos the given rows (what the ledger shows) earn by rule, and returns how many
+  // rows were written. The one rule so far: a transfer between two of the accounts on the same
+  // day marks both rows with the other account's name. The other side may be off screen, in
+  // another account; it is written too. A memo already there is kept and the note goes under it,
+  // and a note already present is not written twice. A written row carries `autoMemo`, the name
+  // of the rule, which the ledger shows as the blue of a matched row; it goes when the memo does.
+  const runAutoMemo = useCallback(
+    (transactions) => {
+      const patches = [];
+      for (const { from, to } of findInternalTransfers(transactions, stateRef.current.transactions)) {
+        const sides = [
+          [from, i18n.t("memo.transferTo", { bank: to.bank })],
+          [to, i18n.t("memo.transferFrom", { bank: from.bank })],
+        ];
+        for (const [tx, note] of sides) {
+          const memo = tx.memo || "";
+          const noted = memo.includes(note);
+          if (noted && tx.autoMemo) continue;
+          patches.push({ id: tx.id, patch: { memo: noted ? memo : memo ? `${memo}\n${note}` : note, autoMemo: "transfer" } });
+        }
+      }
+      if (patches.length) dispatch({ type: "patchTransactions", patches });
+      return patches.length;
+    },
+    [dispatch],
+  );
+
   const match = useCallback(
     (txId, receiptId, confidence = null) => {
       dispatch({ type: "match", txId, receiptId, confidence });
@@ -714,6 +747,7 @@ export function ReconcileProvider({ children }) {
       ocrReceipt,
       ocrPending,
       runAutoMatch,
+      runAutoMemo,
       match,
       unmatch,
       unmatchAll,
@@ -742,6 +776,7 @@ export function ReconcileProvider({ children }) {
       ocrReceipt,
       ocrPending,
       runAutoMatch,
+      runAutoMemo,
       match,
       unmatch,
       unmatchAll,

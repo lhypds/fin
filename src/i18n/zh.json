@@ -16,6 +16,7 @@
   },
   "header": {
     "autoMatch": "自动对账",
+    "autoMemo": "自动备注",
     "clear": "清空",
     "clearConfirm": "清空当前显示流水的对账结果？匹配的收据、确认和备注都会被清除。",
     "search": "搜索…",
@@ -172,11 +173,17 @@
     "match": "匹配",
     "close": "关闭"
   },
+  "memo": {
+    "transferTo": "内部账户转账：转入 {{bank}}",
+    "transferFrom": "内部账户转账：来自 {{bank}}"
+  },
   "toast": {
     "ocrDone": "识别完成：成功 {{ok}}，失败 {{errors}}",
     "ocrFailed": "识别失败：{{message}}",
     "matched": "自动对上了 {{count}} 条",
     "noMatches": "没有找到新的匹配",
+    "memoed": "已为 {{count}} 笔流水写入备注",
+    "noTransfers": "没有发现内部账户转账",
     "nothingPending": "没有待处理的文件",
     "cleared": "已清空 {{count}} 笔流水的对账结果",
     "saved": "已保存",
