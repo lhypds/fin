@@ -1,9 +1,9 @@
-import { isPdf, isCsv } from "@utils/files";
+import { isPdf, isExcel, CSV_TYPE } from "@utils/files";
 import { FileIcon } from "../icons";
 import styles from "./thumb.module.css";
 
 export default function FileThumb({ item, size = 40 }) {
-  const badge = isPdf(item.type) ? "PDF" : isCsv(item.type) ? "CSV" : null;
+  const badge = isPdf(item.type) ? "PDF" : item.type === CSV_TYPE ? "CSV" : isExcel(item.type) ? "XLS" : null;
   // Server-made webp thumbnail when there is one; the original only as a fallback for images.
   const src = item.thumbUrl || (!badge ? item.url : null);
   return (

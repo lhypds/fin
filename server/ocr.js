@@ -1,12 +1,16 @@
-// Reading files through the OpenAI Responses API with Structured Outputs: CSV bank statements into
-// ledger rows, passbook photos and PDFs into the account's details, receipts into their fields.
-// Runs on the server so the file never leaves data/ except to go to OpenAI.
+// Reading files through the OpenAI Responses API with Structured Outputs: CSV and Excel bank
+// statements into ledger rows, passbook photos and PDFs into the account's details, receipts into
+// their fields. Runs on the server so the file never leaves data/ except to go to OpenAI.
 
 import fsp from "node:fs/promises";
 import sharp from "sharp";
 import { decodeCsv, statementParts } from "./csv.js";
+import { EXCEL_TYPES, excelToCsv } from "./excel.js";
 
 export const DEFAULT_MODEL = "gpt-5.4-mini";
+export const CSV_TYPE = "text/csv";
+// What rows are read from: the bank's CSV export, or the same as an Excel workbook.
+export const SPREADSHEET_TYPES = new Set([CSV_TYPE, ...EXCEL_TYPES]);
 const MAX_IMAGE_DIM = 2048;
 // Rows of a statement per model call. Shorter parts are read more faithfully than one long file.
 const STATEMENT_PART_ROWS = 100;
@@ -139,7 +143,7 @@ Extract the fields precisely. Rules:
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-// statement: a CSV export, read into rows (and whatever it says about the account).
+// statement: a CSV or Excel export, read into rows (and whatever it says about the account).
 // passbook: a photo, scan or PDF of the passbook, read for the account's identity only.
 // receipt: a receipt, invoice or slip, read into its fields.
 const SPECS = {
@@ -241,11 +245,22 @@ async function callModel({ spec, content, apiKey, baseUrl, model }) {
   }
 }
 
-// A CSV statement is read part by part and the parts joined: the rows in file order, the bank and
-// currency from the first part that names them, the remarks from every part.
-async function readCsvStatement({ spec, filePath, apiKey, baseUrl, model }) {
-  const text = decodeCsv(await fsp.readFile(filePath));
-  const parts = statementParts(text, STATEMENT_PART_ROWS);
+// A statement is read part by part and the parts joined: the rows in file order, the bank and
+// currency from the first part that names them, the remarks from every part. An Excel workbook
+// is first turned into CSV text, sheet by sheet, and goes the same way.
+async function readStatement({ spec, filePath, type, apiKey, baseUrl, model }) {
+  const buf = await fsp.readFile(filePath);
+  let texts;
+  if (EXCEL_TYPES.has(type)) {
+    try {
+      texts = excelToCsv(buf);
+    } catch (err) {
+      throw httpError(422, err.message);
+    }
+  } else {
+    texts = [decodeCsv(buf)];
+  }
+  const parts = texts.flatMap((text) => statementParts(text, STATEMENT_PART_ROWS));
   const merged = { bank: null, currency: "", transactions: [], notes: [] };
   for (let i = 0; i < parts.length; i++) {
     const content = [
@@ -267,7 +282,7 @@ export async function runOcr({ kind, filePath, type, name, apiKey, baseUrl, mode
   if (!apiKey) {
     throw httpError(500, "OPENAI_API_KEY is not set. Put it in .env, then restart the server (./restart.sh or npm run dev).");
   }
-  if (kind === "statement") return readCsvStatement({ spec, filePath, apiKey, baseUrl, model });
+  if (kind === "statement") return readStatement({ spec, filePath, type, apiKey, baseUrl, model });
   const content = [{ type: "input_text", text: spec.prompt() }, await buildInputPart(filePath, type, name)];
   return callModel({ spec, content, apiKey, baseUrl, model });
 }

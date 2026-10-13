@@ -62,13 +62,13 @@
     "types": "PNG · JPG · WEBP · PDF",
     "rejected": "非対応のファイル {{count}} 件をスキップしました",
     "duplicate": "重複するファイル {{count}} 件をスキップしました",
-    "rejectedStatement": "{{count}} 件をスキップしました：明細は CSV・画像・PDF のみ"
+    "rejectedStatement": "{{count}} 件をスキップしました：明細は CSV・Excel・画像・PDF のみ"
   },
   "banks": {
     "title": "銀行口座",
     "add": "追加",
     "all": "すべての口座",
-    "empty": "通帳の写真をドロップして口座を作り、明細 CSV をドロップして取引を読み取ります。",
+    "empty": "通帳の写真をドロップして口座を作り、明細（CSV・Excel）をドロップして取引を読み取ります。",
     "rowCount": "{{count}} 行",
     "deleteConfirm": "{{name}} とその取引 {{count}} 件を削除しますか？",
     "unnamed": "新しい口座"
@@ -98,6 +98,7 @@
     "description": "摘要",
     "withdrawal": "お支払",
     "deposit": "お預り",
+    "amount": "金額",
     "filterAll": "すべて",
     "filterUnmatched": "未照合",
     "filterMatched": "照合済",
@@ -156,10 +157,13 @@
   "txEditor": {
     "title": "取引を編集",
     "addTitle": "取引を追加",
-    "memo": "メモ",
     "noBank": "—",
     "dateRequired": "日付を入力してください（YYYY-MM-DD）",
     "amountRequired": "お支払またはお預りの金額を入力してください"
+  },
+  "matchEditor": {
+    "title": "照合を編集",
+    "memo": "メモ"
   },
   "button": {
     "save": "保存",

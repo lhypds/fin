@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import i18n from "../i18n/index.js";
 import { showToast } from "@ui";
-import { uid, isAccepted, isCsv, isCsvFile, isStatementFile, CSV_TYPE, hashFile, isSameFile } from "@utils/files";
+import { uid, isAccepted, isSpreadsheet, spreadsheetType, isStatementFile, hashFile, isSameFile } from "@utils/files";
 import {
   uploadFile,
   runOcr,
@@ -19,8 +19,8 @@ import { splitNew } from "@utils/transactions";
 import { ReconcileContext } from "./context";
 
 // `banks` are the accounts; `transactions` their rows; `receipts` the uploaded receipts. A
-// statement (a CSV, or a passbook image) is never kept: it is uploaded, read by the model, and
-// removed, leaving only what it said.
+// statement (a CSV or Excel file, or a passbook image) is never kept: it is uploaded, read by the
+// model, and removed, leaving only what it said.
 const initialState = { banks: [], transactions: [], receipts: [] };
 
 // Bumped when the saved shape changes; `migrate` brings older files up to it.
@@ -145,7 +145,7 @@ function newBank(id, name, currency) {
   return { id, name, branch: "", accountType: "", accountNumber: "", holder: "", memo: "", currency: currency || "JPY", createdAt: Date.now() };
 }
 
-// The account a read belongs to, or null for a new one. A CSV goes where the person said. A
+// The account a read belongs to, or null for a new one. A spreadsheet goes where the person said. A
 // passbook names its own account on the cover: the account with that number, wherever the file
 // was dropped; the chosen account only when it has no number yet (the cover fills it in) or the
 // cover shows none. The bank's name alone is never enough: one bank, many accounts.
@@ -239,7 +239,7 @@ export function ReconcileProvider({ children }) {
   const skipNextSaveRef = useRef(false);
 
   // Turns what the model read from a statement into its account's rows and details. Rows come
-  // from a CSV only; a passbook photo or PDF gives the account's identity and nothing else. A
+  // from a CSV or Excel file only; a passbook photo or PDF gives the account's identity and nothing else. A
   // file read for no account goes to the account with the number it names, made on the spot when
   // there is none. A row already on the account (same date, description, amounts and balance) is
   // skipped, so reading a file again adds nothing it added before. Returns how many rows were
@@ -275,8 +275,8 @@ export function ReconcileProvider({ children }) {
         if (items.length) dispatch({ type: "addTransactions", items });
       }
       // A passbook cover names the branch, account number and holder: they fill in whatever the
-      // account does not have yet, and never replace what was typed in. A CSV says nothing about
-      // the account; its details are typed in by hand.
+      // account does not have yet, and never replace what was typed in. A spreadsheet says nothing
+      // about the account; its details are typed in by hand.
       if (read.kind === "passbook") {
         const seen = result.account || {};
         const details = {};
@@ -418,7 +418,7 @@ export function ReconcileProvider({ children }) {
         const keep = new Set((loaded?.receipts || []).map((r) => r.id));
         const leftovers = files.filter((f) => f.role === "statement" && !keep.has(f.id));
         if (leftovers.length) {
-          const items = leftovers.map((f) => ({ id: f.id, name: f.name, type: f.type, kind: isCsv(f.type) ? "statement" : "passbook", bankId: f.bankId || null }));
+          const items = leftovers.map((f) => ({ id: f.id, name: f.name, type: f.type, kind: isSpreadsheet(f.type) ? "statement" : "passbook", bankId: f.bankId || null }));
           runReads(items, { resume: true }).then(({ errors, lastError, results }) => {
             if (errors) showToast(i18n.t("toast.ocrFailed", { message: lastError?.message || "" }), 6000);
             const done = results.filter(Boolean);
@@ -504,10 +504,10 @@ export function ReconcileProvider({ children }) {
       let failed = 0;
       let lastError = null;
       for (const file of accepted) {
-        const type = isCsvFile(file) ? CSV_TYPE : file.type || guessType(file.name);
+        const type = spreadsheetType(file) || file.type || guessType(file.name);
         try {
           const meta = await uploadFile(file, type, "statement", bankId);
-          uploaded.push({ id: meta.id, name: file.name, type, kind: isCsv(type) ? "statement" : "passbook", bankId });
+          uploaded.push({ id: meta.id, name: file.name, type, kind: isSpreadsheet(type) ? "statement" : "passbook", bankId });
         } catch (err) {
           failed++;
           lastError = err;
@@ -614,12 +614,15 @@ export function ReconcileProvider({ children }) {
     [ocrReceipt],
   );
 
-  const runAutoMatch = useCallback(() => {
-    const { transactions, receipts } = stateRef.current;
-    const matches = computeMatches(transactions, receipts);
-    if (matches.length) dispatch({ type: "applyMatches", matches });
-    return matches.length;
-  }, [dispatch]);
+  // Pairs the given rows (what the ledger shows) with the open receipts; the receipts are never scoped.
+  const runAutoMatch = useCallback(
+    (transactions) => {
+      const matches = computeMatches(transactions, stateRef.current.receipts);
+      if (matches.length) dispatch({ type: "applyMatches", matches });
+      return matches.length;
+    },
+    [dispatch],
+  );
 
   const match = useCallback(
     (txId, receiptId, confidence = null) => {

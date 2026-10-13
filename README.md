@@ -6,8 +6,8 @@ Auto reconciliation of financial transactions.
 
 Bank accounts live on the left. A photo, scan or PDF of the passbook (通帳) dropped there is read
 by the model for the account on its cover (bank, branch, account number, holder) and makes the
-account, or completes one with that number; its rows are never read. The bank's CSV export is
-what the rows come from: dropping one asks which account it belongs to (or makes a new one), then
+account, or completes one with that number; its rows are never read. The bank's CSV or Excel
+export is what the rows come from: dropping one asks which account it belongs to (or makes a new one), then
 the model reads it into rows on the ledger, in parts of about a hundred rows so nothing is lost;
 it never touches the account's details, which are typed in or come from the passbook. Neither
 file is kept: it is uploaded to be read and removed once the result is in. A read can be
@@ -61,4 +61,6 @@ data/
 ```
 
 CSV statements may be Shift_JIS or UTF-8 (with or without a BOM); the server decodes them and
-hands the text to the model with the account's columns left for it to work out.
+hands the text to the model with the account's columns left for it to work out. Excel statements
+(.xlsx, .xls) are turned into the same text first, sheet by sheet, with dates written out as
+YYYY-MM-DD and amounts as plain numbers.

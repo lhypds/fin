@@ -5,8 +5,8 @@ import { useReconcile } from "@store";
 import { fmtAccount } from "@utils/format";
 import styles from "./bank.module.css";
 
-// Which account a CSV statement goes onto: one of the accounts, or a new one named here. Nothing
-// is uploaded until the choice is made.
+// Which account a CSV or Excel statement goes onto: one of the accounts, or a new one named here.
+// Nothing is uploaded until the choice is made.
 export default function ImportTarget({ files, defaultBankId, onClose, onConfirm }) {
   const { t } = useTranslation();
   const { banks, addBank } = useReconcile();

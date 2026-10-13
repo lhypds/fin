@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, BackupModal } from "@components";
 import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, TrashIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon } from "@components/icons";
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
+import { ledgerView } from "@utils/transactions";
 import styles from "./home.module.css";
 
 function readPref(key, fallback) {
@@ -31,7 +32,7 @@ const writeFlag = (key, value) => writePref(key, value ? "1" : "0");
 
 export default function Home() {
   const { t } = useTranslation();
-  const { ready, loadError, config, stats, progress, banks, runAutoMatch, clearEverything } = useReconcile();
+  const { ready, loadError, config, stats, progress, banks, transactions, runAutoMatch, clearEverything } = useReconcile();
   const { user, logout } = useAuth();
   const ocrTotal = progress.statement.total + progress.receipt.total;
   const ocrDone = progress.statement.done + progress.receipt.done;
@@ -43,6 +44,10 @@ export default function Home() {
   const [bankId, setBankId] = useState(() => readPref("bank.selected", ""));
   const [month, setMonth] = useState(() => readPref("ledger.month", ""));
   const activeBankId = banks.some((b) => b.id === bankId) ? bankId : null;
+  // What the ledger has on screen. Auto-match pairs only these rows: other months and other
+  // accounts are left as they are.
+  const shown = useMemo(() => ledgerView(transactions, activeBankId, month), [transactions, activeBankId, month]);
+  const canAutoMatch = shown.rows.some((tx) => !tx.receiptIds?.length) && stats.unmatchedReceipts > 0;
   const [preview, setPreview] = useState(null);
   const [backupOpen, setBackupOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -80,7 +85,7 @@ export default function Home() {
   }, []);
 
   function handleAutoMatch() {
-    const n = runAutoMatch();
+    const n = runAutoMatch(shown.rows);
     showToast(n ? t("toast.matched", { count: n }) : t("toast.noMatches"));
   }
 
@@ -134,7 +139,7 @@ export default function Home() {
           )}
         </div>
         <div className={styles.actions}>
-          <button type="button" className="btn" onClick={handleAutoMatch} disabled={!stats.unmatchedTx || !stats.unmatchedReceipts}>
+          <button type="button" className="btn" onClick={handleAutoMatch} disabled={!canAutoMatch}>
             <ZapIcon />
             {t("header.autoMatch")}
           </button>

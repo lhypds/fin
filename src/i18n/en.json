@@ -62,13 +62,13 @@
     "types": "PNG · JPG · WEBP · PDF",
     "rejected": "{{count}} file(s) skipped: unsupported type",
     "duplicate": "{{count}} file(s) skipped: already uploaded",
-    "rejectedStatement": "{{count}} file(s) skipped: a statement is a CSV, an image or a PDF"
+    "rejectedStatement": "{{count}} file(s) skipped: a statement is a CSV, an Excel file, an image or a PDF"
   },
   "banks": {
     "title": "Bank accounts",
     "add": "Add",
     "all": "All accounts",
-    "empty": "Drop a passbook photo to set up an account, then its CSV statements to read the rows.",
+    "empty": "Drop a passbook photo to set up an account, then its CSV or Excel statements to read the rows.",
     "rowCount": "{{count}} rows",
     "deleteConfirm": "Delete {{name}} and its {{count}} transactions?",
     "unnamed": "New account"
@@ -98,6 +98,7 @@
     "description": "Description",
     "withdrawal": "Withdrawal",
     "deposit": "Deposit",
+    "amount": "Amount",
     "filterAll": "All",
     "filterUnmatched": "Unmatched",
     "filterMatched": "Matched",
@@ -156,10 +157,13 @@
   "txEditor": {
     "title": "Edit transaction",
     "addTitle": "Add transaction",
-    "memo": "Memo",
     "noBank": "—",
     "dateRequired": "Date is required (YYYY-MM-DD)",
     "amountRequired": "Enter a withdrawal or a deposit"
+  },
+  "matchEditor": {
+    "title": "Edit reconciliation",
+    "memo": "Memo"
   },
   "button": {
     "save": "Save",

@@ -62,13 +62,13 @@
     "types": "PNG · JPG · WEBP · PDF",
     "rejected": "已跳过 {{count}} 个不支持的文件",
     "duplicate": "已跳过 {{count}} 个重复文件",
-    "rejectedStatement": "已跳过 {{count}} 个文件：流水只能是 CSV、图片或 PDF"
+    "rejectedStatement": "已跳过 {{count}} 个文件：流水只能是 CSV、Excel、图片或 PDF"
   },
   "banks": {
     "title": "银行账户",
     "add": "添加",
     "all": "全部账户",
-    "empty": "拖入通帳照片新建账户，再拖入流水 CSV 读取流水。",
+    "empty": "拖入通帳照片新建账户，再拖入流水 CSV 或 Excel 读取流水。",
     "rowCount": "{{count}} 行",
     "deleteConfirm": "删除 {{name}} 及其 {{count}} 条流水？",
     "unnamed": "新账户"
@@ -98,6 +98,7 @@
     "description": "摘要",
     "withdrawal": "支出",
     "deposit": "收入",
+    "amount": "金额",
     "filterAll": "全部",
     "filterUnmatched": "未对账",
     "filterMatched": "已对账",
@@ -156,10 +157,13 @@
   "txEditor": {
     "title": "编辑流水",
     "addTitle": "添加流水",
-    "memo": "备注",
     "noBank": "—",
     "dateRequired": "请填写日期（YYYY-MM-DD）",
     "amountRequired": "请填写支出或收入金额"
+  },
+  "matchEditor": {
+    "title": "编辑对账",
+    "memo": "备注"
   },
   "button": {
     "save": "保存",

@@ -1,6 +1,6 @@
 // The app's HTTP API: uploads, thumbnails, OCR, and the reconciliation state. Receipts stay as
-// uploads; a statement (CSV, or a passbook image) is uploaded only to be read, and the client
-// deletes it once the result is in.
+// uploads; a statement (CSV or Excel, or a passbook image) is uploaded only to be read, and the
+// client deletes it once the result is in.
 // Returned as an express app so the same code mounts on the Vite dev server and on server/index.js.
 //
 //   data/
@@ -18,11 +18,11 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
-import { runOcr, OCR_KINDS, DEFAULT_MODEL } from "./ocr.js";
+import { runOcr, OCR_KINDS, DEFAULT_MODEL, SPREADSHEET_TYPES } from "./ocr.js";
 import { createAuthApp, USERS_FILE } from "./auth.js";
 
 const ID_RE = /^\d{13,16}$/;
-const ACCEPTED_TYPES = new Set(["text/csv", "image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"]);
+const ACCEPTED_TYPES = new Set([...SPREADSHEET_TYPES, "image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"]);
 const ROLES = new Set(["receipt", "statement"]);
 const STATE = "state.json";
 const META = "meta.json";
@@ -324,9 +324,10 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
       if (!OCR_KINDS.includes(kind)) return fail(res, 400, `kind must be one of: ${OCR_KINDS.join(", ")}`);
       const meta = await readMeta(req.params.id);
       if (!meta) return fail(res, 404, "File not found");
-      // Rows come from CSV exports only; a passbook is read for the account, never for rows.
-      if (kind === "statement" && meta.type !== "text/csv") return fail(res, 415, "A statement must be a CSV file");
-      if (kind !== "statement" && meta.type === "text/csv") return fail(res, 415, "A CSV can only be read as a statement");
+      // Rows come from CSV and Excel exports only; a passbook is read for the account, never for rows.
+      const spreadsheet = SPREADSHEET_TYPES.has(meta.type);
+      if (kind === "statement" && !spreadsheet) return fail(res, 415, "A statement must be a CSV or Excel file");
+      if (kind !== "statement" && spreadsheet) return fail(res, 415, "A CSV or Excel file can only be read as a statement");
       const id = req.params.id;
       const dir = dirOf(id);
       let job = running.get(id);

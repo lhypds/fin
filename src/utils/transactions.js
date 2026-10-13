@@ -39,3 +39,26 @@ export function isoDate(ms = Date.now()) {
 }
 
 export const currentMonth = () => isoDate().slice(0, 7);
+
+// The months a list of rows falls in, newest first, with the rows that carry no date as a last
+// entry. An empty list offers the current month so the picker is never blank.
+function monthsOf(transactions) {
+  const keys = new Set(transactions.map(monthOf));
+  const undated = keys.delete(UNDATED);
+  const list = [...keys].sort((a, b) => (a > b ? -1 : 1)).map((key) => ({ key }));
+  if (!list.length) list.push({ key: currentMonth() });
+  if (undated) list.push({ key: UNDATED });
+  return list;
+}
+
+// What the ledger shows for a chosen account and month: the months the account's rows (or every
+// row, with no account chosen) fall in, which of them is on screen, and its rows. The month on
+// screen is the chosen one, or the newest when the chosen one has no rows in this account.
+export function ledgerView(transactions, bankId, month) {
+  const scoped = bankId ? transactions.filter((tx) => tx.bankId === bankId) : transactions;
+  const months = monthsOf(scoped);
+  const index = Math.max(0, months.findIndex((m) => m.key === month));
+  const current = months[index].key;
+  const rows = scoped.filter((tx) => monthOf(tx) === current);
+  return { months, index, current, rows };
+}

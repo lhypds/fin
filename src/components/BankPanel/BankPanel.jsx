@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActionButton, showToast } from "@ui";
 import { useReconcile } from "@store";
-import { STATEMENT_ACCEPT, isCsvFile } from "@utils/files";
+import { STATEMENT_ACCEPT, isSpreadsheetFile } from "@utils/files";
 import DropZone from "../DropZone";
 import FileThumb from "../FileThumb";
 import StatusTag from "../StatusTag";
@@ -41,14 +41,14 @@ function ReadingItem({ read, bank, onCancel }) {
 }
 
 // The accounts, one of which (or all of them) the ledger shows. A file dropped here is read by
-// the model and then discarded: a CSV statement into rows, after asking which account it belongs
-// to (or making a new one); a passbook photo or PDF into the account on its cover, made if there
-// is none with that number, filling in details not typed in yet. Only the results stay.
+// the model and then discarded: a CSV or Excel statement into rows, after asking which account it
+// belongs to (or making a new one); a passbook photo or PDF into the account on its cover, made
+// if there is none with that number, filling in details not typed in yet. Only the results stay.
 export default function BankPanel({ selectedId, onSelect, onImported }) {
   const { t } = useTranslation();
   const { banks, transactions, reads, readStatements, cancelRead, removeBank, progress } = useReconcile();
   const [editing, setEditing] = useState(null); // null | "new" | the bank being edited
-  const [choosing, setChoosing] = useState(null); // null | { files, bankId }: CSVs waiting for their account
+  const [choosing, setChoosing] = useState(null); // null | { files, bankId }: spreadsheets waiting for their account
   const [overId, setOverId] = useState(null);
 
   const selected = banks.find((b) => b.id === selectedId) || null;
@@ -74,14 +74,15 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
 
   // Files dropped on an account's card (`card`), or on the zone with `bank` the account chosen in
   // the panel, if any. Passbooks are read straight away, for that account when one applies (a
-  // chosen account without a number takes the cover's). CSVs first ask which account they are
-  // for: the dialog offers the card they were dropped on, else the first account in the list.
+  // chosen account without a number takes the cover's). Spreadsheets (CSV, Excel) first ask which
+  // account they are for: the dialog offers the card they were dropped on, else the first account
+  // in the list.
   function handleFiles(bank, fileList, card = false) {
     const files = Array.from(fileList || []);
-    const csvs = files.filter(isCsvFile);
-    const others = files.filter((f) => !isCsvFile(f));
+    const sheets = files.filter(isSpreadsheetFile);
+    const others = files.filter((f) => !isSpreadsheetFile(f));
     if (others.length) read(others, bank?.id || null);
-    if (csvs.length) setChoosing({ files: csvs, bankId: card ? bank.id : null });
+    if (sheets.length) setChoosing({ files: sheets, bankId: card ? bank.id : null });
   }
 
   function handleDeleteBank(bank) {
@@ -117,10 +118,10 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
         </div>
       </header>
 
-      {/* The drop zone: a CSV asks for its account; a passbook makes or completes its own. A file
-          can also be dropped straight onto a card. */}
+      {/* The drop zone: a spreadsheet asks for its account; a passbook makes or completes its own.
+          A file can also be dropped straight onto a card. */}
       <div className={styles.drop}>
-        <DropZone accept={STATEMENT_ACCEPT} types="CSV · PNG · JPG · PDF" onFiles={(files) => handleFiles(selected, files)} />
+        <DropZone accept={STATEMENT_ACCEPT} types="CSV · XLSX · PNG · JPG · PDF" onFiles={(files) => handleFiles(selected, files)} />
       </div>
 
       <div className={`${styles.list} scroll-y`}>

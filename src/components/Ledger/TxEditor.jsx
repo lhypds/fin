@@ -18,7 +18,6 @@ export default function TxEditor({ tx, defaultBankId = null, onClose, onSaved })
       withdrawal: tx?.withdrawal || "",
       deposit: tx?.deposit || "",
       currency: tx?.currency || bankById.get(bankId)?.currency || "JPY",
-      memo: tx?.memo || "",
     };
   });
   const [error, setError] = useState(null);
@@ -40,7 +39,6 @@ export default function TxEditor({ tx, defaultBankId = null, onClose, onSaved })
       withdrawal,
       deposit,
       currency: form.currency.trim().toUpperCase() || "JPY",
-      memo: form.memo.trim(),
     };
     if (tx) updateTransaction(tx.id, patch);
     else addTransaction(patch);
@@ -86,10 +84,6 @@ export default function TxEditor({ tx, defaultBankId = null, onClose, onSaved })
             <label htmlFor="tx-currency">{t("preview.currency")}</label>
             <input id="tx-currency" className="input mono" value={form.currency} onChange={set("currency")} maxLength={3} />
           </div>
-        </div>
-        <div className="field">
-          <label htmlFor="tx-memo">{t("txEditor.memo")}</label>
-          <input id="tx-memo" className="input" value={form.memo} onChange={set("memo")} />
         </div>
         {error && <div className={styles.error}>{error}</div>}
         <div className={styles.footer}>

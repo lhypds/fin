@@ -5,11 +5,12 @@ import { useReconcile } from "@store";
 import { fmtMoney, txAmount } from "@utils/format";
 import { amountGap } from "@utils/matching";
 import { transactionHaystack, matchesQuery } from "@utils/search";
-import { monthOf, currentMonth, UNDATED } from "@utils/transactions";
+import { ledgerView, UNDATED } from "@utils/transactions";
 import FileThumb from "../FileThumb";
 import { ConfidenceTag } from "../StatusTag";
 import { RECEIPT_DRAG_TYPE } from "../ReceiptPanel";
 import TxEditor from "./TxEditor";
+import MatchEditor from "./MatchEditor";
 import ReceiptPicker from "./ReceiptPicker";
 import { EditIcon, TrashIcon, EyeIcon, UnlinkIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon } from "../icons";
 import styles from "./ledger.module.css";
@@ -43,30 +44,13 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
   const [editing, setEditing] = useState(null);
   const [picking, setPicking] = useState(null);
   const [overId, setOverId] = useState(null);
+  const [editingMatch, setEditingMatch] = useState(null);
 
-  const scoped = useMemo(() => (bankId ? transactions.filter((tx) => tx.bankId === bankId) : transactions), [transactions, bankId]);
-
-  // The months the rows fall in, newest first, with the rows that carry no date as a last entry.
-  // An empty ledger offers the current month so the picker is never blank.
-  const months = useMemo(() => {
-    const counts = new Map();
-    for (const tx of scoped) {
-      const key = monthOf(tx);
-      counts.set(key, (counts.get(key) || 0) + 1);
-    }
-    const undated = counts.get(UNDATED) || 0;
-    counts.delete(UNDATED);
-    const list = [...counts].sort((a, b) => (a[0] > b[0] ? -1 : 1)).map(([key, count]) => ({ key, count }));
-    if (!list.length) list.push({ key: currentMonth(), count: 0 });
-    if (undated) list.push({ key: UNDATED, count: undated });
-    return list;
-  }, [scoped]);
-  // The chosen month, or the newest one when the chosen one has no rows here.
-  const index = Math.max(0, months.findIndex((m) => m.key === month));
-  const current = months[index].key;
-  const monthLabel = (m) => (m.key === UNDATED ? t("ledger.undated") : m.key);
-
-  const inMonth = useMemo(() => scoped.filter((tx) => monthOf(tx) === current), [scoped, current]);
+  // The month picker's entries, the one on screen, and its rows. The header's auto-match covers
+  // the same rows, so the one definition of "what the ledger shows" lives in @utils/transactions.
+  const { months, index, current, rows: inMonth } = useMemo(() => ledgerView(transactions, bankId, month), [transactions, bankId, month]);
+  // A month key "2026-10" reads as "2026 - 10".
+  const monthLabel = (m) => (m.key === UNDATED ? t("ledger.undated") : m.key.replace("-", " - "));
 
   // The header search narrows the month first; the filter tabs then split what it left.
   const searched = useMemo(() => {
@@ -124,7 +108,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
             <select className={styles.monthSelect} value={current} onChange={(e) => onMonthChange(e.target.value)} aria-label={t("ledger.month")}>
               {months.map((m) => (
                 <option key={m.key} value={m.key}>
-                  {monthLabel(m)} · {m.count}
+                  {monthLabel(m)}
                 </option>
               ))}
             </select>
@@ -173,8 +157,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                   <div>{t("ledger.date")}</div>
                   <div>{t("ledger.bank")}</div>
                   <div>{t("ledger.description")}</div>
-                  <div className={styles.num}>{t("ledger.withdrawal")}</div>
-                  <div className={styles.num}>{t("ledger.deposit")}</div>
+                  <div className={styles.num}>{t("ledger.amount")}</div>
                   <div />
                 </div>
                 <div className={styles.cMatch} />
@@ -200,7 +183,9 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                     tabIndex: 0,
                     title: t("picker.title"),
                     onClick: () => setPicking(tx),
+                    // Keys count only on the cell itself: Enter on the edit button inside it must not open the picker.
                     onKeyDown: (e) => {
+                      if (e.target !== e.currentTarget) return;
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
                         setPicking(tx);
@@ -254,12 +239,13 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                   <div className={styles.left}>
                     <div className="mono">{tx.date || <span className="muted">{t("ledger.noDate")}</span>}</div>
                     <div title={tx.bank || undefined}>{tx.bank}</div>
-                    {/* The statement's memo column, when it has one, shows on hover. */}
-                    <div className={styles.desc} title={tx.memo || undefined}>
-                      {tx.description}
-                    </div>
-                    <div className={`${styles.num} ${styles.withdrawal} mono`}>{tx.withdrawal ? fmtMoney(tx.withdrawal, tx.currency) : ""}</div>
-                    <div className={`${styles.num} ${styles.deposit} mono`}>{tx.deposit ? fmtMoney(tx.deposit, tx.currency) : ""}</div>
+                    <div className={styles.desc}>{tx.description}</div>
+                    {/* One amount cell: red for money out, green for money in. */}
+                    {tx.withdrawal ? (
+                      <div className={`${styles.num} ${styles.withdrawal} mono`}>{fmtMoney(tx.withdrawal, tx.currency)}</div>
+                    ) : (
+                      <div className={`${styles.num} ${styles.deposit} mono`}>{tx.deposit ? fmtMoney(tx.deposit, tx.currency) : ""}</div>
+                    )}
                     <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
                       <ActionButton tooltip={t("button.edit")} onClick={() => setEditing(tx)}>
                         <EditIcon />
@@ -271,47 +257,56 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                   </div>
 
                   <div className={styles.cMatch} {...pickProps}>
-                    {matched &&
-                      receipts.map((r, i) => (
-                        // The thumbnail is the chip's one button and opens the receipt preview. The
-                        // rest of the chip belongs to the row, so a click there confirms the match.
-                        <div key={r.id} className={styles.chip}>
-                          <button
-                            type="button"
-                            className={styles.chipThumb}
-                            title={t("button.preview")}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onPreviewReceipt(r.id);
-                            }}
-                          >
-                            <FileThumb item={r} size={28} />
-                          </button>
-                          <div className={styles.chipInfo}>
-                            <div className={styles.chipTitle}>{r.ocr?.vendor || r.name}</div>
-                            <div className={`${styles.chipMeta} mono`}>
-                              <span>{r.ocr?.date || "—"}</span>
-                              <span>{r.ocr?.total != null ? fmtMoney(r.ocr.total, r.ocr.currency) : t("receipts.noAmount")}</span>
-                              <ConfidenceTag confidence={r.confidence} />
-                            </div>
-                            {/* The sum note covers every receipt, so it hangs off the last chip. Inside the chip
-                                (rather than below the stack) the thumb and buttons stay centred against it. */}
-                            {mismatch && i === receipts.length - 1 && (
-                              <div className={styles.mismatch}>
-                                {t("ledger.sumMismatch", { sum: fmtMoney(sum, tx.currency), amount: fmtMoney(amount, tx.currency) })}
+                    <div className={styles.matchBody}>
+                      {matched &&
+                        receipts.map((r, i) => (
+                          // The thumbnail is the chip's one button and opens the receipt preview. The
+                          // rest of the chip belongs to the row, so a click there confirms the match.
+                          <div key={r.id} className={styles.chip}>
+                            <button
+                              type="button"
+                              className={styles.chipThumb}
+                              title={t("button.preview")}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onPreviewReceipt(r.id);
+                              }}
+                            >
+                              <FileThumb item={r} size={28} />
+                            </button>
+                            <div className={styles.chipInfo}>
+                              <div className={styles.chipTitle}>{r.ocr?.vendor || r.name}</div>
+                              <div className={`${styles.chipMeta} mono`}>
+                                <span>{r.ocr?.date || "—"}</span>
+                                <span>{r.ocr?.total != null ? fmtMoney(r.ocr.total, r.ocr.currency) : t("receipts.noAmount")}</span>
+                                <ConfidenceTag confidence={r.confidence} />
                               </div>
-                            )}
+                              {/* The sum note covers every receipt, so it hangs off the last chip. Inside the chip
+                                  (rather than below the stack) the thumb and buttons stay centred against it. */}
+                              {mismatch && i === receipts.length - 1 && (
+                                <div className={styles.mismatch}>
+                                  {t("ledger.sumMismatch", { sum: fmtMoney(sum, tx.currency), amount: fmtMoney(amount, tx.currency) })}
+                                </div>
+                              )}
+                            </div>
+                            <div className={styles.chipActions} onClick={(e) => e.stopPropagation()}>
+                              <ActionButton tooltip={t("button.preview")} onClick={() => onPreviewReceipt(r.id)}>
+                                <EyeIcon />
+                              </ActionButton>
+                              <ActionButton tooltip={t("button.unmatch")} onClick={() => unmatch(r.id)}>
+                                <UnlinkIcon />
+                              </ActionButton>
+                            </div>
                           </div>
-                          <div className={styles.chipActions} onClick={(e) => e.stopPropagation()}>
-                            <ActionButton tooltip={t("button.preview")} onClick={() => onPreviewReceipt(r.id)}>
-                              <EyeIcon />
-                            </ActionButton>
-                            <ActionButton tooltip={t("button.unmatch")} onClick={() => unmatch(r.id)}>
-                              <UnlinkIcon />
-                            </ActionButton>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      {/* The note typed on the reconciliation sits under the chips, or alone on an unmatched row. */}
+                      {tx.memo && <div className={styles.note}>{tx.memo}</div>}
+                    </div>
+                    <div className={styles.matchActions} onClick={(e) => e.stopPropagation()}>
+                      <ActionButton tooltip={t("button.edit")} onClick={() => setEditingMatch(tx)}>
+                        <EditIcon />
+                      </ActionButton>
+                    </div>
                   </div>
                 </div>
               );
@@ -329,6 +324,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
           onSaved={(saved) => onMonthChange(saved.date.slice(0, 7))}
         />
       )}
+      {editingMatch && <MatchEditor tx={editingMatch} onClose={() => setEditingMatch(null)} />}
       {picking && <ReceiptPicker tx={picking} onClose={() => setPicking(null)} />}
     </div>
   );

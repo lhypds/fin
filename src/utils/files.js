@@ -16,29 +16,40 @@ export function isPdf(type) {
   return type === "application/pdf";
 }
 
-// Receipts: the images and PDFs above. Statements: CSV only.
+// Receipts: the images and PDFs above. Rows: the spreadsheets below.
 export function isAccepted(file) {
   if (ACCEPTED_TYPES.includes(file.type)) return true;
   // Some browsers leave `type` empty for drag-dropped files; fall back to the extension.
   return /\.(png|jpe?g|webp|gif|pdf)$/i.test(file.name);
 }
 
+// The bank's export: CSV, or an Excel workbook (.xlsx, or the older .xls).
 export const CSV_TYPE = "text/csv";
-export const CSV_ACCEPT = ".csv,text/csv";
+export const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+export const XLS_TYPE = "application/vnd.ms-excel";
+export const SPREADSHEET_TYPES = [CSV_TYPE, XLSX_TYPE, XLS_TYPE];
+export const SPREADSHEET_ACCEPT = `.csv,.xlsx,.xls,${SPREADSHEET_TYPES.join(",")}`;
 
-export const isCsv = (type) => type === CSV_TYPE;
+export const isSpreadsheet = (type) => SPREADSHEET_TYPES.includes(type);
+export const isExcel = (type) => type === XLSX_TYPE || type === XLS_TYPE;
 
-// Windows reports a .csv as an Excel type and a dropped file may carry no type at all, so the
-// name decides.
-export function isCsvFile(file) {
-  return /\.csv$/i.test(file.name || "") || file.type === CSV_TYPE;
+// The type a spreadsheet goes up as, or null for a file that is not one. Windows reports a .csv
+// as an Excel type and a dropped file may carry no type at all, so the name decides.
+export function spreadsheetType(file) {
+  const name = file.name || "";
+  if (/\.csv$/i.test(name)) return CSV_TYPE;
+  if (/\.xlsx$/i.test(name)) return XLSX_TYPE;
+  if (/\.xls$/i.test(name)) return XLS_TYPE;
+  return isSpreadsheet(file.type) ? file.type : null;
 }
 
-// A statement is the bank's CSV export, or photos, scans and PDFs of the passbook.
-export const STATEMENT_ACCEPT = `${CSV_ACCEPT},${ACCEPT_ATTR}`;
+export const isSpreadsheetFile = (file) => spreadsheetType(file) != null;
+
+// A statement is the bank's CSV or Excel export, or photos, scans and PDFs of the passbook.
+export const STATEMENT_ACCEPT = `${SPREADSHEET_ACCEPT},${ACCEPT_ATTR}`;
 
 export function isStatementFile(file) {
-  return isCsvFile(file) || isAccepted(file);
+  return isSpreadsheetFile(file) || isAccepted(file);
 }
 
 // SHA-256 of the file's bytes as hex, or null where WebCrypto is unavailable: crypto.subtle only
