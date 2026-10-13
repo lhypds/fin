@@ -323,8 +323,8 @@
   text-align: center;
 }
 
-/* A chip names a matched receipt. Only its thumbnail is a button (it opens the preview); a click
-   anywhere else on the chip falls through to the row and toggles the confirmation. */
+/* A chip names a matched receipt. Its thumbnail and its text are buttons (they open the preview);
+   a click anywhere else on the chip falls through to the row and toggles the confirmation. */
 .chip {
   display: flex;
   align-items: center;
@@ -354,7 +354,29 @@
   gap: 2px;
 }
 
+/* The name and the meta line as one button drawn as plain text, no wider than its longer line, so
+   the chip's blank space to its right still belongs to the row. */
+.chipText {
+  align-self: flex-start;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chipText:focus-visible {
+  outline: var(--line) solid var(--focus);
+  outline-offset: 2px;
+}
+
 .chipTitle {
+  display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

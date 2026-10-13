@@ -231,8 +231,9 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                     <div className={styles.matchBody}>
                       {matched &&
                         receipts.map((r, i) => (
-                          // The thumbnail is the chip's one button and opens the receipt preview. The
-                          // rest of the chip belongs to the row, so a click there confirms the match.
+                          // The thumbnail and the text (name, date, amount, confidence) are the chip's
+                          // buttons and open the receipt preview. The rest of the chip belongs to the row,
+                          // so a click there confirms the match.
                           // Dragged to the receipt list, the chip is unmatched; to another row, moved there.
                           <div
                             key={r.id}
@@ -255,12 +256,22 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                               <FileThumb item={r} size={28} />
                             </button>
                             <div className={styles.chipInfo}>
-                              <div className={styles.chipTitle}>{r.ocr?.vendor || r.name}</div>
-                              <div className={`${styles.chipMeta} mono`}>
-                                <span>{r.ocr?.date || "—"}</span>
-                                <span>{r.ocr?.total != null ? fmtMoney(r.ocr.total, r.ocr.currency) : t("receipts.noAmount")}</span>
-                                <ConfidenceTag confidence={r.confidence} />
-                              </div>
+                              <button
+                                type="button"
+                                className={styles.chipText}
+                                title={t("button.preview")}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onPreviewReceipt(r.id);
+                                }}
+                              >
+                                <span className={styles.chipTitle}>{r.ocr?.vendor || r.name}</span>
+                                <span className={`${styles.chipMeta} mono`}>
+                                  <span>{r.ocr?.date || "—"}</span>
+                                  <span>{r.ocr?.total != null ? fmtMoney(r.ocr.total, r.ocr.currency) : t("receipts.noAmount")}</span>
+                                  <ConfidenceTag confidence={r.confidence} />
+                                </span>
+                              </button>
                               {/* The sum note covers every receipt, so it hangs off the last chip. Inside the chip
                                   (rather than below the stack) the thumb stays centred against it. */}
                               {mismatch && i === receipts.length - 1 && (

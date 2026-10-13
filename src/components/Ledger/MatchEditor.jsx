@@ -37,16 +37,18 @@ export default function MatchEditor({ tx, onClose, onPreview }) {
             <div className={styles.receipts}>
               {receipts.map((r) => (
                 <div key={r.id} className={styles.receipt}>
-                  {/* The thumbnail opens the preview too, as the chip's does in the ledger. */}
+                  {/* The thumbnail and the text open the preview too, as the chip's do in the ledger. */}
                   <button type="button" className={styles.receiptThumb} title={t("button.preview")} onClick={() => onPreview(r.id)}>
                     <FileThumb item={r} size={28} />
                   </button>
                   <div className={styles.receiptInfo}>
-                    <div className={styles.receiptName}>{r.ocr?.vendor || r.name}</div>
-                    <div className={`${styles.receiptMeta} mono`}>
-                      <span>{r.ocr?.date || "—"}</span>
-                      <span>{r.ocr?.total != null ? fmtMoney(r.ocr.total, r.ocr.currency) : t("receipts.noAmount")}</span>
-                    </div>
+                    <button type="button" className={styles.receiptText} title={t("button.preview")} onClick={() => onPreview(r.id)}>
+                      <span className={styles.receiptName}>{r.ocr?.vendor || r.name}</span>
+                      <span className={`${styles.receiptMeta} mono`}>
+                        <span>{r.ocr?.date || "—"}</span>
+                        <span>{r.ocr?.total != null ? fmtMoney(r.ocr.total, r.ocr.currency) : t("receipts.noAmount")}</span>
+                      </span>
+                    </button>
                   </div>
                   <div className={styles.receiptActions}>
                     <ActionButton tooltip={t("button.preview")} onClick={() => onPreview(r.id)}>

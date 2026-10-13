@@ -11,12 +11,15 @@ export default function TxEditor({ tx, defaultBankId = null, onClose, onSaved })
   const [form, setForm] = useState(() => {
     // A new row starts on the account the ledger is showing, in its currency.
     const bankId = tx ? tx.bankId || "" : defaultBankId || "";
+    // A row is either a withdrawal or a deposit: one amount, and a switch for which side it is on.
+    // A new row starts as a withdrawal, the common case for a receipt.
+    const kind = tx?.deposit && !tx.withdrawal ? "deposit" : "withdrawal";
     return {
       date: tx?.date || "",
       bankId,
       description: tx?.description || "",
-      withdrawal: tx?.withdrawal || "",
-      deposit: tx?.deposit || "",
+      kind,
+      amount: tx?.[kind] || "",
       currency: tx?.currency || bankById.get(bankId)?.currency || "JPY",
     };
   });
@@ -27,17 +30,16 @@ export default function TxEditor({ tx, defaultBankId = null, onClose, onSaved })
   function submit(e) {
     e.preventDefault();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date)) return setError(t("txEditor.dateRequired"));
-    const withdrawal = toNumberOrNull(form.withdrawal) || 0;
-    const deposit = toNumberOrNull(form.deposit) || 0;
-    if (!withdrawal && !deposit) return setError(t("txEditor.amountRequired"));
+    const amount = toNumberOrNull(form.amount) || 0;
+    if (!amount) return setError(t("txEditor.amountRequired"));
     const bank = bankById.get(form.bankId);
     const patch = {
       date: form.date,
       bankId: bank ? bank.id : null,
       bank: bank ? bank.name : "",
       description: form.description.trim(),
-      withdrawal,
-      deposit,
+      withdrawal: form.kind === "withdrawal" ? amount : 0,
+      deposit: form.kind === "deposit" ? amount : 0,
       currency: form.currency.trim().toUpperCase() || "JPY",
     };
     if (tx) updateTransaction(tx.id, patch);
@@ -73,12 +75,25 @@ export default function TxEditor({ tx, defaultBankId = null, onClose, onSaved })
         </div>
         <div className={styles.grid}>
           <div className="field">
-            <label htmlFor="tx-withdrawal">{t("ledger.withdrawal")}</label>
-            <input id="tx-withdrawal" className="input mono" inputMode="decimal" value={form.withdrawal} onChange={set("withdrawal")} />
-          </div>
-          <div className="field">
-            <label htmlFor="tx-deposit">{t("ledger.deposit")}</label>
-            <input id="tx-deposit" className="input mono" inputMode="decimal" value={form.deposit} onChange={set("deposit")} />
+            <label htmlFor="tx-amount">{t("ledger.amount")}</label>
+            <div className={styles.amount}>
+              <div className={styles.kind} role="radiogroup">
+                {["withdrawal", "deposit"].map((kind) => (
+                  <label key={kind} className={styles.kindOption} data-active={form.kind === kind}>
+                    <input
+                      type="radio"
+                      name="tx-kind"
+                      className={styles.kindRadio}
+                      value={kind}
+                      checked={form.kind === kind}
+                      onChange={() => setForm((f) => ({ ...f, kind }))}
+                    />
+                    <span className={styles.kindText}>{t(`ledger.${kind}`)}</span>
+                  </label>
+                ))}
+              </div>
+              <input id="tx-amount" className={`${styles.amountInput} input mono`} inputMode="decimal" value={form.amount} onChange={set("amount")} />
+            </div>
           </div>
           <div className="field">
             <label htmlFor="tx-currency">{t("preview.currency")}</label>

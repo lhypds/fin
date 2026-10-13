@@ -152,7 +152,7 @@
     "addTitle": "取引を追加",
     "noBank": "—",
     "dateRequired": "日付を入力してください（YYYY-MM-DD）",
-    "amountRequired": "お支払またはお預りの金額を入力してください"
+    "amountRequired": "金額を入力してください"
   },
   "matchEditor": {
     "title": "照合を編集",

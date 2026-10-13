@@ -152,7 +152,7 @@
     "addTitle": "Add transaction",
     "noBank": "—",
     "dateRequired": "Date is required (YYYY-MM-DD)",
-    "amountRequired": "Enter a withdrawal or a deposit"
+    "amountRequired": "Enter an amount"
   },
   "matchEditor": {
     "title": "Edit reconciliation",

@@ -14,11 +14,75 @@
   gap: 12px;
 }
 
-/* The amounts row: withdrawal, deposit and the currency they are in. */
+/* The amount row: the amount with its withdrawal / deposit switch, and the currency it is in. */
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 2fr 1fr;
   gap: 12px;
+}
+
+/* The switch and the amount input share one hairline frame: the switch drops its right edge and
+   the input's left border closes it. The switch stretches to the input's height. */
+.amount {
+  display: flex;
+  align-items: stretch;
+}
+
+.amountInput {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
+/* Withdrawal / deposit as two segments, the chosen one filled, drawn like the primary button. */
+.kind {
+  flex: none;
+  display: flex;
+  border: var(--line) solid var(--border);
+  border-right: none;
+}
+
+.kindOption {
+  position: relative;
+  display: flex;
+  cursor: pointer;
+  user-select: none;
+}
+
+.kindOption + .kindOption {
+  border-left: var(--line) solid var(--border);
+}
+
+/* The native radio stays in the DOM for keyboard and screen-reader access, but is not drawn. */
+.kindRadio {
+  position: absolute;
+  width: 0;
+  height: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.kindText {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.kindOption:hover .kindText {
+  background: var(--bg-hover);
+}
+
+.kindOption[data-active="true"] .kindText {
+  background: var(--border);
+  color: var(--bg);
+}
+
+.kindRadio:focus-visible + .kindText {
+  outline: var(--line) solid var(--focus);
+  outline-offset: -2px;
 }
 
 /* The receipts matched to the row, one per line with its unmatch button on the right. Only
@@ -62,7 +126,29 @@
   gap: 2px;
 }
 
+/* The name and the meta line as one button drawn as plain text, no wider than its longer line;
+   it opens the preview. */
+.receiptText {
+  align-self: flex-start;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.receiptText:focus-visible {
+  outline: var(--line) solid var(--focus);
+  outline-offset: 2px;
+}
+
 .receiptName {
+  display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
