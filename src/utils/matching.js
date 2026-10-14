@@ -165,6 +165,21 @@ export function amountGap(a, b, currency = "JPY") {
   return null;
 }
 
+// Whether the receipts on a row account for its amount. A receipt whose own total carries the
+// row's amount (give or take the fee) documents the whole payment: a transfer slip and the invoice
+// it settles both do, and their amounts are not added up. The receipts that do not must add up to
+// the amount between them, one payment settling several invoices. Returns null when the receipts
+// account for it, or when one of them has no total to go by; otherwise the sum of those that
+// neither fit on their own nor add up, for the row's note.
+export function receiptsSumMismatch(amount, receipts, currency = "JPY") {
+  const rest = receipts.filter((r) => amountGap(amount, r.ocr?.total, currency) == null);
+  if (!rest.length) return null;
+  const totals = rest.map((r) => r.ocr?.total);
+  if (totals.some((v) => v == null)) return null;
+  const sum = totals.reduce((a, b) => a + Number(b), 0);
+  return amountGap(amount, sum, currency) == null ? sum : null;
+}
+
 const FEE_ITEM_RE = /手数料|\bfees?\b/i;
 
 // The transfer fee the receipt prints. The OCR is asked to put it in `fee` but in practice leaves

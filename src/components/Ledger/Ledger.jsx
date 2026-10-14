@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ActionButton, isModalOpen } from "@ui";
 import { useReconcile } from "@store";
 import { fmtMoney, txAmount } from "@utils/format";
-import { amountGap } from "@utils/matching";
+import { receiptsSumMismatch } from "@utils/matching";
 import { transactionHaystack, matchesQuery } from "@utils/search";
 import { ledgerView, UNDATED } from "@utils/transactions";
 import FileThumb from "../FileThumb";
@@ -161,10 +161,10 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
               const receipts = (tx.receiptIds || []).map((id) => receiptById.get(id)).filter(Boolean);
               const matched = receipts.length > 0;
               const amount = txAmount(tx);
-              const totals = receipts.map((r) => r.ocr?.total);
-              const sum = totals.every((v) => v != null) ? totals.reduce((a, b) => a + Number(b), 0) : null;
-              // A gap the size of a transfer fee is the fee being on one side only, not a wrong receipt.
-              const mismatch = matched && sum != null && amountGap(sum, amount, tx.currency) == null;
+              // A receipt carrying the row's amount on its own (a transfer slip, the invoice it settles)
+              // is in order; the others must add up to it. The note shows the sum of those that do not.
+              const sum = matched ? receiptsSumMismatch(amount, receipts, tx.currency) : null;
+              const mismatch = sum != null;
               // Every row is a toggle: a click anywhere on it that no button or thumbnail claims
               // flips the human confirmation, matched or not (a row can be checked off without a
               // receipt). Keys count only on the row itself, since Enter and Space on the buttons
