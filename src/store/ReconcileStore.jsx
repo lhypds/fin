@@ -134,13 +134,6 @@ function reducer(state, action) {
       return action.matches.reduce((s, m) => attach(s, m.txId, m.receiptId, m.confidence), state);
     case "unmatch":
       return detach(state, action.receiptId);
-    // Every link undone at once, with the confirmations that rested on them.
-    case "unmatchAll":
-      return {
-        ...state,
-        transactions: state.transactions.map((t) => (t.receiptIds?.length || t.confirmed ? { ...t, receiptIds: [], confirmed: false } : t)),
-        receipts: state.receipts.map((r) => (r.txId || r.confidence != null ? { ...r, txId: null, confidence: null } : r)),
-      };
     // Several links undone at once, each as "unmatch" does it.
     case "unmatchMany":
       return action.receiptIds.reduce((s, id) => detach(s, id), state);
@@ -743,7 +736,6 @@ export function ReconcileProvider({ children }) {
   );
 
   const unmatch = useCallback((receiptId) => dispatch({ type: "unmatch", receiptId }), [dispatch]);
-  const unmatchAll = useCallback(() => dispatch({ type: "unmatchAll" }), [dispatch]);
 
   const updateTransaction = useCallback((id, patch) => dispatch({ type: "updateTransaction", id, patch }), [dispatch]);
   const addTransaction = useCallback(
@@ -930,7 +922,6 @@ export function ReconcileProvider({ children }) {
       clearAiMemoReference,
       match,
       unmatch,
-      unmatchAll,
       updateTransaction,
       addTransaction,
       removeTransaction,
@@ -966,7 +957,6 @@ export function ReconcileProvider({ children }) {
       clearAiMemoReference,
       match,
       unmatch,
-      unmatchAll,
       updateTransaction,
       addTransaction,
       removeTransaction,

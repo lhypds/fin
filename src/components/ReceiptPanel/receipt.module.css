@@ -38,16 +38,60 @@
   color: var(--fg);
 }
 
-/* The search narrows the list under it. Escape in the box clears it. */
+/* The search narrows the list under it, drawn like the header's (Home/home.module.css): the icon
+   on the left, a clear button on the right once there is text. Escape in the box clears it too. */
 .search {
   display: flex;
   padding: 8px 12px;
   border-bottom: var(--line) solid var(--border);
 }
 
-.searchInput {
+.searchBox {
+  position: relative;
   flex: 1;
   min-width: 0;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* Side padding clears the icon on the left and the clear button on the right. */
+.searchInput {
+  padding-left: 26px;
+  padding-right: 26px;
+}
+
+.searchClear {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.searchClear:hover {
+  color: var(--fg);
+}
+
+.searchClear svg {
+  width: 12px;
+  height: 12px;
 }
 
 .list {

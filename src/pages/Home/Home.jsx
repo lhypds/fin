@@ -4,7 +4,7 @@ import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, Backup
 import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, EditIcon, UnlinkIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon, DownloadIcon, LoaderIcon } from "@components/icons";
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
-import { ledgerView, UNDATED } from "@utils/transactions";
+import { ledgerView, monthLabel } from "@utils/transactions";
 import { takesReceipts } from "@utils/matching";
 import { useCloseOnOutside } from "@utils/useCloseOnOutside";
 import styles from "./home.module.css";
@@ -165,8 +165,8 @@ export default function Home() {
 
   function handleClearMonth() {
     setClearOpen(false);
-    // The month as the ledger's picker writes it.
-    const label = shown.current === UNDATED ? t("ledger.undated") : shown.current.replace("-", " - ");
+    // The month as the ledger's picker writes it: a month, or every month at once.
+    const label = monthLabel(shown.current, t);
     if (!window.confirm(t("header.clearMonthConfirm", { month: label, count: shown.rows.length }))) return;
     const n = removeTransactions(shown.rows);
     showToast(t("toast.rowsRemoved", { count: n }));

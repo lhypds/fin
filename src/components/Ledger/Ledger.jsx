@@ -5,7 +5,7 @@ import { useReconcile } from "@store";
 import { fmtMoney, txAmount } from "@utils/format";
 import { receiptsSumMismatch } from "@utils/matching";
 import { transactionHaystack, matchesQuery } from "@utils/search";
-import { ledgerView, UNDATED } from "@utils/transactions";
+import { ledgerView, monthLabel, ALL } from "@utils/transactions";
 import FileThumb from "../FileThumb";
 import { ConfidenceTag } from "../StatusTag";
 import { RECEIPT_DRAG_TYPE, isReceiptDrag } from "../ReceiptPanel";
@@ -42,9 +42,9 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
 
   // The month picker's entries, the one on screen, and its rows. The header's auto-match covers
   // the same rows, so the one definition of "what the ledger shows" lives in @utils/transactions.
-  const { months, index, rows: inMonth } = useMemo(() => ledgerView(transactions, bankId, month), [transactions, bankId, month]);
-  // A month key "2026-10" reads as "2026 - 10".
-  const monthLabel = (m) => (m.key === UNDATED ? t("ledger.undated") : m.key.replace("-", " - "));
+  const { months, index, current, rows: inMonth } = useMemo(() => ledgerView(transactions, bankId, month), [transactions, bankId, month]);
+  // A picker entry, written the way the ledger writes a month everywhere.
+  const labelOf = (m) => monthLabel(m.key, t);
 
   // The rows on screen: the month, newest first, narrowed by the header search.
   const rows = useMemo(() => {
@@ -139,14 +139,14 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
 
   const emptyText = () => {
     if (transactions.length === 0) return t("ledger.empty");
-    if (inMonth.length === 0) return t("ledger.emptyMonth", { month: monthLabel(months[index]) });
+    if (inMonth.length === 0) return t("ledger.emptyMonth", { month: labelOf(months[index]) });
     return t("ledger.emptySearch");
   };
 
   return (
     <div className={styles.ledger}>
       <div className={styles.toolbar}>
-        <MonthPicker months={months} index={index} label={monthLabel} onChange={onMonthChange} />
+        <MonthPicker months={months} index={index} label={labelOf} onChange={onMonthChange} />
         <button type="button" className="btn" onClick={() => setEditing("new")}>
           <PlusIcon />
           {t("ledger.add")}
@@ -337,8 +337,11 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
           tx={editing === "new" ? null : editing}
           defaultBankId={bankId}
           onClose={() => setEditing(null)}
-          // A row saved into another month is shown, not lost from view.
-          onSaved={(saved) => onMonthChange(saved.date.slice(0, 7))}
+          // A row saved into another month is shown, not lost from view; with every month on
+          // screen it is in view already.
+          onSaved={(saved) => {
+            if (current !== ALL) onMonthChange(saved.date.slice(0, 7));
+          }}
         />
       )}
       {editingMatch && <MatchEditor tx={editingMatch} onClose={() => setEditingMatch(null)} onPreview={onPreviewReceipt} />}

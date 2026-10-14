@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, showToast } from "@ui";
 import { EXPORT_COLUMNS, EXPORT_FORMATS, exportLedger } from "@utils/export";
-import { UNDATED } from "@utils/transactions";
+import { ALL, UNDATED, monthLabel } from "@utils/transactions";
 import { DownloadIcon, LoaderIcon } from "../icons";
 import styles from "./export.module.css";
 
@@ -36,9 +36,10 @@ export default function ExportModal({ rows, bank, month, onClose }) {
   const [format, setFormat] = useState(readFormat);
   const [busy, setBusy] = useState(false);
   const scope = bank?.label || t("banks.all");
-  // The month as the ledger's picker writes it; the file takes the key itself, with no spaces.
-  const monthLabel = month === UNDATED ? t("ledger.undated") : month.replace("-", " - ");
-  const monthName = month === UNDATED ? t("ledger.undated") : month;
+  // The month as the ledger's picker writes it; the file takes a month's key itself, with no
+  // spaces, and the name of the other two entries (every month, no date).
+  const monthText = monthLabel(month, t);
+  const monthName = month === ALL || month === UNDATED ? monthText : month;
 
   async function run() {
     writeFormat(format);
@@ -62,7 +63,7 @@ export default function ExportModal({ rows, bank, month, onClose }) {
   return (
     <Modal isOpen onClose={busy ? undefined : onClose} title={t("export.title")}>
       <div className={styles.body}>
-        <p>{t("export.intro", { scope, month: monthLabel, count: rows.length })}</p>
+        <p>{t("export.intro", { scope, month: monthText, count: rows.length })}</p>
         <div className={styles.options}>
           {EXPORT_FORMATS.map((f) => (
             <label key={f} className={styles.option} data-active={format === f}>

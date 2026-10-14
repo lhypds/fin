@@ -166,6 +166,7 @@
     "prevMonth": "上个月",
     "nextMonth": "下个月",
     "undated": "无日期",
+    "allMonths": "全部月份",
     "empty": "还没有流水。在左侧添加银行账户并把流水拖进来识别，或手动添加一行。",
     "emptyMonth": "{{month}} 没有流水。",
     "emptyFiltered": "没有符合条件的记录。",
@@ -178,12 +179,10 @@
   "receipts": {
     "title": "未对账收据",
     "search": "搜索…",
-    "ocrAll": "识别全部",
     "showMatched": "显示已对账",
     "empty": "上传收据、发票或截图。它们会一直留在这里，直到和某条流水对上。",
     "deleteConfirm": "删除这张收据？",
     "rerunConfirm": "这张收据已经识别过。重新识别会覆盖当前结果，包括你手动修改过的字段。要重新识别吗？",
-    "rerunAllConfirm": "{{count}} 张收据都已经识别过。重新识别会覆盖它们当前的结果，包括你手动修改过的字段，现有的对账会全部撤销。要全部重新识别吗？",
     "noAmount": "无金额",
     "dragHint": "拖到流水行上即可匹配"
   },

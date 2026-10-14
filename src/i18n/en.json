@@ -166,6 +166,7 @@
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
     "undated": "No date",
+    "allMonths": "All months",
     "empty": "No transactions yet. Add a bank account on the left and drop its statement onto it, or add a row by hand.",
     "emptyMonth": "No transactions in {{month}}.",
     "emptyFiltered": "Nothing here.",
@@ -178,12 +179,10 @@
   "receipts": {
     "title": "Unmatched receipts",
     "search": "Search…",
-    "ocrAll": "Read all",
     "showMatched": "Show matched",
     "empty": "Upload receipts, invoices or screenshots. They stay here until they are matched to a transaction.",
     "deleteConfirm": "Delete this receipt?",
     "rerunConfirm": "This receipt has already been read. Reading it again replaces the current result, including any fields you edited. Read it again?",
-    "rerunAllConfirm": "All {{count}} receipts have been read. Reading them again replaces their current results, including any fields you edited, and undoes every match. Read them all again?",
     "noAmount": "no amount",
     "dragHint": "Drag onto a ledger row to match"
   },

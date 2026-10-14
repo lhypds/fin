@@ -7,39 +7,29 @@ import { receiptHaystack, matchesQuery } from "@utils/search";
 import DropZone from "../DropZone";
 import FileThumb from "../FileThumb";
 import StatusTag from "../StatusTag";
-import { PlayIcon, EyeIcon, TrashIcon, LoaderIcon, UnlinkIcon } from "../icons";
+import { PlayIcon, EyeIcon, TrashIcon, UnlinkIcon, SearchIcon, XIcon } from "../icons";
 import { RECEIPT_DRAG_TYPE, isReceiptDrag } from "./drag";
 import styles from "./receipt.module.css";
 
 export default function ReceiptPanel({ onPreview }) {
   const { t } = useTranslation();
-  const { receipts, importReceipts, ocrPending, removeReceipt, unmatch, unmatchAll, progress } = useReconcile();
+  const { receipts, importReceipts, ocrPending, removeReceipt, unmatch } = useReconcile();
   const [showMatched, setShowMatched] = useState(false);
   const [query, setQuery] = useState("");
-  const [busy, setBusy] = useState(false);
 
-  // Files the button can read: a missing upload cannot be, one being read is already on its way.
-  // `todo` are those not read yet, or whose read failed.
-  const readable = receipts.filter((r) => !r.missing && r.status !== "processing");
-  const todo = readable.filter((r) => r.status === "pending" || r.status === "error");
-  const running = progress.receipt.total > 0;
-  const percent = running ? Math.round((progress.receipt.done / progress.receipt.total) * 100) : 0;
   // The open receipts, or all of them, narrowed by the search box above the list.
   const listed = showMatched ? receipts : receipts.filter((r) => !r.txId);
   const visible = query.trim() ? listed.filter((r) => matchesQuery(receiptHaystack(r), query)) : listed;
 
+  // Reads the given receipts; the status bar shows the run's progress while it goes.
   async function runOcr(ids) {
-    setBusy(true);
-    try {
-      const { ok, errors, lastError } = await ocrPending(ids);
-      if (!ok && !errors) showToast(t("toast.nothingPending"));
-      else if (errors) showToast(t("toast.ocrFailed", { message: lastError?.message || "" }), 6000);
-      else showToast(t("toast.ocrDone", { ok, errors }));
-    } finally {
-      setBusy(false);
-    }
+    const { ok, errors, lastError } = await ocrPending(ids);
+    if (!ok && !errors) showToast(t("toast.nothingPending"));
+    else if (errors) showToast(t("toast.ocrFailed", { message: lastError?.message || "" }), 6000);
+    else showToast(t("toast.ocrDone", { ok, errors }));
   }
 
+  // Every file dropped here is read as soon as it is up; a failed one is read again from its card.
   async function handleFiles(files) {
     const { added, rejected, duplicates, failed, lastError, ids } = await importReceipts(files);
     if (rejected) showToast(t("dropzone.rejected", { count: rejected }));
@@ -60,24 +50,10 @@ export default function ReceiptPanel({ onPreview }) {
     runOcr([r.id]);
   }
 
-  // Reads what has not been read yet. Once everything has, offers to read it all again, which
-  // starts the reconciliation over: the new results replace the ones the matches were made on,
-  // so every match is undone as the run begins.
-  function handleRunAll() {
-    if (todo.length) return runOcr(todo.map((r) => r.id));
-    if (!window.confirm(t("receipts.rerunAllConfirm", { count: readable.length }))) return;
-    unmatchAll();
-    runOcr(readable.map((r) => r.id));
-  }
-
   return (
     <section className={styles.panel}>
       <header className={styles.head}>
         <h2 className={styles.title}>{t("receipts.title")}</h2>
-        <button type="button" className="btn" disabled={busy || running || !readable.length} onClick={handleRunAll}>
-          {busy || running ? <LoaderIcon className="spin" /> : <PlayIcon />}
-          {running ? t("button.ocrRunning", { percent }) : `${t("receipts.ocrAll")}${todo.length ? ` (${todo.length})` : ""}`}
-        </button>
       </header>
 
       <div className={styles.drop}>
@@ -87,18 +63,34 @@ export default function ReceiptPanel({ onPreview }) {
         </Checkbox>
       </div>
 
+      {/* Drawn like the header's search: the icon on the left, a clear button on the right once
+          there is text. */}
       <div className={styles.search}>
-        <input
-          className={`input ${styles.searchInput}`}
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setQuery("");
-          }}
-          placeholder={t("receipts.search")}
-          aria-label={t("receipts.search")}
-        />
+        <div className={styles.searchBox}>
+          <SearchIcon className={styles.searchIcon} />
+          <input
+            className={`input ${styles.searchInput}`}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setQuery("");
+            }}
+            placeholder={t("receipts.search")}
+            aria-label={t("receipts.search")}
+          />
+          {query && (
+            <button
+              type="button"
+              className={styles.searchClear}
+              onClick={() => setQuery("")}
+              title={t("header.clearSearch")}
+              aria-label={t("header.clearSearch")}
+            >
+              <XIcon />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* The list is a drop target for a chip dragged back from the ledger: the receipt is unmatched.
