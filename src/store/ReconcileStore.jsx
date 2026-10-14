@@ -17,18 +17,20 @@ import {
 import { autoMatch as computeMatches } from "@utils/matching";
 import { findInternalTransfers } from "@utils/transfers";
 import { splitNew } from "@utils/transactions";
+import { aiMemoPromptFor } from "@utils/aiMemo";
 import { ReconcileContext } from "./context";
 
 // `banks` are the accounts; `transactions` their rows; `receipts` the uploaded receipts. A
 // statement (a CSV or Excel file, or a passbook image) is never kept: it is uploaded, read by the
 // model, and removed, leaving only what it said. `settings` holds what the person set up: so far
-// `aiMemo`, the prompt the AI memos are written from and the reference file they follow.
+// `aiMemo`, the reference file the AI memos follow; the prompt they are written from is each
+// account's own (`aiMemoPrompt`).
 // An account's `label` is what it is called in the app and the one thing shown for it; `name` is
 // the bank it is at, a detail like the branch, read off the passbook or typed in.
 const initialState = { banks: [], transactions: [], receipts: [], settings: {} };
 
 // Bumped when the saved shape changes; `migrate` brings older files up to it.
-const STATE_VERSION = 5;
+const STATE_VERSION = 6;
 // How many statements or receipts are read by the model at once.
 const OCR_CONCURRENCY = 5;
 const EMPTY_PROGRESS = { total: 0, done: 0 };
@@ -185,7 +187,7 @@ function stripAutoNotes(memo, patterns, aiText = "") {
 
 // An account at bank `name`, called `name` too until it is given a name of its own.
 function newBank(id, name, currency) {
-  return { id, name, label: name, branch: "", accountType: "", accountNumber: "", holder: "", memo: "", currency: currency || "JPY", createdAt: Date.now() };
+  return { id, name, label: name, branch: "", accountType: "", accountNumber: "", holder: "", memo: "", aiMemoPrompt: "", currency: currency || "JPY", createdAt: Date.now() };
 }
 
 // Accounts saved before they had a name of their own (version 4 and earlier) are called what
@@ -209,7 +211,7 @@ function resolveAccount(banks, read, result) {
 // the rows move under them. Versions 2 and 3 had the accounts; 3 also kept the statement files,
 // which are no longer kept at all. Up to 4 an account had no name but its bank's. The ids are
 // fixed rather than random so two pages that migrate the same file agree on them.
-function migrate(saved) {
+function migrateShape(saved) {
   if (!saved) return null;
   const version = versionOf(saved);
   const receipts = saved.receipts || [];
@@ -233,6 +235,23 @@ function migrate(saved) {
     receipts,
     settings: {},
   };
+}
+
+// Up to version 5 the AI memos had one prompt for every account, in `settings.aiMemo`; from 6 each
+// account keeps its own as `aiMemoPrompt`. The one prompt goes to the accounts that have none yet
+// and leaves the settings.
+function perAccountPrompts(state) {
+  const { prompt: shared = "", ...aiMemo } = state.settings?.aiMemo || {};
+  return {
+    ...state,
+    banks: state.banks.map((b) => (b.aiMemoPrompt == null ? { ...b, aiMemoPrompt: shared } : b)),
+    settings: state.settings?.aiMemo ? { ...state.settings, aiMemo } : state.settings,
+  };
+}
+
+function migrate(saved) {
+  const shaped = migrateShape(saved);
+  return shaped && perAccountPrompts(shaped);
 }
 
 async function runQueue(items, fn, concurrency) {
@@ -779,15 +798,10 @@ export function ReconcileProvider({ children }) {
     [dispatch],
   );
 
-  // The AI memos' settings, kept with the data: the prompt the model is given, and the reference
-  // file it follows, which lives on the server as an upload with role "reference".
-  const setAiMemoPrompt = useCallback(
-    (prompt) => {
-      const aiMemo = { ...(stateRef.current.settings.aiMemo || {}), prompt };
-      dispatch({ type: "updateSettings", patch: { aiMemo } });
-    },
-    [dispatch],
-  );
+  // The AI memos' settings, kept with the data: the prompt the model is given, which is each
+  // account's own, and the reference file it follows, which lives on the server as an upload with
+  // role "reference".
+  const setAiMemoPrompt = useCallback((bankId, prompt) => dispatch({ type: "updateBank", id: bankId, patch: { aiMemoPrompt: prompt } }), [dispatch]);
 
   // Uploads a reference file (CSV or Excel) in place of the one before, which is removed.
   const setAiMemoReference = useCallback(
@@ -810,13 +824,14 @@ export function ReconcileProvider({ children }) {
   }, [dispatch]);
 
   // Memos written by the model for the given rows (what the ledger shows) that have none yet,
-  // account by account so each call carries the account its rows belong to. A row is written
-  // only once the model has answered, and only if it still has no memo by then; a written row
-  // carries `autoMemo: "ai"` and the text as `aiMemo`, so the clear menu can take it back.
-  // Returns how many rows were written. A failed call throws, after what came back before it
-  // has been written.
+  // account by account so each call carries the account its rows belong to and that account's
+  // prompt: the one in `prompts` (by account id, as the dialog showed them), or failing that the
+  // one on record. A row is written only once the model has answered, and only if it still has
+  // no memo by then; a written row carries `autoMemo: "ai"` and the text as `aiMemo`, so the
+  // clear menu can take it back. Returns how many rows were written. A failed call throws, after
+  // what came back before it has been written.
   const runAiMemo = useCallback(
-    async (transactions, prompt) => {
+    async (transactions, prompts = {}) => {
       const { banks, settings } = stateRef.current;
       const todo = transactions.filter((t) => !t.memo);
       if (!todo.length) return 0;
@@ -841,7 +856,7 @@ export function ReconcileProvider({ children }) {
           const b = banks.find((x) => x.id === bankId);
           const bank = b ? { label: b.label, name: b.name, branch: b.branch, accountType: b.accountType, accountNumber: b.accountNumber, holder: b.holder, currency: b.currency, memo: b.memo } : null;
           const result = await generateMemos({
-            prompt,
+            prompt: prompts[bankId] ?? aiMemoPromptFor(b),
             bank,
             rows: rows.map(({ id, date, description, withdrawal, deposit, currency }) => ({ id, date, description, withdrawal, deposit, currency })),
             referenceId: settings.aiMemo?.referenceId || null,

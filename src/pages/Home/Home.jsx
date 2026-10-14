@@ -121,7 +121,7 @@ export default function Home() {
 
   // Writes the memos the rows on screen earn by the rules ticked in the dialog: the transfer
   // rule at once, and the model's memos once it has answered, with a toast up while it works.
-  async function handleAutoMemo(rules, prompt) {
+  async function handleAutoMemo(rules, prompts) {
     setAutoMemoOpen(false);
     let n = runAutoMemo(shown.rows, rules);
     if (!rules.includes("ai")) {
@@ -131,7 +131,7 @@ export default function Home() {
     setGenerating(true);
     showToast(t("toast.generating"), null);
     try {
-      n += await runAiMemo(shown.rows, prompt);
+      n += await runAiMemo(shown.rows, prompts);
       showToast(n ? t("toast.memoed", { count: n }) : t("toast.noMemos"));
     } catch (err) {
       showToast(t("toast.generateFailed", { message: err.message }), 6000);
@@ -339,7 +339,7 @@ export default function Home() {
       {preview && <PreviewModal id={preview} onClose={closePreview} />}
       {backupOpen && <BackupModal onClose={() => setBackupOpen(false)} />}
       {autoMatchOpen && <AutoMatchModal onClose={() => setAutoMatchOpen(false)} onConfirm={handleAutoMatch} />}
-      {autoMemoOpen && <AutoMemoModal onClose={() => setAutoMemoOpen(false)} onConfirm={handleAutoMemo} />}
+      {autoMemoOpen && <AutoMemoModal rows={shown.rows} bankId={activeBankId} onClose={() => setAutoMemoOpen(false)} onConfirm={handleAutoMemo} />}
       {exportOpen && (
         <ExportModal rows={shown.rows} bank={activeBankId ? bankById.get(activeBankId) : null} month={shown.current} onClose={() => setExportOpen(false)} />
       )}

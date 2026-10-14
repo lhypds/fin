@@ -69,6 +69,37 @@
   gap: 12px;
 }
 
+/* The prompt's label, with the account it belongs to at the right end: its name, or a pick among
+   the accounts on screen. The label keeps the look of a field's (global.css), which it loses by
+   not being the field's own child. */
+.promptHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 14px;
+}
+
+.promptHead > label,
+.accountName {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.accountName {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account {
+  width: auto;
+  max-width: 60%;
+  height: 22px;
+}
+
 .prompt {
   min-height: 92px;
 }

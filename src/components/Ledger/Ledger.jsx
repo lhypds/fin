@@ -63,7 +63,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
   }
 
   // The keyboard's row is the focused one: Down and Up move the focus from row to row, Space and
-  // Enter toggle it like a click and move on. The cursor remembers the row last focused and its
+  // Enter toggle it like a double click and move on. The cursor remembers the row last focused and its
   // place in the list, so the arrows pick up there after a click elsewhere has taken the focus,
   // or at the same place once the row has left the list (deleted, or moved to another month).
   const scrollRef = useRef(null);
@@ -165,16 +165,23 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
               // is in order; the others must add up to it. The note shows the sum of those that do not.
               const sum = matched ? receiptsSumMismatch(amount, receipts, tx.currency) : null;
               const mismatch = sum != null;
-              // Every row is a toggle: a click anywhere on it that no button or thumbnail claims
-              // flips the human confirmation, matched or not (a row can be checked off without a
-              // receipt). Keys count only on the row itself, since Enter and Space on the buttons
-              // inside it bubble up here too. A focus on any of those buttons still moves the
-              // cursor here, so the arrows carry on from the row that was last worked on.
+              // Every row is a toggle: a double click anywhere on it that no button or thumbnail
+              // claims flips the human confirmation, matched or not (a row can be checked off
+              // without a receipt). A single click only focuses the row, so a stray click cannot
+              // confirm one. Keys count only on the row itself, since Enter and Space on the
+              // buttons inside it bubble up here too. A focus on any of those buttons still moves
+              // the cursor here, so the arrows carry on from the row that was last worked on.
               const confirmProps = {
                 role: "button",
                 tabIndex: 0,
                 "aria-pressed": !!tx.confirmed,
-                onClick: () => toggleConfirmed(tx),
+                onDoubleClick: () => toggleConfirmed(tx),
+                // The second press of a double click would select the word under the pointer;
+                // stopping its default leaves the text alone, while a drag across the row still
+                // selects.
+                onMouseDown: (e) => {
+                  if (e.detail > 1) e.preventDefault();
+                },
                 onFocus: () => {
                   cursorRef.current = { id: tx.id, index: rows.indexOf(tx) };
                 },
@@ -227,7 +234,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                     ) : (
                       <div className={`${styles.num} ${styles.deposit} mono`}>{tx.deposit ? fmtMoney(tx.deposit, tx.currency) : ""}</div>
                     )}
-                    <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
+                    <div className={styles.actions} onDoubleClick={(e) => e.stopPropagation()}>
                       <ActionButton tooltip={t("button.edit")} onClick={() => setEditing(tx)}>
                         <EditIcon />
                       </ActionButton>
@@ -242,8 +249,9 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                       {matched &&
                         receipts.map((r, i) => (
                           // The thumbnail and the text (name, date, amount, confidence) are the chip's
-                          // buttons and open the receipt preview. The rest of the chip belongs to the row,
-                          // so a click there confirms the match.
+                          // buttons and open the receipt preview; two quick clicks on them must not
+                          // reach the row. The rest of the chip belongs to the row, so a double click
+                          // there confirms the match.
                           // Dragged to the receipt list, the chip is unmatched; to another row, moved there.
                           <div
                             key={r.id}
@@ -258,10 +266,8 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                               type="button"
                               className={styles.chipThumb}
                               title={t("button.preview")}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onPreviewReceipt(r.id);
-                              }}
+                              onClick={() => onPreviewReceipt(r.id)}
+                              onDoubleClick={(e) => e.stopPropagation()}
                             >
                               <FileThumb item={r} size={28} />
                             </button>
@@ -270,10 +276,8 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                                 type="button"
                                 className={styles.chipText}
                                 title={t("button.preview")}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onPreviewReceipt(r.id);
-                                }}
+                                onClick={() => onPreviewReceipt(r.id)}
+                                onDoubleClick={(e) => e.stopPropagation()}
                               >
                                 <span className={styles.chipTitle}>{r.ocr?.vendor || r.name}</span>
                                 <span className={`${styles.chipMeta} mono`}>
@@ -297,7 +301,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                     </div>
                     {/* The cell's one button opens the reconciliation editor, where receipts are unmatched
                         and the note typed. It keeps the right edge, centred on the stack beside it. */}
-                    <div className={styles.matchActions} onClick={(e) => e.stopPropagation()}>
+                    <div className={styles.matchActions} onDoubleClick={(e) => e.stopPropagation()}>
                       <ActionButton tooltip={t("button.edit")} onClick={() => setEditingMatch(tx)}>
                         <EditIcon />
                       </ActionButton>

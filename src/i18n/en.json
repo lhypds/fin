@@ -71,7 +71,8 @@
     "intro": "The following memos will be added automatically:",
     "run": "Add memos",
     "prompt": "Prompt",
-    "promptHint": "Left empty, the default prompt is used.",
+    "account": "Account",
+    "promptHint": "Each account has a prompt of its own. Left empty, the default prompt is used.",
     "savePrompt": "Save prompt",
     "promptDefault": "You are a bookkeeping assistant. From the account details and each row's date, description and amount, write a short memo per row saying what it is for or who the counterparty is. When reference material is given, follow the memos it has for the same or similar descriptions. Leave a memo empty when you cannot tell.",
     "reference": "Reference material",
@@ -176,7 +177,7 @@
   },
   "receipts": {
     "title": "Unmatched receipts",
-    "search": "Search receipts…",
+    "search": "Search…",
     "ocrAll": "Read all",
     "showMatched": "Show matched",
     "empty": "Upload receipts, invoices or screenshots. They stay here until they are matched to a transaction.",

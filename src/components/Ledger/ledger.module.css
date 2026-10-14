@@ -103,10 +103,10 @@
   background: var(--bg-hover);
 }
 
-/* Every data row is a button (the header is not): a click confirms it, green across both halves,
-   and a second click takes the confirmation back. A matched row, or one the auto memo wrote, is
-   blue until then. Both colours sit after :hover so they hold while hovered, green after blue so
-   it wins on a matched row. */
+/* Every data row is a button (the header is not): a double click confirms it, green across both
+   halves, and another double click takes the confirmation back; a single click only focuses it.
+   A matched row, or one the auto memo wrote, is blue until then. Both colours sit after :hover so
+   they hold while hovered, green after blue so it wins on a matched row. */
 .row[role="button"] {
   cursor: pointer;
 }
@@ -218,7 +218,7 @@
 }
 
 /* A chip names a matched receipt. Its thumbnail and its text are buttons (they open the preview);
-   a click anywhere else on the chip falls through to the row and toggles the confirmation. */
+   a double click anywhere else on the chip falls through to the row and toggles the confirmation. */
 .chip {
   display: flex;
   align-items: center;

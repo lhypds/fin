@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, Checkbox, TextArea, ActionButton, showToast } from "@ui";
 import { useReconcile } from "@store";
 import { SPREADSHEET_ACCEPT } from "@utils/files";
+import { aiMemoPromptFor } from "@utils/aiMemo";
 import { UploadIcon, TrashIcon, LoaderIcon, SaveIcon } from "../icons";
 import styles from "./automemo.module.css";
 
@@ -32,32 +33,44 @@ function writeRules(set) {
 
 // What auto-memo is about to do, before it does it: the memos it writes, one row per rule with a
 // box to leave a rule out, and the choice to go ahead or not. The AI rule brings its settings
-// along: the prompt the model is given and the reference file it follows, kept with the data.
-// `onConfirm` gets the rules ticked and the prompt.
-export default function AutoMemoModal({ onClose, onConfirm }) {
+// along: the prompt the model is given, which each account has of its own, and the reference file
+// it follows, both kept with the data. `rows` are the rows on screen and `bankId` the account
+// chosen on the left, if one is: the prompts shown are those of the accounts the rows belong to.
+// `onConfirm` gets the rules ticked and the prompt of each of those accounts, by id.
+export default function AutoMemoModal({ rows, bankId, onClose, onConfirm }) {
   const { t } = useTranslation();
-  const { settings, config, setAiMemoPrompt, setAiMemoReference, clearAiMemoReference } = useReconcile();
+  const { banks, settings, config, setAiMemoPrompt, setAiMemoReference, clearAiMemoReference } = useReconcile();
   const aiMemo = settings.aiMemo || {};
   const [selected, setSelected] = useState(readRules);
   const defaultPrompt = t("autoMemo.promptDefault");
-  const [prompt, setPrompt] = useState(() => aiMemo.prompt || defaultPrompt);
+  // The accounts the rows belong to, in the panel's order; the one chosen on the left comes up first.
+  const accounts = useMemo(() => {
+    const ids = new Set(rows.map((r) => r.bankId));
+    return banks.filter((b) => ids.has(b.id));
+  }, [banks, rows]);
+  const [current, setCurrent] = useState(() => (accounts.some((b) => b.id === bankId) ? bankId : accounts[0]?.id || ""));
+  const account = accounts.find((b) => b.id === current) || null;
+  // The prompts edited here, by account, kept while the dialog is open so switching accounts loses
+  // nothing; an account not edited yet shows the prompt on record, or the default.
+  const [drafts, setDrafts] = useState({});
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
   // Without the key on the server the model cannot be asked, and the rule is dimmed.
   const canAi = config.hasApiKey;
   const aiOn = selected.has("ai") && canAi;
 
-  // What the model is given: the text typed, or the default when the field is left empty. The
-  // default is kept with the data as nothing, so it follows the language; a text of the person's
-  // own is kept as written. `savedPrompt` is what a run would be given before any edit here.
-  const effectivePrompt = prompt.trim() || defaultPrompt;
-  const storedPrompt = effectivePrompt === defaultPrompt ? "" : effectivePrompt;
-  const savedPrompt = (aiMemo.prompt || "").trim() || defaultPrompt;
-  const promptDirty = effectivePrompt !== savedPrompt;
+  // What the model is given for an account: the text typed, or the default when the field is left
+  // empty. The default is kept with the account as nothing, so it follows the language; a text of
+  // the person's own is kept as written. An account is dirty when a run would be given something
+  // other than what is on record.
+  const textOf = (b) => drafts[b.id] ?? (b.aiMemoPrompt || defaultPrompt);
+  const effectiveOf = (b) => textOf(b).trim() || defaultPrompt;
+  const storedOf = (b) => (effectiveOf(b) === defaultPrompt ? "" : effectiveOf(b));
+  const dirtyOf = (b) => effectiveOf(b) !== aiMemoPromptFor(b);
 
-  // Keeps the prompt without running anything; a run with an edited prompt keeps it too.
+  // Keeps the account's prompt without running anything; a run keeps every edited prompt too.
   function savePrompt() {
-    setAiMemoPrompt(storedPrompt);
+    setAiMemoPrompt(account.id, storedOf(account));
     showToast(t("toast.saved"));
   }
 
@@ -87,8 +100,14 @@ export default function AutoMemoModal({ onClose, onConfirm }) {
   function confirm() {
     const rules = RULES.filter((r) => selected.has(r) && (r !== "ai" || canAi));
     writeRules(selected);
-    if (aiOn && promptDirty) setAiMemoPrompt(storedPrompt);
-    onConfirm(rules, effectivePrompt);
+    const prompts = {};
+    if (aiOn) {
+      for (const b of accounts) {
+        if (dirtyOf(b)) setAiMemoPrompt(b.id, storedOf(b));
+        prompts[b.id] = effectiveOf(b);
+      }
+    }
+    onConfirm(rules, prompts);
   }
 
   return (
@@ -114,18 +133,43 @@ export default function AutoMemoModal({ onClose, onConfirm }) {
         </div>
         {aiOn && (
           <div className={styles.ai}>
-            <div className="field">
-              <label htmlFor="ai-memo-prompt">{t("autoMemo.prompt")}</label>
-              <TextArea id="ai-memo-prompt" className={styles.prompt} value={prompt} onChange={(e) => setPrompt(e.target.value)} minHeight={92} />
-              {/* What an empty field means, and the way to keep an edit without running a thing. */}
-              <div className={styles.promptFoot}>
-                <span className={styles.hint}>{t("autoMemo.promptHint")}</span>
-                <button type="button" className="btn" onClick={savePrompt} disabled={!promptDirty}>
-                  <SaveIcon />
-                  {t("autoMemo.savePrompt")}
-                </button>
+            {account && (
+              <div className="field">
+                {/* The prompt is the account's. With several accounts on screen, the one whose
+                    prompt is shown is picked at the right end; with one, it is named there. */}
+                <div className={styles.promptHead}>
+                  <label htmlFor="ai-memo-prompt">{t("autoMemo.prompt")}</label>
+                  {accounts.length > 1 ? (
+                    <select className={`select ${styles.account}`} value={current} onChange={(e) => setCurrent(e.target.value)} aria-label={t("autoMemo.account")}>
+                      {accounts.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className={styles.accountName} title={account.label}>
+                      {account.label}
+                    </span>
+                  )}
+                </div>
+                <TextArea
+                  id="ai-memo-prompt"
+                  className={styles.prompt}
+                  value={textOf(account)}
+                  onChange={(e) => setDrafts((d) => ({ ...d, [account.id]: e.target.value }))}
+                  minHeight={92}
+                />
+                {/* What an empty field means, and the way to keep an edit without running a thing. */}
+                <div className={styles.promptFoot}>
+                  <span className={styles.hint}>{t("autoMemo.promptHint")}</span>
+                  <button type="button" className="btn" onClick={savePrompt} disabled={!dirtyOf(account)}>
+                    <SaveIcon />
+                    {t("autoMemo.savePrompt")}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
             <div className="field">
               <label>{t("autoMemo.reference")}</label>
               {/* The file on record with a way to drop it, or what a file would be for; and a way to
