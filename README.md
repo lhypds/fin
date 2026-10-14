@@ -16,7 +16,8 @@ file is kept: it is uploaded to be read and removed once the result is in. A rea
 called off while it runs, and a page reloaded mid-read picks it up again (the server runs the
 model once per file and lets a second asker join). Receipts on the right are uploaded as images
 or PDFs, kept, read by OCR, and matched to the rows. The ledger shows one account (or all of
-them) and one month at a time.
+them) and one month at a time; what it shows can be exported, memos included, as an Excel workbook
+or a CSV (UTF-8 with a BOM, so Excel opens it as it is).
 
 
 Setup

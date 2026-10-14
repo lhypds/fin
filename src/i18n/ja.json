@@ -28,7 +28,29 @@
     "clearMonthConfirm": "{{month}} に表示中の取引 {{count}} 件を削除しますか？照合した証憑は未照合に戻ります。元に戻せません。",
     "search": "検索…",
     "clearSearch": "検索をクリア",
+    "export": "エクスポート",
     "backup": "バックアップ"
+  },
+  "export": {
+    "title": "エクスポート",
+    "intro": "{{scope}} の {{month}} の取引 {{count}} 件を、メモと一緒に書き出します。",
+    "run": "エクスポート",
+    "formats": {
+      "xlsx": "Excel",
+      "xlsxDesc": "Excel ブック（.xlsx）。日付と金額は日付と数値のまま書き出します。",
+      "csv": "CSV",
+      "csvDesc": "UTF-8 テキスト（BOM 付き）。Excel でそのまま開け、他のソフトでも読めます。"
+    },
+    "columns": {
+      "date": "日付",
+      "bank": "口座",
+      "description": "摘要",
+      "withdrawal": "お支払",
+      "deposit": "お預り",
+      "balance": "残高",
+      "currency": "通貨",
+      "memo": "メモ"
+    }
   },
   "autoMatch": {
     "title": "自動照合",
@@ -240,7 +262,9 @@
     "restoreFailed": "復元に失敗：{{message}}",
     "backupsFailed": "バックアップ一覧の取得に失敗：{{message}}",
     "backupDeleted": "バックアップを削除しました",
-    "deleteBackupFailed": "バックアップの削除に失敗：{{message}}"
+    "deleteBackupFailed": "バックアップの削除に失敗：{{message}}",
+    "exported": "取引 {{count}} 件をエクスポートしました",
+    "exportFailed": "エクスポートに失敗：{{message}}"
   },
   "panel": {
     "openLeft": "銀行口座を表示",

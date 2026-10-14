@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, BackupModal, AutoMatchModal, AutoMemoModal } from "@components";
-import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, EditIcon, UnlinkIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon, LoaderIcon } from "@components/icons";
+import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, BackupModal, AutoMatchModal, AutoMemoModal, ExportModal } from "@components";
+import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, EditIcon, UnlinkIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon, DownloadIcon, LoaderIcon } from "@components/icons";
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
 import { ledgerView, UNDATED } from "@utils/transactions";
@@ -40,6 +40,7 @@ export default function Home() {
     stats,
     progress,
     banks,
+    bankById,
     transactions,
     receiptById,
     runAutoMatch,
@@ -82,6 +83,7 @@ export default function Home() {
   const [backupOpen, setBackupOpen] = useState(false);
   const [autoMatchOpen, setAutoMatchOpen] = useState(false);
   const [autoMemoOpen, setAutoMemoOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   // While the model is writing memos: the button waits, and a toast says so.
   const [generating, setGenerating] = useState(false);
   const [query, setQuery] = useState("");
@@ -243,6 +245,11 @@ export default function Home() {
               </button>
             </div>
           </div>
+          {/* The rows on screen, the same ones the buttons before this work on, as a file. */}
+          <button type="button" className="btn" onClick={() => setExportOpen(true)} disabled={!shown.rows.length}>
+            <DownloadIcon />
+            {t("header.export")}
+          </button>
           <button type="button" className="btn" onClick={() => setBackupOpen(true)}>
             <ArchiveIcon />
             {t("header.backup")}
@@ -332,6 +339,9 @@ export default function Home() {
       {backupOpen && <BackupModal onClose={() => setBackupOpen(false)} />}
       {autoMatchOpen && <AutoMatchModal onClose={() => setAutoMatchOpen(false)} onConfirm={handleAutoMatch} />}
       {autoMemoOpen && <AutoMemoModal onClose={() => setAutoMemoOpen(false)} onConfirm={handleAutoMemo} />}
+      {exportOpen && (
+        <ExportModal rows={shown.rows} bank={activeBankId ? bankById.get(activeBankId) : null} month={shown.current} onClose={() => setExportOpen(false)} />
+      )}
     </div>
   );
 }

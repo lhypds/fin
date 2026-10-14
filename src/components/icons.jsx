@@ -25,6 +25,17 @@ export function UploadIcon({ className }) {
   );
 }
 
+// The upload icon the other way up: the arrow points down into the tray.
+export function DownloadIcon({ className }) {
+  return (
+    <Icon className={className}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </Icon>
+  );
+}
+
 // Drawn a little inside the 24-box: a full-height triangle reads bigger than the outline icons beside it.
 export function PlayIcon({ className }) {
   return (

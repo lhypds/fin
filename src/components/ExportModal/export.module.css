@@ -1,0 +1,91 @@
+/* Laid out like AutoMemoModal: the 6px of top padding plus the modal header's 10px make the same
+   16px that the content keeps below the buttons. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 6px;
+  line-height: 1.6;
+}
+
+/* The formats as a stack of rows with a square radio dot, drawn like the account rows a CSV is
+   read onto (BankPanel/bank.module.css). The dot sits against the name line, not centred on the
+   two lines, as the auto memo's boxes do. */
+.options {
+  display: flex;
+  flex-direction: column;
+  border: var(--line) solid var(--border);
+}
+
+.option {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: var(--line) solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.option:last-child {
+  border-bottom: none;
+}
+
+.option:hover,
+.option[data-active="true"] {
+  background: var(--bg-hover);
+}
+
+/* The native radio stays in the DOM for keyboard and screen-reader access, but is not drawn. */
+.radio {
+  position: absolute;
+  width: 0;
+  height: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The dot is 12px tall and the name line 16px: 2px of margin centres it on the name. */
+.dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-top: 2px;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+}
+
+.option[data-active="true"] .dot {
+  background: var(--border);
+}
+
+.radio:focus-visible + .dot {
+  outline: var(--line) solid var(--focus);
+  outline-offset: 2px;
+}
+
+.optionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.optionName {
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.optionDesc {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}

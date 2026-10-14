@@ -28,7 +28,29 @@
     "clearMonthConfirm": "Delete the {{count}} transactions shown for {{month}}? Their receipts go back to the unmatched list. This cannot be undone.",
     "search": "Search…",
     "clearSearch": "Clear search",
+    "export": "Export",
     "backup": "Backup"
+  },
+  "export": {
+    "title": "Export",
+    "intro": "The {{count}} transactions of {{scope}} for {{month}} will be exported, with their memos.",
+    "run": "Export",
+    "formats": {
+      "xlsx": "Excel",
+      "xlsxDesc": "An Excel workbook (.xlsx); dates and amounts stay dates and numbers.",
+      "csv": "CSV",
+      "csvDesc": "UTF-8 text with a BOM: Excel opens it as it is, and so does anything else."
+    },
+    "columns": {
+      "date": "Date",
+      "bank": "Account",
+      "description": "Description",
+      "withdrawal": "Withdrawal",
+      "deposit": "Deposit",
+      "balance": "Balance",
+      "currency": "Currency",
+      "memo": "Memo"
+    }
   },
   "autoMatch": {
     "title": "Auto match",
@@ -240,7 +262,9 @@
     "restoreFailed": "Restore failed: {{message}}",
     "backupsFailed": "Could not list the backups: {{message}}",
     "backupDeleted": "Backup deleted",
-    "deleteBackupFailed": "Could not delete the backup: {{message}}"
+    "deleteBackupFailed": "Could not delete the backup: {{message}}",
+    "exported": "{{count}} transactions exported",
+    "exportFailed": "Export failed: {{message}}"
   },
   "panel": {
     "openLeft": "Show bank accounts",
