@@ -105,7 +105,8 @@
   align-items: center;
 }
 
-.profileWrap {
+/* A button with a menu under it: the clear button and the profile button. */
+.menuWrap {
   position: relative;
 }
 
@@ -146,7 +147,7 @@
   z-index: 999;
 }
 
-.profileWrap[data-open="true"] .menu {
+.menuWrap[data-open="true"] .menu {
   display: flex;
 }
 
@@ -174,9 +175,16 @@
   cursor: pointer;
 }
 
-.menu button:hover {
+.menu button:hover:not(:disabled) {
   background: var(--border);
   color: var(--bg);
+}
+
+/* A row with nothing to do on the rows shown is dimmed in the text alone, so the stacked borders
+   stay as dark as the others'. */
+.menu button:disabled {
+  color: var(--faint);
+  cursor: default;
 }
 
 .statusBar {

@@ -53,8 +53,9 @@
 /* The box scrolls, so it clips whatever sticks out of it: a tooltip above the top row's button
    lies wholly outside the box and no z-index lifts it past that clip. The tooltip goes to the left
    of the button instead, centred on its row, where it stays inside the box whichever row is at
-   the top. */
-.item > button::after {
+   the top. The attribute in the selector is what lets this outweigh the button's own rule
+   (ActionButton/action.module.css). */
+.item > button[data-tooltip]::after {
   left: auto;
   right: calc(100% + 6px);
   top: 50%;

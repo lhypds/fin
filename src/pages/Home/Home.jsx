@@ -4,7 +4,7 @@ import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, Backup
 import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, EditIcon, UnlinkIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon } from "@components/icons";
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
-import { ledgerView } from "@utils/transactions";
+import { ledgerView, UNDATED } from "@utils/transactions";
 import styles from "./home.module.css";
 
 function readPref(key, fallback) {
@@ -30,9 +30,43 @@ const readFlag = (key, fallback) => {
 };
 const writeFlag = (key, value) => writePref(key, value ? "1" : "0");
 
+// A menu closes the way stash's does: on a press anywhere outside `ref`, or on Escape.
+function useCloseOnOutside(ref, open, close) {
+  useEffect(() => {
+    if (!open) return;
+    function handleOutside(e) {
+      if (!ref.current?.contains(e.target)) close();
+    }
+    function handleKey(e) {
+      if (e.key === "Escape") close();
+    }
+    document.addEventListener("pointerdown", handleOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("pointerdown", handleOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [ref, open, close]);
+}
+
 export default function Home() {
   const { t } = useTranslation();
-  const { ready, loadError, config, stats, progress, banks, transactions, runAutoMatch, runAutoMemo, clearResults } = useReconcile();
+  const {
+    ready,
+    loadError,
+    config,
+    stats,
+    progress,
+    banks,
+    transactions,
+    receiptById,
+    runAutoMatch,
+    runAutoMemo,
+    clearAutoMatches,
+    clearAutoMemos,
+    clearConfirmations,
+    removeTransactions,
+  } = useReconcile();
   const { user, logout } = useAuth();
   const ocrTotal = progress.statement.total + progress.receipt.total;
   const ocrDone = progress.statement.done + progress.receipt.done;
@@ -48,11 +82,19 @@ export default function Home() {
   // accounts are left as they are.
   const shown = useMemo(() => ledgerView(transactions, activeBankId, month), [transactions, activeBankId, month]);
   const canAutoMatch = shown.rows.some((tx) => !tx.receiptIds?.length) && stats.unmatchedReceipts > 0;
-  const canClear = shown.rows.some((tx) => tx.receiptIds?.length || tx.confirmed || tx.memo);
+  // What the clear menu can take back: a receipt auto-match put on an unconfirmed row, a note
+  // auto-memo wrote, a confirmation, or the rows themselves.
+  const canClearAutoMatch = shown.rows.some((tx) => !tx.confirmed && tx.receiptIds?.some((id) => receiptById.get(id)?.confidence != null));
+  const canClearAutoMemo = shown.rows.some((tx) => tx.autoMemo);
+  const canClearConfirmed = shown.rows.some((tx) => tx.confirmed);
+  const canClearMonth = shown.rows.length > 0;
+  const canClear = canClearAutoMatch || canClearAutoMemo || canClearConfirmed || canClearMonth;
   const [preview, setPreview] = useState(null);
   const [backupOpen, setBackupOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [clearOpen, setClearOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const clearRef = useRef(null);
   const menuRef = useRef(null);
 
   useEffect(() => writeFlag("panel.left", leftOpen), [leftOpen]);
@@ -60,22 +102,10 @@ export default function Home() {
   useEffect(() => writePref("bank.selected", activeBankId || ""), [activeBankId]);
   useEffect(() => writePref("ledger.month", month), [month]);
 
-  // The account menu closes the way stash's does: on a press anywhere outside it, or on Escape.
-  useEffect(() => {
-    if (!menuOpen) return;
-    function handleOutside(e) {
-      if (!menuRef.current?.contains(e.target)) setMenuOpen(false);
-    }
-    function handleKey(e) {
-      if (e.key === "Escape") setMenuOpen(false);
-    }
-    document.addEventListener("pointerdown", handleOutside);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("pointerdown", handleOutside);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [menuOpen]);
+  const closeClear = useCallback(() => setClearOpen(false), []);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  useCloseOnOutside(clearRef, clearOpen, closeClear);
+  useCloseOnOutside(menuRef, menuOpen, closeMenu);
 
   const closePreview = useCallback(() => setPreview(null), []);
   const selectBank = useCallback((id) => setBankId(id || ""), []);
@@ -96,11 +126,36 @@ export default function Home() {
     showToast(n ? t("toast.memoed", { count: n }) : t("toast.noTransfers"));
   }
 
-  // Clears the reconciliation result of the rows on screen only, the same rows auto-match pairs.
-  function handleClear() {
-    if (!window.confirm(t("header.clearConfirm"))) return;
-    const n = clearResults(shown.rows);
-    showToast(t("toast.cleared", { count: n }));
+  // The three things the clear menu takes back, each on the rows on screen only, the same rows
+  // auto-match and auto-memo work on. Each asks first.
+  function handleClearAutoMatch() {
+    setClearOpen(false);
+    if (!window.confirm(t("header.clearAutoMatchConfirm"))) return;
+    const n = clearAutoMatches(shown.rows);
+    showToast(t("toast.autoMatchesCleared", { count: n }));
+  }
+
+  function handleClearAutoMemo() {
+    setClearOpen(false);
+    if (!window.confirm(t("header.clearAutoMemoConfirm"))) return;
+    const n = clearAutoMemos(shown.rows);
+    showToast(t("toast.autoMemosCleared", { count: n }));
+  }
+
+  function handleClearConfirmed() {
+    setClearOpen(false);
+    if (!window.confirm(t("header.clearConfirmedConfirm"))) return;
+    const n = clearConfirmations(shown.rows);
+    showToast(t("toast.confirmationsCleared", { count: n }));
+  }
+
+  function handleClearMonth() {
+    setClearOpen(false);
+    // The month as the ledger's picker writes it.
+    const label = shown.current === UNDATED ? t("ledger.undated") : shown.current.replace("-", " - ");
+    if (!window.confirm(t("header.clearMonthConfirm", { month: label, count: shown.rows.length }))) return;
+    const n = removeTransactions(shown.rows);
+    showToast(t("toast.rowsRemoved", { count: n }));
   }
 
   if (loadError) {
@@ -155,10 +210,28 @@ export default function Home() {
             <EditIcon />
             {t("header.autoMemo")}
           </button>
-          <button type="button" className="btn" onClick={handleClear} disabled={!canClear}>
-            <UnlinkIcon />
-            {t("header.clear")}
-          </button>
+          {/* Clearing is four things under one button, as a menu like the account's: the auto
+              matches, the auto memos, the confirmations, or the rows of the month on screen. */}
+          <div className={styles.menuWrap} ref={clearRef} data-open={clearOpen} onMouseLeave={closeClear}>
+            <button type="button" className="btn" onClick={() => setClearOpen((v) => !v)} disabled={!canClear} aria-haspopup="menu" aria-expanded={clearOpen}>
+              <UnlinkIcon />
+              {t("header.clear")}
+            </button>
+            <div className={styles.menu} role="menu">
+              <button type="button" role="menuitem" onClick={handleClearAutoMatch} disabled={!canClearAutoMatch}>
+                {t("header.clearAutoMatch")}
+              </button>
+              <button type="button" role="menuitem" onClick={handleClearAutoMemo} disabled={!canClearAutoMemo}>
+                {t("header.clearAutoMemo")}
+              </button>
+              <button type="button" role="menuitem" onClick={handleClearConfirmed} disabled={!canClearConfirmed}>
+                {t("header.clearConfirmed")}
+              </button>
+              <button type="button" role="menuitem" onClick={handleClearMonth} disabled={!canClearMonth}>
+                {t("header.clearMonth")}
+              </button>
+            </div>
+          </div>
           <button type="button" className="btn" onClick={() => setBackupOpen(true)}>
             <ArchiveIcon />
             {t("header.backup")}
@@ -167,7 +240,7 @@ export default function Home() {
               joined to it, which opens a menu holding the name and the way out. */}
           <div className={styles.account}>
             <LanguageSwitcher />
-            <div className={styles.profileWrap} ref={menuRef} data-open={menuOpen} onMouseLeave={() => setMenuOpen(false)}>
+            <div className={styles.menuWrap} ref={menuRef} data-open={menuOpen} onMouseLeave={closeMenu}>
               <button
                 type="button"
                 className={styles.profile}

@@ -135,20 +135,11 @@ function reducer(state, action) {
         transactions: state.transactions.map((t) => (t.receiptIds?.length || t.confirmed ? { ...t, receiptIds: [], confirmed: false } : t)),
         receipts: state.receipts.map((r) => (r.txId || r.confidence != null ? { ...r, txId: null, confidence: null } : r)),
       };
-    // The reconciliation result of the given rows only (what the ledger shows): their receipts are
-    // freed, and their confirmation and note dropped. Other rows keep theirs.
-    case "clearResults": {
-      const ids = new Set(action.txIds);
-      return {
-        ...state,
-        transactions: state.transactions.map((t) =>
-          ids.has(t.id) && (t.receiptIds?.length || t.confirmed || t.memo)
-            ? { ...t, receiptIds: [], confirmed: false, memo: "", autoMemo: null }
-            : t,
-        ),
-        receipts: state.receipts.map((r) => (r.txId && ids.has(r.txId) ? { ...r, txId: null, confidence: null } : r)),
-      };
-    }
+    // Several links undone at once, each as "unmatch" does it.
+    case "unmatchMany":
+      return action.receiptIds.reduce((s, id) => detach(s, id), state);
+    case "removeTransactions":
+      return dropTransactions(state, new Set(action.ids));
 
     default:
       return state;
@@ -156,6 +147,27 @@ function reducer(state, action) {
 }
 
 const versionOf = (saved) => Number(saved?.version) || 1;
+
+// The auto memo's notes in every language the app has, as patterns with the account's name left
+// open, so a note written while another language was on is recognised too.
+const AUTO_NOTE_KEYS = ["memo.transferTo", "memo.transferFrom"];
+function autoNotePatterns() {
+  const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const patterns = [];
+  for (const lng of Object.keys(i18n.options.resources || {})) {
+    for (const key of AUTO_NOTE_KEYS) patterns.push(new RegExp(`^${escape(i18n.t(key, { lng, bank: "\u0000" })).replace("\u0000", ".*")}$`));
+  }
+  return patterns;
+}
+
+// A memo with the auto memo's notes taken out, line by line.
+function stripAutoNotes(memo, patterns) {
+  return (memo || "")
+    .split("\n")
+    .filter((line) => !patterns.some((p) => p.test(line.trim())))
+    .join("\n")
+    .trim();
+}
 
 function newBank(id, name, currency) {
   return { id, name, branch: "", accountType: "", accountNumber: "", holder: "", memo: "", currency: currency || "JPY", createdAt: Date.now() };
@@ -642,12 +654,15 @@ export function ReconcileProvider({ children }) {
 
   // Writes the memos the given rows (what the ledger shows) earn by rule, and returns how many
   // rows were written. The one rule so far: a transfer between two of the accounts on the same
-  // day marks both rows with the other account's name. The other side may be off screen, in
-  // another account; it is written too. A memo already there is kept and the note goes under it,
-  // and a note already present is not written twice. A written row carries `autoMemo`, the name
-  // of the rule, which the ledger shows as the blue of a matched row; it goes when the memo does.
+  // day marks the row with the other account's name. The other side is looked for in every
+  // account, so a transfer is found even when it is off screen, but only the rows on screen are
+  // written: the other side gets its note when its own account is shown. A memo already there is
+  // kept and the note goes under it, and a note already present is not written twice. A written
+  // row carries `autoMemo`, the name of the rule, which the ledger shows as the blue of a matched
+  // row; it goes when the memo does.
   const runAutoMemo = useCallback(
     (transactions) => {
+      const shown = new Set(transactions.map((t) => t.id));
       const patches = [];
       for (const { from, to } of findInternalTransfers(transactions, stateRef.current.transactions)) {
         const sides = [
@@ -655,6 +670,7 @@ export function ReconcileProvider({ children }) {
           [to, i18n.t("memo.transferFrom", { bank: from.bank })],
         ];
         for (const [tx, note] of sides) {
+          if (!shown.has(tx.id)) continue;
           const memo = tx.memo || "";
           const noted = memo.includes(note);
           if (noted && tx.autoMemo) continue;
@@ -698,13 +714,52 @@ export function ReconcileProvider({ children }) {
     [dispatch],
   );
 
-  // Clears the reconciliation result of the given rows (what the ledger shows) and returns how many
-  // of them had one.
-  const clearResults = useCallback(
+  // Takes back what auto-match did on the given rows (what the ledger shows): the receipts it put
+  // there go back to the open list. A receipt matched by hand (no confidence) stays, and so does
+  // everything on a row the person has confirmed. Returns how many receipts were freed.
+  const clearAutoMatches = useCallback(
     (transactions) => {
-      const dirty = transactions.filter((t) => t.receiptIds?.length || t.confirmed || t.memo);
-      if (dirty.length) dispatch({ type: "clearResults", txIds: dirty.map((t) => t.id) });
-      return dirty.length;
+      const { receipts } = stateRef.current;
+      const receiptIds = [];
+      for (const tx of transactions) {
+        if (tx.confirmed) continue;
+        for (const id of tx.receiptIds || []) if (receipts.find((r) => r.id === id)?.confidence != null) receiptIds.push(id);
+      }
+      if (receiptIds.length) dispatch({ type: "unmatchMany", receiptIds });
+      return receiptIds.length;
+    },
+    [dispatch],
+  );
+
+  // Takes back what auto-memo did on the given rows: its notes come out of the memo line by line,
+  // whatever language they were written in, and what the person wrote stays. Returns how many
+  // rows were written.
+  const clearAutoMemos = useCallback(
+    (transactions) => {
+      const patterns = autoNotePatterns();
+      const patches = transactions.filter((t) => t.autoMemo).map((t) => ({ id: t.id, patch: { memo: stripAutoNotes(t.memo, patterns), autoMemo: null } }));
+      if (patches.length) dispatch({ type: "patchTransactions", patches });
+      return patches.length;
+    },
+    [dispatch],
+  );
+
+  // Takes the confirmation off the given rows; their receipts and memos stay. Returns how many
+  // rows were confirmed.
+  const clearConfirmations = useCallback(
+    (transactions) => {
+      const patches = transactions.filter((t) => t.confirmed).map((t) => ({ id: t.id, patch: { confirmed: false } }));
+      if (patches.length) dispatch({ type: "patchTransactions", patches });
+      return patches.length;
+    },
+    [dispatch],
+  );
+
+  // Deletes the given rows (what the ledger shows); their receipts go back to the open list.
+  const removeTransactions = useCallback(
+    (transactions) => {
+      if (transactions.length) dispatch({ type: "removeTransactions", ids: transactions.map((t) => t.id) });
+      return transactions.length;
     },
     [dispatch],
   );
@@ -756,7 +811,10 @@ export function ReconcileProvider({ children }) {
       removeTransaction,
       updateReceipt,
       removeReceipt,
-      clearResults,
+      clearAutoMatches,
+      clearAutoMemos,
+      clearConfirmations,
+      removeTransactions,
       restoreBackup,
     }),
     [
@@ -785,7 +843,10 @@ export function ReconcileProvider({ children }) {
       removeTransaction,
       updateReceipt,
       removeReceipt,
-      clearResults,
+      clearAutoMatches,
+      clearAutoMemos,
+      clearConfirmations,
+      removeTransactions,
       restoreBackup,
     ],
   );

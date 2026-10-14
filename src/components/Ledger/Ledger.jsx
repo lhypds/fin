@@ -14,7 +14,8 @@ import MatchEditor from "./MatchEditor";
 import { EditIcon, TrashIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon } from "../icons";
 import styles from "./ledger.module.css";
 
-const FILTERS = ["all", "unmatched", "matched"];
+// Every row, or only those the person has not confirmed yet.
+const FILTERS = ["all", "unconfirmed"];
 
 /* Newest first; rows without a date sink to the bottom. Rows on the same day keep the order
    they were imported in, since the statement's printed order is the only within-day clue. */
@@ -55,16 +56,9 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
     });
   }, [inMonth, receiptById, query]);
 
-  const rows = useMemo(() => {
-    if (filter === "unmatched") return searched.filter((tx) => !tx.receiptIds?.length);
-    if (filter === "matched") return searched.filter((tx) => tx.receiptIds?.length);
-    return searched;
-  }, [searched, filter]);
-
-  const counts = useMemo(() => {
-    const matched = searched.filter((tx) => tx.receiptIds?.length).length;
-    return { all: searched.length, unmatched: searched.length - matched, matched };
-  }, [searched]);
+  const unconfirmed = useMemo(() => searched.filter((tx) => !tx.confirmed), [searched]);
+  const rows = filter === "unconfirmed" ? unconfirmed : searched;
+  const counts = { all: searched.length, unconfirmed: unconfirmed.length };
 
   function handleDelete(tx) {
     if (!window.confirm(t("ledger.deleteConfirm"))) return;
