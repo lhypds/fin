@@ -659,12 +659,14 @@ export function ReconcileProvider({ children }) {
   // written: the other side gets its note when its own account is shown. A memo already there is
   // kept and the note goes under it, and a note already present is not written twice. A written
   // row carries `autoMemo`, the name of the rule, which the ledger shows as the blue of a matched
-  // row; it goes when the memo does.
+  // row; it goes when the memo does. `rules` names the rules to apply, the ones ticked in the
+  // dialog; a rule left out writes nothing.
   const runAutoMemo = useCallback(
-    (transactions) => {
+    (transactions, rules = ["transfer"]) => {
       const shown = new Set(transactions.map((t) => t.id));
       const patches = [];
-      for (const { from, to } of findInternalTransfers(transactions, stateRef.current.transactions)) {
+      const transfers = rules.includes("transfer") ? findInternalTransfers(transactions, stateRef.current.transactions) : [];
+      for (const { from, to } of transfers) {
         const sides = [
           [from, i18n.t("memo.transferTo", { bank: to.bank })],
           [to, i18n.t("memo.transferFrom", { bank: from.bank })],
@@ -768,19 +770,12 @@ export function ReconcileProvider({ children }) {
     const receiptById = new Map(state.receipts.map((r) => [r.id, r]));
     const txById = new Map(state.transactions.map((t) => [t.id, t]));
     const bankById = new Map(state.banks.map((b) => [b.id, b]));
-    const matchedTx = state.transactions.filter((t) => t.receiptIds?.length).length;
     const unmatchedReceipts = state.receipts.filter((r) => !r.txId).length;
     return {
       receiptById,
       txById,
       bankById,
-      stats: {
-        tx: state.transactions.length,
-        matchedTx,
-        unmatchedTx: state.transactions.length - matchedTx,
-        receipts: state.receipts.length,
-        unmatchedReceipts,
-      },
+      stats: { unmatchedReceipts },
     };
   }, [state]);
 

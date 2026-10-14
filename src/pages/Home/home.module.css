@@ -201,13 +201,6 @@
   overflow: hidden;
 }
 
-.divider {
-  flex: none;
-  width: var(--line);
-  height: 12px;
-  background: var(--border);
-}
-
 .progress {
   display: inline-flex;
   align-items: center;

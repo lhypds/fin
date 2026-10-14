@@ -30,6 +30,29 @@
     "clearSearch": "Clear search",
     "backup": "Backup"
   },
+  "autoMatch": {
+    "title": "Auto match",
+    "intro": "The unmatched transactions shown will be paired with recognized, unmatched receipts by these rules:",
+    "run": "Match",
+    "rules": {
+      "amount": "Same amount",
+      "amountDesc": "The receipt's amount equals the transaction's, or differs from it by a transfer fee.",
+      "date": "Close dates",
+      "dateDesc": "The closer the dates, the surer the match; a receipt far off in date is matched only on an exact amount.",
+      "name": "Similar names",
+      "nameDesc": "A payee on the receipt that resembles the transaction's description makes the match surer."
+    },
+    "note": "Each receipt is matched to one transaction at most. Matches carry a confidence and can be undone with Clear → Clear auto matches."
+  },
+  "autoMemo": {
+    "title": "Auto memo",
+    "intro": "The following memos will be added automatically:",
+    "run": "Add memos",
+    "rules": {
+      "transfer": "Internal transfer",
+      "transferDesc": "A transfer between two of the accounts on the same day is marked with the other account's name."
+    }
+  },
   "backup": {
     "title": "Backup and restore",
     "backupSection": "Back up",
@@ -42,8 +65,7 @@
     "summary": "{{banks}} accounts · {{transactions}} rows · {{receipts}} receipts"
   },
   "statusBar": {
-    "transactions": "{{tx}} transactions · {{matched}} matched · {{unmatched}} open",
-    "receipts": "{{total}} receipts · {{open}} unmatched",
+    "transactions": "{{tx}} transactions · {{unconfirmed}} unconfirmed",
     "ocrProgress": "Reading {{done}}/{{total}} · {{percent}}%",
     "noApiKey": "OPENAI_API_KEY not set",
     "model": "Model"

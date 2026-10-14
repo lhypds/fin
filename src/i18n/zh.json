@@ -30,6 +30,29 @@
     "clearSearch": "清除搜索",
     "backup": "备份"
   },
+  "autoMatch": {
+    "title": "自动对账",
+    "intro": "将为当前显示的未对账流水，按以下规则匹配已识别但未对账的收据：",
+    "run": "开始对账",
+    "rules": {
+      "amount": "金额一致",
+      "amountDesc": "收据金额与流水金额相同，或只差一笔转账手续费。",
+      "date": "日期接近",
+      "dateDesc": "日期越接近越可靠；相差较远的收据，只有金额完全一致才会匹配。",
+      "name": "名称相似",
+      "nameDesc": "流水摘要与收据上的收款方名称相似时，匹配更可靠。"
+    },
+    "note": "每张收据只匹配一条流水。结果带有置信度，可通过「清空 → 清空自动对账」撤销。"
+  },
+  "autoMemo": {
+    "title": "自动备注",
+    "intro": "将会自动添加如下备注：",
+    "run": "添加备注",
+    "rules": {
+      "transfer": "内部账户转账",
+      "transferDesc": "同一天在两个账户之间转账的流水，标注对方账户。"
+    }
+  },
   "backup": {
     "title": "备份与还原",
     "backupSection": "备份",
@@ -42,8 +65,7 @@
     "summary": "{{banks}} 个账户 · {{transactions}} 条流水 · {{receipts}} 张收据"
   },
   "statusBar": {
-    "transactions": "流水 {{tx}} 笔 · 已对账 {{matched}} · 未对账 {{unmatched}}",
-    "receipts": "收据 {{total}} 张 · 未对账 {{open}}",
+    "transactions": "流水 {{tx}} 笔 · 未确认 {{unconfirmed}}",
     "ocrProgress": "识别中 {{done}}/{{total}} · {{percent}}%",
     "noApiKey": "未配置 OPENAI_API_KEY",
     "model": "模型"

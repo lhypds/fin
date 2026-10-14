@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, BackupModal } from "@components";
+import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, BackupModal, AutoMatchModal, AutoMemoModal } from "@components";
 import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, EditIcon, UnlinkIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon } from "@components/icons";
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
@@ -81,6 +81,14 @@ export default function Home() {
   // What the ledger has on screen. Auto-match pairs only these rows: other months and other
   // accounts are left as they are.
   const shown = useMemo(() => ledgerView(transactions, activeBankId, month), [transactions, activeBankId, month]);
+  // The status bar counts the rows of the bank and month on screen, not every transaction stored.
+  const shownStats = useMemo(
+    () => ({
+      tx: shown.rows.length,
+      unconfirmed: shown.rows.filter((tx) => !tx.confirmed).length,
+    }),
+    [shown],
+  );
   const canAutoMatch = shown.rows.some((tx) => !tx.receiptIds?.length) && stats.unmatchedReceipts > 0;
   // What the clear menu can take back: a receipt auto-match put on an unconfirmed row, a note
   // auto-memo wrote, a confirmation, or the rows themselves.
@@ -91,6 +99,8 @@ export default function Home() {
   const canClear = canClearAutoMatch || canClearAutoMemo || canClearConfirmed || canClearMonth;
   const [preview, setPreview] = useState(null);
   const [backupOpen, setBackupOpen] = useState(false);
+  const [autoMatchOpen, setAutoMatchOpen] = useState(false);
+  const [autoMemoOpen, setAutoMemoOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [clearOpen, setClearOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -115,14 +125,19 @@ export default function Home() {
     if (latestMonth) setMonth(latestMonth);
   }, []);
 
+  // Pairs the rows on screen with the open receipts, once the dialog listing the rules has been
+  // agreed to.
   function handleAutoMatch() {
+    setAutoMatchOpen(false);
     const n = runAutoMatch(shown.rows);
     showToast(n ? t("toast.matched", { count: n }) : t("toast.noMatches"));
   }
 
-  // Writes the memos the rows on screen earn by rule; so far only the internal transfer one.
-  function handleAutoMemo() {
-    const n = runAutoMemo(shown.rows);
+  // Writes the memos the rows on screen earn by the rules ticked in the dialog; so far only the
+  // internal transfer one.
+  function handleAutoMemo(rules) {
+    setAutoMemoOpen(false);
+    const n = runAutoMemo(shown.rows, rules);
     showToast(n ? t("toast.memoed", { count: n }) : t("toast.noTransfers"));
   }
 
@@ -202,11 +217,11 @@ export default function Home() {
           )}
         </div>
         <div className={styles.actions}>
-          <button type="button" className="btn" onClick={handleAutoMatch} disabled={!canAutoMatch}>
+          <button type="button" className="btn" onClick={() => setAutoMatchOpen(true)} disabled={!canAutoMatch}>
             <ZapIcon />
             {t("header.autoMatch")}
           </button>
-          <button type="button" className="btn" onClick={handleAutoMemo} disabled={!shown.rows.length}>
+          <button type="button" className="btn" onClick={() => setAutoMemoOpen(true)} disabled={!shown.rows.length}>
             <EditIcon />
             {t("header.autoMemo")}
           </button>
@@ -301,9 +316,7 @@ export default function Home() {
       </div>
 
       <footer className={`${styles.statusBar} mono`}>
-        <span>{t("statusBar.transactions", { tx: stats.tx, matched: stats.matchedTx, unmatched: stats.unmatchedTx })}</span>
-        <span className={styles.divider} />
-        <span>{t("statusBar.receipts", { total: stats.receipts, open: stats.unmatchedReceipts })}</span>
+        <span>{t("statusBar.transactions", shownStats)}</span>
         {ocrTotal > 0 && (
           <span className={styles.progress}>
             <span className="tag info">{t("statusBar.ocrProgress", { done: ocrDone, total: ocrTotal, percent: ocrPercent })}</span>
@@ -321,6 +334,8 @@ export default function Home() {
 
       {preview && <PreviewModal id={preview} onClose={closePreview} />}
       {backupOpen && <BackupModal onClose={() => setBackupOpen(false)} />}
+      {autoMatchOpen && <AutoMatchModal onClose={() => setAutoMatchOpen(false)} onConfirm={handleAutoMatch} />}
+      {autoMemoOpen && <AutoMemoModal onClose={() => setAutoMemoOpen(false)} onConfirm={handleAutoMemo} />}
     </div>
   );
 }

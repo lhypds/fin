@@ -1,0 +1,64 @@
+/* The 6px of top padding plus the modal header's 10px make the same 16px that the content keeps
+   below the buttons. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 6px;
+  line-height: 1.6;
+}
+
+/* The rules as a stack of rows, drawn like the account rows a CSV is read onto
+   (BankPanel/bank.module.css), each a checkbox whose label is the rule's name and what it does. */
+.rules {
+  display: flex;
+  flex-direction: column;
+  border: var(--line) solid var(--border);
+}
+
+/* The whole row is the checkbox's label (ui/Checkbox), so a click anywhere on it ticks the box.
+   The box sits against the name line, not centred on the two lines. */
+.rule {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: var(--line) solid var(--border);
+}
+
+.rule:last-child {
+  border-bottom: none;
+}
+
+.rule:hover {
+  background: var(--bg-hover);
+}
+
+/* The box is 12px tall and the name line 16px: 2px of margin centres it on the name. */
+.rule > [aria-hidden="true"] {
+  margin-top: 2px;
+}
+
+.ruleText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ruleName {
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.ruleDesc {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}

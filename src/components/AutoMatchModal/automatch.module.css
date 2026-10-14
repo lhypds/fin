@@ -1,0 +1,46 @@
+/* Laid out like AutoMemoModal: the 6px of top padding plus the modal header's 10px make the same
+   16px that the content keeps below the buttons. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 6px;
+  line-height: 1.6;
+}
+
+/* The rules as a stack of rows, drawn like the account rows a CSV is read onto
+   (BankPanel/bank.module.css). */
+.rules {
+  display: flex;
+  flex-direction: column;
+  border: var(--line) solid var(--border);
+}
+
+.rule {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-bottom: var(--line) solid var(--border);
+}
+
+.rule:last-child {
+  border-bottom: none;
+}
+
+.ruleName {
+  font-weight: 600;
+}
+
+.ruleDesc,
+.note {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}

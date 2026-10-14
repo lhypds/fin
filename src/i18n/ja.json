@@ -30,6 +30,29 @@
     "clearSearch": "検索をクリア",
     "backup": "バックアップ"
   },
+  "autoMatch": {
+    "title": "自動照合",
+    "intro": "表示中の未照合の取引と、読み取り済みで未照合の証憑を、次のルールで照合します：",
+    "run": "照合する",
+    "rules": {
+      "amount": "金額が一致",
+      "amountDesc": "証憑の金額が取引の金額と同じか、振込手数料の分だけ違う。",
+      "date": "日付が近い",
+      "dateDesc": "日付が近いほど確実です。日付が離れた証憑は、金額が完全に一致する場合だけ照合します。",
+      "name": "名前が似ている",
+      "nameDesc": "取引の摘要と証憑の支払先の名前が似ていると、より確実になります。"
+    },
+    "note": "証憑 1 件は取引 1 件にだけ照合します。結果には信頼度が付き、「クリア → 自動照合をクリア」で元に戻せます。"
+  },
+  "autoMemo": {
+    "title": "自動メモ",
+    "intro": "次のメモを自動で追加します：",
+    "run": "メモを追加",
+    "rules": {
+      "transfer": "内部口座間振替",
+      "transferDesc": "同じ日に口座間で振り替えた取引に、相手の口座名を書きます。"
+    }
+  },
   "backup": {
     "title": "バックアップと復元",
     "backupSection": "バックアップ",
@@ -42,8 +65,7 @@
     "summary": "口座 {{banks}} · 取引 {{transactions}} · 証憑 {{receipts}}"
   },
   "statusBar": {
-    "transactions": "取引 {{tx}} 件 · 照合済 {{matched}} · 未照合 {{unmatched}}",
-    "receipts": "証憑 {{total}} 件 · 未照合 {{open}}",
+    "transactions": "取引 {{tx}} 件 · 未確認 {{unconfirmed}}",
     "ocrProgress": "読取中 {{done}}/{{total}} · {{percent}}%",
     "noApiKey": "OPENAI_API_KEY が未設定",
     "model": "モデル"

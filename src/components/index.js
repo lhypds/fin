@@ -7,3 +7,5 @@ export { default as ReceiptPanel } from "./ReceiptPanel";
 export { default as Ledger } from "./Ledger";
 export { default as PreviewModal } from "./PreviewModal";
 export { default as BackupModal } from "./BackupModal";
+export { default as AutoMatchModal } from "./AutoMatchModal";
+export { default as AutoMemoModal } from "./AutoMemoModal";
