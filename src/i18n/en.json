@@ -74,7 +74,7 @@
     "summary": "{{banks}} accounts · {{transactions}} rows · {{receipts}} receipts"
   },
   "statusBar": {
-    "transactions": "{{tx}} transactions · {{unconfirmed}} unconfirmed",
+    "transactions": "{{tx}} transactions · {{confirmed}} confirmed · {{unconfirmed}} unconfirmed",
     "ocrProgress": "Reading {{done}}/{{total}} · {{percent}}%",
     "noApiKey": "OPENAI_API_KEY not set",
     "model": "Model"
@@ -136,8 +136,6 @@
     "withdrawal": "Withdrawal",
     "deposit": "Deposit",
     "amount": "Amount",
-    "filterAll": "All",
-    "filterUnconfirmed": "Unconfirmed",
     "month": "Month",
     "prevMonth": "Previous month",
     "nextMonth": "Next month",

@@ -20,14 +20,8 @@
   border-bottom: var(--line) solid var(--border);
 }
 
-.toolbarLeft {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 /* The month picker: a step back, the month itself (a select that opens the list), a step forward,
-   joined like the filter tabs beside it. */
+   joined into one strip. */
 .months {
   display: flex;
   align-items: center;
@@ -92,41 +86,6 @@
 .monthSelect:focus-visible {
   outline: var(--line) solid var(--focus);
   outline-offset: -2px;
-}
-
-.filters {
-  display: flex;
-}
-
-.filterBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 22px;
-  padding: 0 10px;
-  border: var(--line) solid var(--border);
-  border-right: none;
-  background: var(--bg);
-  color: var(--fg);
-  cursor: pointer;
-}
-
-.filterBtn:last-child {
-  border-right: var(--line) solid var(--border);
-}
-
-.filterBtn:hover {
-  background: var(--bg-hover);
-}
-
-.filterBtn[data-active="true"] {
-  background: var(--border);
-  color: var(--bg);
-}
-
-.count {
-  font-size: 10px;
-  opacity: 0.7;
 }
 
 /* The two scroll axes live on two nested boxes: the outer one scrolls horizontally and shows its
@@ -220,11 +179,6 @@
   cursor: pointer;
 }
 
-.row[role="button"]:focus-visible {
-  outline: var(--line) solid var(--focus);
-  outline-offset: -2px;
-}
-
 .row[data-matched="true"],
 .row[data-noted="true"] {
   background: var(--info-bg);
@@ -232,6 +186,14 @@
 
 .row[data-confirmed="true"] {
   background: var(--ok-bg);
+}
+
+/* The keyboard's row is shaded the way a hovered one is, with no ring. The shade is a tint over
+   the row's own colour rather than the hover grey itself, so the cursor shows on a blue or green
+   row too (hover leaves those alone) and the green still says the row is confirmed. */
+.row[role="button"]:focus-visible {
+  outline: none;
+  background-image: linear-gradient(var(--tint), var(--tint));
 }
 
 .head {

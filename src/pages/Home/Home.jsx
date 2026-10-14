@@ -82,14 +82,12 @@ export default function Home() {
   // What the ledger has on screen. Auto-match pairs only these rows: other months and other
   // accounts are left as they are.
   const shown = useMemo(() => ledgerView(transactions, activeBankId, month), [transactions, activeBankId, month]);
-  // The status bar counts the rows of the bank and month on screen, not every transaction stored.
-  const shownStats = useMemo(
-    () => ({
-      tx: shown.rows.length,
-      unconfirmed: shown.rows.filter((tx) => !tx.confirmed).length,
-    }),
-    [shown],
-  );
+  // The status bar counts the rows of the bank and month on screen, not every transaction stored:
+  // all of them, then the confirmed and the unconfirmed, in the order of the ledger's tabs.
+  const shownStats = useMemo(() => {
+    const confirmed = shown.rows.filter((tx) => tx.confirmed).length;
+    return { tx: shown.rows.length, confirmed, unconfirmed: shown.rows.length - confirmed };
+  }, [shown]);
   const canAutoMatch = shown.rows.some((tx) => !tx.receiptIds?.length) && stats.unmatchedReceipts > 0;
   // What the clear menu can take back: a receipt auto-match put on an unconfirmed row, a note
   // auto-memo wrote, a confirmation, or the rows themselves.

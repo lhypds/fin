@@ -74,7 +74,7 @@
     "summary": "{{banks}} 个账户 · {{transactions}} 条流水 · {{receipts}} 张收据"
   },
   "statusBar": {
-    "transactions": "流水 {{tx}} 笔 · 未确认 {{unconfirmed}}",
+    "transactions": "流水 {{tx}} 笔 · 已确认 {{confirmed}} · 未确认 {{unconfirmed}}",
     "ocrProgress": "识别中 {{done}}/{{total}} · {{percent}}%",
     "noApiKey": "未配置 OPENAI_API_KEY",
     "model": "模型"
@@ -136,8 +136,6 @@
     "withdrawal": "支出",
     "deposit": "收入",
     "amount": "金额",
-    "filterAll": "全部",
-    "filterUnconfirmed": "未确认",
     "month": "月份",
     "prevMonth": "上个月",
     "nextMonth": "下个月",

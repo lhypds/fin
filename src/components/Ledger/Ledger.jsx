@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActionButton } from "@ui";
+import { ActionButton, isModalOpen } from "@ui";
 import { useReconcile } from "@store";
 import { fmtMoney, txAmount } from "@utils/format";
 import { amountGap } from "@utils/matching";
@@ -13,9 +13,6 @@ import TxEditor from "./TxEditor";
 import MatchEditor from "./MatchEditor";
 import { EditIcon, TrashIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon } from "../icons";
 import styles from "./ledger.module.css";
-
-// Every row, or only those the person has not confirmed yet.
-const FILTERS = ["all", "unconfirmed"];
 
 /* Newest first; rows without a date sink to the bottom. Rows on the same day keep the order
    they were imported in, since the statement's printed order is the only within-day clue. */
@@ -36,7 +33,6 @@ function sortByDate(list) {
 export default function Ledger({ bankId = null, month = "", onMonthChange, onPreviewReceipt, query = "" }) {
   const { t } = useTranslation();
   const { transactions, receiptById, match, removeTransaction, updateTransaction } = useReconcile();
-  const [filter, setFilter] = useState("all");
   const [editing, setEditing] = useState(null);
   const [editingMatch, setEditingMatch] = useState(null);
 
@@ -46,8 +42,8 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
   // A month key "2026-10" reads as "2026 - 10".
   const monthLabel = (m) => (m.key === UNDATED ? t("ledger.undated") : m.key.replace("-", " - "));
 
-  // The header search narrows the month first; the filter tabs then split what it left.
-  const searched = useMemo(() => {
+  // The rows on screen: the month, newest first, narrowed by the header search.
+  const rows = useMemo(() => {
     const sorted = sortByDate(inMonth);
     if (!query.trim()) return sorted;
     return sorted.filter((tx) => {
@@ -55,10 +51,6 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
       return matchesQuery(transactionHaystack(tx, receipts), query);
     });
   }, [inMonth, receiptById, query]);
-
-  const unconfirmed = useMemo(() => searched.filter((tx) => !tx.confirmed), [searched]);
-  const rows = filter === "unconfirmed" ? unconfirmed : searched;
-  const counts = { all: searched.length, unconfirmed: unconfirmed.length };
 
   function handleDelete(tx) {
     if (!window.confirm(t("ledger.deleteConfirm"))) return;
@@ -69,61 +61,101 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
     updateTransaction(tx.id, { confirmed: !tx.confirmed });
   }
 
+  // The keyboard's row is the focused one: Down and Up move the focus from row to row, Space and
+  // Enter toggle it like a click and move on. The cursor remembers the row last focused and its
+  // place in the list, so the arrows pick up there after a click elsewhere has taken the focus,
+  // or at the same place once the row has left the list (deleted, or moved to another month).
+  const scrollRef = useRef(null);
+  const stickyRef = useRef(null);
+  const rowRefs = useRef(new Map());
+  const cursorRef = useRef(null);
+
+  const focusRow = useCallback((tx) => {
+    const el = tx && rowRefs.current.get(tx.id);
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    // focus() alone scrolls only until the row's edge is inside the pane, which leaves it under
+    // the sticky header; this brings it out from under the header, or up from below the bottom.
+    const scroller = scrollRef.current;
+    const sticky = stickyRef.current;
+    if (!scroller || !sticky) return;
+    const pane = scroller.getBoundingClientRect();
+    const row = el.getBoundingClientRect();
+    const top = pane.top + sticky.offsetHeight;
+    if (row.top < top) scroller.scrollTop -= top - row.top;
+    else if (row.bottom > pane.bottom) scroller.scrollTop += row.bottom - pane.bottom;
+  }, []);
+
+  // The arrows work from anywhere on the page: from a row (or a button in it) they step to its
+  // neighbour, from elsewhere they return to the cursor's row. A dialog keeps them, as does any
+  // field that uses them itself; a one-line text box (the search) does not, so Down leaves it
+  // for the rows it narrowed.
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || isModalOpen()) return;
+      if (!rows.length) return;
+      const target = e.target instanceof Element ? e.target : null;
+      if (target?.closest("textarea, select, [contenteditable]")) return;
+      if (target instanceof HTMLInputElement && target.type !== "text" && target.type !== "search") return;
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      const fromRow = target?.closest("[data-tx]");
+      let next;
+      if (fromRow) {
+        const i = rows.findIndex((tx) => String(tx.id) === fromRow.dataset.tx);
+        next = rows[Math.min(Math.max(i + step, 0), rows.length - 1)];
+      } else {
+        const cursor = cursorRef.current;
+        const i = cursor ? rows.findIndex((tx) => tx.id === cursor.id) : -1;
+        if (i >= 0) next = rows[i];
+        else if (cursor) next = rows[Math.min(cursor.index, rows.length - 1)];
+        else next = step > 0 ? rows[0] : rows[rows.length - 1];
+      }
+      e.preventDefault();
+      focusRow(next);
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [rows, focusRow]);
+
   const emptyText = () => {
     if (transactions.length === 0) return t("ledger.empty");
     if (inMonth.length === 0) return t("ledger.emptyMonth", { month: monthLabel(months[index]) });
-    if (searched.length === 0) return t("ledger.emptySearch");
-    return t("ledger.emptyFiltered");
+    return t("ledger.emptySearch");
   };
 
   return (
     <div className={styles.ledger}>
       <div className={styles.toolbar}>
-        <div className={styles.toolbarLeft}>
-          {/* Newest month first in the list, so "previous" steps down it and "next" steps up. */}
-          <div className={styles.months}>
-            <button
-              type="button"
-              className={styles.monthBtn}
-              disabled={index >= months.length - 1}
-              onClick={() => onMonthChange(months[index + 1].key)}
-              title={t("ledger.prevMonth")}
-              aria-label={t("ledger.prevMonth")}
-            >
-              <ChevronLeftIcon />
-            </button>
-            <select className={styles.monthSelect} value={current} onChange={(e) => onMonthChange(e.target.value)} aria-label={t("ledger.month")}>
-              {months.map((m) => (
-                <option key={m.key} value={m.key}>
-                  {monthLabel(m)}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className={styles.monthBtn}
-              disabled={index <= 0}
-              onClick={() => onMonthChange(months[index - 1].key)}
-              title={t("ledger.nextMonth")}
-              aria-label={t("ledger.nextMonth")}
-            >
-              <ChevronRightIcon />
-            </button>
-          </div>
-          <div className={styles.filters}>
-            {FILTERS.map((f) => (
-              <button
-                key={f}
-                type="button"
-                className={styles.filterBtn}
-                data-active={filter === f}
-                onClick={() => setFilter(f)}
-              >
-                {t(`ledger.filter${f[0].toUpperCase()}${f.slice(1)}`)}
-                <span className={styles.count}>{counts[f]}</span>
-              </button>
+        {/* Newest month first in the list, so "previous" steps down it and "next" steps up. */}
+        <div className={styles.months}>
+          <button
+            type="button"
+            className={styles.monthBtn}
+            disabled={index >= months.length - 1}
+            onClick={() => onMonthChange(months[index + 1].key)}
+            title={t("ledger.prevMonth")}
+            aria-label={t("ledger.prevMonth")}
+          >
+            <ChevronLeftIcon />
+          </button>
+          <select className={styles.monthSelect} value={current} onChange={(e) => onMonthChange(e.target.value)} aria-label={t("ledger.month")}>
+            {months.map((m) => (
+              <option key={m.key} value={m.key}>
+                {monthLabel(m)}
+              </option>
             ))}
-          </div>
+          </select>
+          <button
+            type="button"
+            className={styles.monthBtn}
+            disabled={index <= 0}
+            onClick={() => onMonthChange(months[index - 1].key)}
+            title={t("ledger.nextMonth")}
+            aria-label={t("ledger.nextMonth")}
+          >
+            <ChevronRightIcon />
+          </button>
         </div>
         <button type="button" className="btn" onClick={() => setEditing("new")}>
           <PlusIcon />
@@ -132,9 +164,9 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
       </div>
 
       <div className={styles.scrollX}>
-        <div className={`${styles.scroll} scroll-y`}>
+        <div className={`${styles.scroll} scroll-y`} ref={scrollRef}>
           <div className={styles.table}>
-            <div className={styles.sticky}>
+            <div className={styles.sticky} ref={stickyRef}>
               <div className={styles.sections}>
                 <div className={styles.sectionLeft}>{t("ledger.title")}</div>
                 <div className={styles.sectionRight}>{t("ledger.results")}</div>
@@ -164,17 +196,24 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
               // Every row is a toggle: a click anywhere on it that no button or thumbnail claims
               // flips the human confirmation, matched or not (a row can be checked off without a
               // receipt). Keys count only on the row itself, since Enter and Space on the buttons
-              // inside it bubble up here too.
+              // inside it bubble up here too. A focus on any of those buttons still moves the
+              // cursor here, so the arrows carry on from the row that was last worked on.
               const confirmProps = {
                 role: "button",
                 tabIndex: 0,
                 "aria-pressed": !!tx.confirmed,
                 onClick: () => toggleConfirmed(tx),
+                onFocus: () => {
+                  cursorRef.current = { id: tx.id, index: rows.indexOf(tx) };
+                },
                 onKeyDown: (e) => {
                   if (e.target !== e.currentTarget) return;
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     toggleConfirmed(tx);
+                    // The cursor moves on to the next row, so the next Space carries on down the
+                    // list; on the last row it stays.
+                    focusRow(rows[rows.indexOf(tx) + 1]);
                   }
                 },
               };
@@ -182,6 +221,11 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
               return (
                 <div
                   key={tx.id}
+                  ref={(el) => {
+                    if (el) rowRefs.current.set(tx.id, el);
+                    else rowRefs.current.delete(tx.id);
+                  }}
+                  data-tx={tx.id}
                   className={styles.row}
                   data-matched={matched}
                   data-noted={!!tx.autoMemo}

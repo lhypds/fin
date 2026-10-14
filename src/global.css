@@ -11,6 +11,7 @@
   --bg: #ffffff;
   --bg-alt: #f6f6f6;
   --bg-hover: #f0f0f0;
+  --tint: rgb(0 0 0 / 6%); /* --bg-hover as a layer: white under it comes out as --bg-hover, a colour a shade darker */
   --ok: #1a7f37;
   --warn: #9a6700;
   --err: #cf222e;

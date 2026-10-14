@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { opened, closed } from "./modalApi";
 import styles from "./modal.module.css";
 
 // The dialogs open right now, oldest first. Escape closes only the newest, so a preview opened
@@ -33,6 +34,12 @@ const Modal = ({ isOpen, onClose, title, children, closeOnOverlay = true, closeO
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, closeOnEscape]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    opened();
+    return closed;
+  }, [isOpen]);
 
   // Prevent touchmove on background
   // allow scroll on textarea/input/select but prevent on the rest of the background

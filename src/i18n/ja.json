@@ -74,7 +74,7 @@
     "summary": "口座 {{banks}} · 取引 {{transactions}} · 証憑 {{receipts}}"
   },
   "statusBar": {
-    "transactions": "取引 {{tx}} 件 · 未確認 {{unconfirmed}}",
+    "transactions": "取引 {{tx}} 件 · 確認済み {{confirmed}} · 未確認 {{unconfirmed}}",
     "ocrProgress": "読取中 {{done}}/{{total}} · {{percent}}%",
     "noApiKey": "OPENAI_API_KEY が未設定",
     "model": "モデル"
@@ -136,8 +136,6 @@
     "withdrawal": "お支払",
     "deposit": "お預り",
     "amount": "金額",
-    "filterAll": "すべて",
-    "filterUnconfirmed": "未確認",
     "month": "月",
     "prevMonth": "前の月",
     "nextMonth": "次の月",
