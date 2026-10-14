@@ -113,14 +113,14 @@
   "bankEditor": {
     "title": "编辑银行账户",
     "addTitle": "添加银行账户",
+    "label": "账户名",
     "name": "银行",
     "branch": "支店",
     "accountType": "账户类型",
     "accountNumber": "账号",
     "holder": "户名",
-    "currency": "币种",
     "memo": "备注",
-    "nameRequired": "请填写银行名"
+    "labelRequired": "请填写账户名"
   },
   "importTarget": {
     "title": "流水读取到哪个账户？",
@@ -131,11 +131,12 @@
     "title": "银行流水",
     "results": "对账结果",
     "date": "日期",
-    "bank": "银行",
+    "bank": "账户",
     "description": "摘要",
     "withdrawal": "支出",
     "deposit": "收入",
     "amount": "金额",
+    "balance": "余额",
     "month": "月份",
     "prevMonth": "上个月",
     "nextMonth": "下个月",

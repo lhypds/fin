@@ -18,8 +18,9 @@ export default function ImportTarget({ files, defaultBankId, onClose, onConfirm 
     e.preventDefault();
     if (choice !== "new") return onConfirm(choice);
     const trimmed = name.trim();
-    if (!trimmed) return setError(t("bankEditor.nameRequired"));
-    onConfirm(addBank({ name: trimmed }));
+    if (!trimmed) return setError(t("bankEditor.labelRequired"));
+    // The new account gets its name here; the bank and the rest are typed into the editor.
+    onConfirm(addBank({ label: trimmed }));
   }
 
   const option = (value, label, meta) => (
@@ -40,20 +41,13 @@ export default function ImportTarget({ files, defaultBankId, onClose, onConfirm 
           ))}
         </div>
         <div className={styles.targets}>
-          {banks.map((b) => option(b.id, b.name, fmtAccount(b)))}
+          {banks.map((b) => option(b.id, b.label, fmtAccount(b)))}
           {option("new", t("importTarget.newAccount"))}
         </div>
         {choice === "new" && (
           <div className="field">
-            <label htmlFor="target-name">{t("bankEditor.name")}</label>
-            <input
-              id="target-name"
-              className="input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="みずほ · 三井住友 · SBJ"
-              autoFocus
-            />
+            <label htmlFor="target-name">{t("bankEditor.label")}</label>
+            <input id="target-name" className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
           </div>
         )}
         {error && <div className={styles.error}>{error}</div>}

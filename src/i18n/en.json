@@ -113,14 +113,14 @@
   "bankEditor": {
     "title": "Edit bank account",
     "addTitle": "Add bank account",
+    "label": "Account name",
     "name": "Bank",
     "branch": "Branch",
     "accountType": "Account type",
     "accountNumber": "Account no.",
     "holder": "Account holder",
-    "currency": "Currency",
     "memo": "Memo",
-    "nameRequired": "Enter the bank's name"
+    "labelRequired": "Enter the account's name"
   },
   "importTarget": {
     "title": "Which account is this statement for?",
@@ -131,11 +131,12 @@
     "title": "Bank transactions",
     "results": "Reconciliation",
     "date": "Date",
-    "bank": "Bank",
+    "bank": "Account",
     "description": "Description",
     "withdrawal": "Withdrawal",
     "deposit": "Deposit",
     "amount": "Amount",
+    "balance": "Balance",
     "month": "Month",
     "prevMonth": "Previous month",
     "nextMonth": "Next month",

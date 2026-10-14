@@ -21,6 +21,9 @@ export default function TxEditor({ tx, defaultBankId = null, onClose, onSaved })
       kind,
       amount: tx?.[kind] || "",
       currency: tx?.currency || bankById.get(bankId)?.currency || "JPY",
+      // The balance after the row, as the statement had it (残高). The list leaves it out; it is
+      // seen and corrected here.
+      balance: tx?.balance ?? "",
     };
   });
   const [error, setError] = useState(null);
@@ -36,11 +39,12 @@ export default function TxEditor({ tx, defaultBankId = null, onClose, onSaved })
     const patch = {
       date: form.date,
       bankId: bank ? bank.id : null,
-      bank: bank ? bank.name : "",
+      bank: bank ? bank.label : "",
       description: form.description.trim(),
       withdrawal: form.kind === "withdrawal" ? amount : 0,
       deposit: form.kind === "deposit" ? amount : 0,
       currency: form.currency.trim().toUpperCase() || "JPY",
+      balance: toNumberOrNull(form.balance),
     };
     if (tx) updateTransaction(tx.id, patch);
     else addTransaction(patch);
@@ -63,7 +67,7 @@ export default function TxEditor({ tx, defaultBankId = null, onClose, onSaved })
               <option value="">{t("txEditor.noBank")}</option>
               {banks.map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.name}
+                  {b.label}
                 </option>
               ))}
             </select>
@@ -98,6 +102,12 @@ export default function TxEditor({ tx, defaultBankId = null, onClose, onSaved })
           <div className="field">
             <label htmlFor="tx-currency">{t("preview.currency")}</label>
             <input id="tx-currency" className="input mono" value={form.currency} onChange={set("currency")} maxLength={3} />
+          </div>
+        </div>
+        <div className={styles.grid}>
+          <div className="field">
+            <label htmlFor="tx-balance">{t("ledger.balance")}</label>
+            <input id="tx-balance" className="input mono" inputMode="decimal" value={form.balance} onChange={set("balance")} />
           </div>
         </div>
         {error && <div className={styles.error}>{error}</div>}

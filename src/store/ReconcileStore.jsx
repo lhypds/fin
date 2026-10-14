@@ -23,10 +23,12 @@ import { ReconcileContext } from "./context";
 // statement (a CSV or Excel file, or a passbook image) is never kept: it is uploaded, read by the
 // model, and removed, leaving only what it said. `settings` holds what the person set up: so far
 // `aiMemo`, the prompt the AI memos are written from and the reference file they follow.
+// An account's `label` is what it is called in the app and the one thing shown for it; `name` is
+// the bank it is at, a detail like the branch, read off the passbook or typed in.
 const initialState = { banks: [], transactions: [], receipts: [], settings: {} };
 
 // Bumped when the saved shape changes; `migrate` brings older files up to it.
-const STATE_VERSION = 4;
+const STATE_VERSION = 5;
 // How many statements or receipts are read by the model at once.
 const OCR_CONCURRENCY = 5;
 const EMPTY_PROGRESS = { total: 0, done: 0 };
@@ -87,15 +89,15 @@ function reducer(state, action) {
 
     case "addBank":
       return { ...state, banks: [...state.banks, action.bank] };
-    // A renamed account renames the bank on every row that belongs to it.
+    // A renamed account renames itself on every row that belongs to it.
     case "updateBank": {
       const banks = patchById(state.banks, action.id, action.patch);
-      const name = action.patch.name;
-      if (name == null) return { ...state, banks };
+      const label = action.patch.label;
+      if (label == null) return { ...state, banks };
       return {
         ...state,
         banks,
-        transactions: state.transactions.map((t) => (t.bankId === action.id && t.bank !== name ? { ...t, bank: name } : t)),
+        transactions: state.transactions.map((t) => (t.bankId === action.id && t.bank !== label ? { ...t, bank: label } : t)),
       };
     }
     // An account goes with its rows.
@@ -181,9 +183,14 @@ function stripAutoNotes(memo, patterns, aiText = "") {
     .trim();
 }
 
+// An account at bank `name`, called `name` too until it is given a name of its own.
 function newBank(id, name, currency) {
-  return { id, name, branch: "", accountType: "", accountNumber: "", holder: "", memo: "", currency: currency || "JPY", createdAt: Date.now() };
+  return { id, name, label: name, branch: "", accountType: "", accountNumber: "", holder: "", memo: "", currency: currency || "JPY", createdAt: Date.now() };
 }
+
+// Accounts saved before they had a name of their own (version 4 and earlier) are called what
+// their bank was called, which is what the app showed for them.
+const labelled = (banks) => (banks || []).map((b) => (b.label ? b : { ...b, label: b.name || "" }));
 
 // The account a read belongs to, or null for a new one. A spreadsheet goes where the person said. A
 // passbook names its own account on the cover: the account with that number, wherever the file
@@ -200,15 +207,15 @@ function resolveAccount(banks, read, result) {
 // Older files brought up to the current shape. Version 1 kept statements as photos and PDFs read
 // by OCR (`sources`), each row naming its bank in words: every bank name becomes an account, and
 // the rows move under them. Versions 2 and 3 had the accounts; 3 also kept the statement files,
-// which are no longer kept at all. The ids are fixed rather than random so two pages that
-// migrate the same file agree on them.
+// which are no longer kept at all. Up to 4 an account had no name but its bank's. The ids are
+// fixed rather than random so two pages that migrate the same file agree on them.
 function migrate(saved) {
   if (!saved) return null;
   const version = versionOf(saved);
   const receipts = saved.receipts || [];
   const strip = (list) => (list || []).map(({ statementId: _statementId, ...t }) => t);
-  if (version >= 3) return { banks: saved.banks || [], transactions: strip(saved.transactions), receipts, settings: saved.settings || {} };
-  if (version === 2) return { banks: (saved.banks || []).map(({ imports: _imports, ...b }) => b), transactions: saved.transactions || [], receipts, settings: {} };
+  if (version >= 3) return { banks: labelled(saved.banks), transactions: strip(saved.transactions), receipts, settings: saved.settings || {} };
+  if (version === 2) return { banks: labelled((saved.banks || []).map(({ imports: _imports, ...b }) => b)), transactions: saved.transactions || [], receipts, settings: {} };
   const transactions = saved.transactions || [];
   const sources = saved.sources || [];
   const nameOf = (s) => s.bank || String(s.name || "").replace(/\.[a-z0-9]+$/i, "") || "—";
@@ -290,7 +297,9 @@ export function ReconcileProvider({ children }) {
       const { banks, transactions } = stateRef.current;
       let bank = resolveAccount(banks, read, result);
       if (!bank) {
-        bank = newBank(uid(), String(result.bank || "").trim() || i18n.t("banks.unnamed"), result.currency);
+        // The new account is called after its bank, or "new account" when the file names none.
+        const bankName = String(result.bank || "").trim();
+        bank = { ...newBank(uid(), bankName, result.currency), label: bankName || i18n.t("banks.unnamed") };
         dispatch({ type: "addBank", bank });
       }
       let items = [];
@@ -304,13 +313,15 @@ export function ReconcileProvider({ children }) {
           balance: t.balance == null ? null : Number(t.balance),
         }));
         const { fresh } = splitNew(existing, rows);
+        // The rows are in the statement's currency, which is the account's unless the file says
+        // otherwise; a row's currency can be changed on the row.
         items = fresh.map((r) => ({
           id: uid(),
           bankId: bank.id,
-          bank: bank.name,
+          bank: bank.label,
           ...r,
           memo: "",
-          currency: bank.currency || result.currency || "JPY",
+          currency: result.currency || bank.currency || "JPY",
           receiptIds: [],
         }));
         if (items.length) dispatch({ type: "addTransactions", items });
@@ -828,7 +839,7 @@ export function ReconcileProvider({ children }) {
       try {
         for (const [bankId, rows] of groups) {
           const b = banks.find((x) => x.id === bankId);
-          const bank = b ? { name: b.name, branch: b.branch, accountType: b.accountType, accountNumber: b.accountNumber, holder: b.holder, currency: b.currency, memo: b.memo } : null;
+          const bank = b ? { label: b.label, name: b.name, branch: b.branch, accountType: b.accountType, accountNumber: b.accountNumber, holder: b.holder, currency: b.currency, memo: b.memo } : null;
           const result = await generateMemos({
             prompt,
             bank,

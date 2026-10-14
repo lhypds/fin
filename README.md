@@ -4,9 +4,11 @@ fin
 
 Auto reconciliation of financial transactions.
 
-Bank accounts live on the left. A photo, scan or PDF of the passbook (通帳) dropped there is read
-by the model for the account on its cover (bank, branch, account number, holder) and makes the
-account, or completes one with that number; its rows are never read. The bank's CSV or Excel
+Bank accounts live on the left. Each has a name of its own, which is all the app shows for it; the
+bank it is at is one of its details, with the branch, number and holder. A photo, scan or PDF of
+the passbook (通帳) dropped there is read by the model for the account on its cover (bank, branch,
+account number, holder) and makes the account, or completes one with that number; its rows are
+never read. The bank's CSV or Excel
 export is what the rows come from: dropping one asks which account it belongs to (or makes a new one), then
 the model reads it into rows on the ledger, in parts of about a hundred rows so nothing is lost;
 it never touches the account's details, which are typed in or come from the passbook. Neither

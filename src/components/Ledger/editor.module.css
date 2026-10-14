@@ -14,7 +14,8 @@
   gap: 12px;
 }
 
-/* The amount row: the amount with its withdrawal / deposit switch, and the currency it is in. */
+/* The amount row: the amount with its withdrawal / deposit switch, and the currency it is in. The
+   balance row under it takes the same columns, so the two money fields line up. */
 .grid {
   display: grid;
   grid-template-columns: 2fr 1fr;

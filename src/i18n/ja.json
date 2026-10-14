@@ -113,14 +113,14 @@
   "bankEditor": {
     "title": "銀行口座を編集",
     "addTitle": "銀行口座を追加",
+    "label": "口座名",
     "name": "銀行",
     "branch": "支店",
     "accountType": "口座種別",
     "accountNumber": "口座番号",
     "holder": "口座名義",
-    "currency": "通貨",
     "memo": "メモ",
-    "nameRequired": "銀行名を入力してください"
+    "labelRequired": "口座名を入力してください"
   },
   "importTarget": {
     "title": "どの口座の明細ですか？",
@@ -131,11 +131,12 @@
     "title": "銀行取引",
     "results": "照合結果",
     "date": "日付",
-    "bank": "銀行",
+    "bank": "口座",
     "description": "摘要",
     "withdrawal": "お支払",
     "deposit": "お預り",
     "amount": "金額",
+    "balance": "残高",
     "month": "月",
     "prevMonth": "前の月",
     "nextMonth": "次の月",

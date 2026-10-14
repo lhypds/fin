@@ -4,18 +4,19 @@ import { Modal, TextArea, showToast } from "@ui";
 import { useReconcile } from "@store";
 import styles from "./bank.module.css";
 
-// An account's details: the bank, whatever of branch, type, number and holder is worth noting,
-// and a memo in the person's own words.
+// An account's details: what it is called (the one thing shown for it), the bank it is at,
+// whatever of branch, type, number and holder is worth noting, and a memo in the person's own
+// words.
 export default function BankEditor({ bank, onClose, onCreated }) {
   const { t } = useTranslation();
   const { addBank, updateBank } = useReconcile();
   const [form, setForm] = useState(() => ({
+    label: bank?.label || "",
     name: bank?.name || "",
     branch: bank?.branch || "",
     accountType: bank?.accountType || "",
     accountNumber: bank?.accountNumber || "",
     holder: bank?.holder || "",
-    currency: bank?.currency || "JPY",
     memo: bank?.memo || "",
   }));
   const [error, setError] = useState(null);
@@ -24,15 +25,15 @@ export default function BankEditor({ bank, onClose, onCreated }) {
 
   function submit(e) {
     e.preventDefault();
-    const name = form.name.trim();
-    if (!name) return setError(t("bankEditor.nameRequired"));
+    const label = form.label.trim();
+    if (!label) return setError(t("bankEditor.labelRequired"));
     const fields = {
-      name,
+      label,
+      name: form.name.trim(),
       branch: form.branch.trim(),
       accountType: form.accountType.trim(),
       accountNumber: form.accountNumber.trim(),
       holder: form.holder.trim(),
-      currency: form.currency.trim().toUpperCase() || "JPY",
       memo: form.memo.trim(),
     };
     if (bank) updateBank(bank.id, fields);
@@ -44,9 +45,15 @@ export default function BankEditor({ bank, onClose, onCreated }) {
   return (
     <Modal isOpen onClose={onClose} title={bank ? t("bankEditor.title") : t("bankEditor.addTitle")}>
       <form className={styles.form} onSubmit={submit}>
-        <div className="field">
-          <label htmlFor="bank-name">{t("bankEditor.name")}</label>
-          <input id="bank-name" className="input" value={form.name} onChange={set("name")} placeholder="みずほ · 三井住友 · SBJ" autoFocus />
+        <div className={styles.grid2}>
+          <div className="field">
+            <label htmlFor="bank-label">{t("bankEditor.label")}</label>
+            <input id="bank-label" className="input" value={form.label} onChange={set("label")} autoFocus />
+          </div>
+          <div className="field">
+            <label htmlFor="bank-name">{t("bankEditor.name")}</label>
+            <input id="bank-name" className="input" value={form.name} onChange={set("name")} placeholder="みずほ · 三井住友 · SBJ" />
+          </div>
         </div>
         <div className={styles.grid2}>
           <div className="field">
@@ -58,7 +65,7 @@ export default function BankEditor({ bank, onClose, onCreated }) {
             <input id="bank-holder" className="input" value={form.holder} onChange={set("holder")} />
           </div>
         </div>
-        <div className={styles.grid3}>
+        <div className={styles.grid2}>
           <div className="field">
             <label htmlFor="bank-type">{t("bankEditor.accountType")}</label>
             <input id="bank-type" className="input" value={form.accountType} onChange={set("accountType")} placeholder="普通" />
@@ -66,10 +73,6 @@ export default function BankEditor({ bank, onClose, onCreated }) {
           <div className="field">
             <label htmlFor="bank-number">{t("bankEditor.accountNumber")}</label>
             <input id="bank-number" className="input mono" value={form.accountNumber} onChange={set("accountNumber")} inputMode="numeric" />
-          </div>
-          <div className="field">
-            <label htmlFor="bank-currency">{t("bankEditor.currency")}</label>
-            <input id="bank-currency" className="input mono" value={form.currency} onChange={set("currency")} maxLength={3} />
           </div>
         </div>
         <div className="field">

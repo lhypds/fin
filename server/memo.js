@@ -56,6 +56,7 @@ function rowsCsv(rows) {
 function accountText(bank) {
   const parts = bank
     ? [
+        bank.label && `called ${bank.label}`,
         bank.name && `bank ${bank.name}`,
         bank.branch && `branch ${bank.branch}`,
         bank.accountType && `type ${bank.accountType}`,

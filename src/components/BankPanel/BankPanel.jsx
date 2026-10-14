@@ -26,7 +26,7 @@ function ReadingItem({ read, bank, onCancel }) {
         <div className={styles.fileName} title={read.name}>
           {read.name}
         </div>
-        {bank && <div className={styles.meta}>{bank.name}</div>}
+        {bank && <div className={styles.meta}>{bank.label}</div>}
       </div>
       <div className={styles.fileSide}>
         <StatusTag status="processing" />
@@ -87,7 +87,7 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
 
   function handleDeleteBank(bank) {
     const count = transactions.filter((tx) => tx.bankId === bank.id).length;
-    if (!window.confirm(t("banks.deleteConfirm", { name: bank.name, count }))) return;
+    if (!window.confirm(t("banks.deleteConfirm", { name: bank.label, count }))) return;
     removeBank(bank.id);
   }
 
@@ -138,9 +138,9 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
           </div>
           {banks.length === 0 && reads.length === 0 && <p className={styles.empty}>{t("banks.empty")}</p>}
           {banks.map((bank) => {
-            // The card: the bank, then the branch and number, then the holder, each line only
-            // once filled in (an account just made for a CSV has only its bank). The memo stays
-            // in the editor.
+            // The card: the account's name, then the branch and number, then the holder, each
+            // line only once filled in (an account just made for a CSV has only its name). The
+            // bank and the memo stay in the editor.
             const account = [bank.branch, bank.accountNumber].filter(Boolean).join(" ");
             return (
               <article
@@ -169,7 +169,7 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
                 }}
               >
                 <div className={styles.top}>
-                  <div className={styles.name}>{bank.name}</div>
+                  <div className={styles.name}>{bank.label}</div>
                   <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
                     <ActionButton tooltip={t("button.edit")} onClick={() => setEditing(bank)}>
                       <EditIcon />

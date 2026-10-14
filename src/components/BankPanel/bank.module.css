@@ -255,12 +255,6 @@
   gap: 12px;
 }
 
-.grid3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr 72px;
-  gap: 12px;
-}
-
 /* Three lines of memo to start with; the handle makes it taller. Keep in step with the editor's minHeight. */
 .memo {
   min-height: 68px;
