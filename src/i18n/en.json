@@ -71,6 +71,8 @@
     "intro": "The following memos will be added automatically:",
     "run": "Add memos",
     "prompt": "Prompt",
+    "promptHint": "Left empty, the default prompt is used.",
+    "savePrompt": "Save prompt",
     "promptDefault": "You are a bookkeeping assistant. From the account details and each row's date, description and amount, write a short memo per row saying what it is for or who the counterparty is. When reference material is given, follow the memos it has for the same or similar descriptions. Leave a memo empty when you cannot tell.",
     "reference": "Reference material",
     "referenceHint": "An Excel or CSV file, such as past transactions with their memos written.",

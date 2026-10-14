@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Modal, Checkbox, TextArea, ActionButton, showToast } from "@ui";
 import { useReconcile } from "@store";
 import { SPREADSHEET_ACCEPT } from "@utils/files";
-import { UploadIcon, TrashIcon, LoaderIcon } from "../icons";
+import { UploadIcon, TrashIcon, LoaderIcon, SaveIcon } from "../icons";
 import styles from "./automemo.module.css";
 
 // The rules auto-memo writes by, named as the dialog lists them: a transfer between two of the
@@ -39,12 +39,27 @@ export default function AutoMemoModal({ onClose, onConfirm }) {
   const { settings, config, setAiMemoPrompt, setAiMemoReference, clearAiMemoReference } = useReconcile();
   const aiMemo = settings.aiMemo || {};
   const [selected, setSelected] = useState(readRules);
-  const [prompt, setPrompt] = useState(() => aiMemo.prompt || t("autoMemo.promptDefault"));
+  const defaultPrompt = t("autoMemo.promptDefault");
+  const [prompt, setPrompt] = useState(() => aiMemo.prompt || defaultPrompt);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
   // Without the key on the server the model cannot be asked, and the rule is dimmed.
   const canAi = config.hasApiKey;
   const aiOn = selected.has("ai") && canAi;
+
+  // What the model is given: the text typed, or the default when the field is left empty. The
+  // default is kept with the data as nothing, so it follows the language; a text of the person's
+  // own is kept as written. `savedPrompt` is what a run would be given before any edit here.
+  const effectivePrompt = prompt.trim() || defaultPrompt;
+  const storedPrompt = effectivePrompt === defaultPrompt ? "" : effectivePrompt;
+  const savedPrompt = (aiMemo.prompt || "").trim() || defaultPrompt;
+  const promptDirty = effectivePrompt !== savedPrompt;
+
+  // Keeps the prompt without running anything; a run with an edited prompt keeps it too.
+  function savePrompt() {
+    setAiMemoPrompt(storedPrompt);
+    showToast(t("toast.saved"));
+  }
 
   function toggle(rule, on) {
     setSelected((s) => {
@@ -72,9 +87,8 @@ export default function AutoMemoModal({ onClose, onConfirm }) {
   function confirm() {
     const rules = RULES.filter((r) => selected.has(r) && (r !== "ai" || canAi));
     writeRules(selected);
-    const text = prompt.trim() || t("autoMemo.promptDefault");
-    if (aiOn && text !== (aiMemo.prompt || "")) setAiMemoPrompt(text);
-    onConfirm(rules, text);
+    if (aiOn && promptDirty) setAiMemoPrompt(storedPrompt);
+    onConfirm(rules, effectivePrompt);
   }
 
   return (
@@ -103,6 +117,14 @@ export default function AutoMemoModal({ onClose, onConfirm }) {
             <div className="field">
               <label htmlFor="ai-memo-prompt">{t("autoMemo.prompt")}</label>
               <TextArea id="ai-memo-prompt" className={styles.prompt} value={prompt} onChange={(e) => setPrompt(e.target.value)} minHeight={92} />
+              {/* What an empty field means, and the way to keep an edit without running a thing. */}
+              <div className={styles.promptFoot}>
+                <span className={styles.hint}>{t("autoMemo.promptHint")}</span>
+                <button type="button" className="btn" onClick={savePrompt} disabled={!promptDirty}>
+                  <SaveIcon />
+                  {t("autoMemo.savePrompt")}
+                </button>
+              </div>
             </div>
             <div className="field">
               <label>{t("autoMemo.reference")}</label>
@@ -119,7 +141,7 @@ export default function AutoMemoModal({ onClose, onConfirm }) {
                     </ActionButton>
                   </>
                 ) : (
-                  <span className={styles.referenceHint}>{t("autoMemo.referenceHint")}</span>
+                  <span className={styles.hint}>{t("autoMemo.referenceHint")}</span>
                 )}
                 <button type="button" className="btn" onClick={() => fileRef.current?.click()} disabled={uploading}>
                   {uploading ? <LoaderIcon className="spin" /> : <UploadIcon />}

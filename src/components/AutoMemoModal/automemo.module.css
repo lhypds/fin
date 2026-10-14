@@ -73,6 +73,9 @@
   min-height: 92px;
 }
 
+/* Under the prompt and under the reference label, one row each: a hint (or the file on record)
+   on the left, the button that acts on it at the right end. */
+.promptFoot,
 .reference {
   display: flex;
   align-items: center;
@@ -87,7 +90,7 @@
   text-overflow: ellipsis;
 }
 
-.referenceHint {
+.hint {
   flex: 1;
   min-width: 0;
   color: var(--muted);
