@@ -13,7 +13,7 @@ import styles from "./receipt.module.css";
 
 export default function ReceiptPanel({ onPreview }) {
   const { t } = useTranslation();
-  const { receipts, importReceipts, ocrPending, removeReceipt, unmatch } = useReconcile();
+  const { receipts, stats, importReceipts, ocrPending, removeReceipt, unmatch } = useReconcile();
   const [showMatched, setShowMatched] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -54,6 +54,8 @@ export default function ReceiptPanel({ onPreview }) {
     <section className={styles.panel}>
       <header className={styles.head}>
         <h2 className={styles.title}>{t("receipts.title")}</h2>
+        {/* How many are still open, whatever the list below is narrowed to, at the right edge. */}
+        <span className={`${styles.count} muted mono`}>{stats.unmatchedReceipts}</span>
       </header>
 
       <div className={styles.drop}>

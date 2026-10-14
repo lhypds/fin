@@ -20,6 +20,11 @@
   font-weight: 600;
 }
 
+/* How many receipts are open, at the small size of the meta lines under it. */
+.count {
+  font-size: 10px;
+}
+
 .drop {
   display: flex;
   flex-direction: column;
