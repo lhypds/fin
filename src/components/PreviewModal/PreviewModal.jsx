@@ -2,31 +2,11 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, showToast } from "@ui";
 import { useReconcile } from "@store";
-import { isPdf } from "@utils/files";
 import { fmtMoney, txAmount, toNumberOrNull } from "@utils/format";
 import StatusTag from "../StatusTag";
+import FileViewer from "../FileViewer";
 import { PlayIcon, LoaderIcon, UnlinkIcon } from "../icons";
 import styles from "./preview.module.css";
-
-function Viewer({ item }) {
-  const { t } = useTranslation();
-  const [zoom, setZoom] = useState(false);
-  if (!item.url) {
-    return (
-      <div className={styles.viewer}>
-        <p className="muted">{t("preview.noPreview")}</p>
-      </div>
-    );
-  }
-  if (isPdf(item.type)) {
-    return <iframe className={styles.frame} src={item.url} title={item.name} />;
-  }
-  return (
-    <div className={styles.viewer} data-zoom={zoom} onClick={() => setZoom((z) => !z)}>
-      <img src={item.url} alt={item.name} draggable={false} />
-    </div>
-  );
-}
 
 function toDraft(ocr) {
   return {
@@ -199,7 +179,7 @@ export default function PreviewModal({ id, onClose }) {
   return (
     <Modal isOpen onClose={onClose} title={item.name} className={styles.modal}>
       <div className={styles.body}>
-        <Viewer item={item} />
+        <FileViewer item={item} />
         <aside className={`${styles.side} scroll-y`}>
           <ReceiptDetails item={item} />
         </aside>

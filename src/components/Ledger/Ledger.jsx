@@ -11,6 +11,7 @@ import { ConfidenceTag } from "../StatusTag";
 import { RECEIPT_DRAG_TYPE, isReceiptDrag } from "../ReceiptPanel";
 import TxEditor from "./TxEditor";
 import MatchEditor from "./MatchEditor";
+import ConfirmDialog from "./ConfirmDialog";
 import MonthPicker from "./MonthPicker";
 import { EditIcon, TrashIcon, PlusIcon } from "../icons";
 import styles from "./ledger.module.css";
@@ -36,6 +37,8 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
   const { transactions, receiptById, match, removeTransaction, updateTransaction } = useReconcile();
   const [editing, setEditing] = useState(null);
   const [editingMatch, setEditingMatch] = useState(null);
+  // The row whose confirmation is being looked over in the dialog, receipts and all.
+  const [confirming, setConfirming] = useState(null);
 
   // The month picker's entries, the one on screen, and its rows. The header's auto-match covers
   // the same rows, so the one definition of "what the ledger shows" lives in @utils/transactions.
@@ -58,8 +61,16 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
     removeTransaction(tx.id);
   }
 
+  // Flips the row's confirmation. A row with receipts is not confirmed on the spot: the dialog
+  // opens with the row and its receipts, and confirms it once they have been looked over. Taking
+  // a confirmation back is immediate either way. Returns whether the row changed here and now.
   function toggleConfirmed(tx) {
+    if (!tx.confirmed && (tx.receiptIds || []).some((id) => receiptById.has(id))) {
+      setConfirming(tx);
+      return false;
+    }
     updateTransaction(tx.id, { confirmed: !tx.confirmed });
+    return true;
   }
 
   // The keyboard's row is the focused one: Down and Up move the focus from row to row, Space and
@@ -118,6 +129,13 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
   }, [rows, focusRow]);
+
+  // The dialog hands the focus back to the row it was opened for, confirmed or not, so the arrows
+  // and the next Space carry on from there.
+  const closeConfirm = useCallback(() => {
+    setConfirming(null);
+    focusRow(confirming);
+  }, [confirming, focusRow]);
 
   const emptyText = () => {
     if (transactions.length === 0) return t("ledger.empty");
@@ -189,10 +207,10 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                   if (e.target !== e.currentTarget) return;
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    toggleConfirmed(tx);
                     // The cursor moves on to the next row, so the next Space carries on down the
-                    // list; on the last row it stays.
-                    focusRow(rows[rows.indexOf(tx) + 1]);
+                    // list; on the last row it stays. A row that opens the dialog keeps it: the
+                    // row is confirmed there, and the focus comes back to it after.
+                    if (toggleConfirmed(tx)) focusRow(rows[rows.indexOf(tx) + 1]);
                   }
                 },
               };
@@ -324,6 +342,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
         />
       )}
       {editingMatch && <MatchEditor tx={editingMatch} onClose={() => setEditingMatch(null)} onPreview={onPreviewReceipt} />}
+      {confirming && <ConfirmDialog tx={confirming} onClose={closeConfirm} />}
     </div>
   );
 }

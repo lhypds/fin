@@ -221,9 +221,17 @@
     "noReceipts": "証憑なし",
     "memo": "メモ"
   },
+  "confirmMatch": {
+    "title": "照合を確認",
+    "step": "ファイル {{index}} / {{total}}",
+    "noReceipts": "照合した証憑はなくなりました。この取引はそのまま確認できます。"
+  },
   "button": {
     "save": "保存",
     "cancel": "キャンセル",
+    "next": "次へ",
+    "back": "戻る",
+    "confirm": "確認",
     "delete": "削除",
     "preview": "プレビュー",
     "ocr": "読取",

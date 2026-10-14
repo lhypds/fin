@@ -4,53 +4,12 @@
   height: 88vh;
 }
 
+/* The file (FileViewer) on the left takes the width the details leave. */
 .body {
   display: flex;
   gap: 12px;
   height: 100%;
   min-height: 0;
-}
-
-/* Zoomed in, the image pans in both directions with no scrollbar at all: Firefox cannot hide the
-   vertical one on its own, and a scrollbar-less pane is the usual image-viewer feel anyway. */
-.viewer {
-  flex: 1;
-  min-width: 0;
-  overflow: auto;
-  scrollbar-width: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-alt);
-  border: var(--line) solid var(--border);
-  cursor: zoom-in;
-}
-
-.viewer::-webkit-scrollbar {
-  display: none;
-}
-
-.viewer img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.viewer[data-zoom="true"] {
-  display: block;
-  cursor: zoom-out;
-}
-
-.viewer[data-zoom="true"] img {
-  max-width: none;
-  max-height: none;
-}
-
-.frame {
-  flex: 1;
-  min-width: 0;
-  border: var(--line) solid var(--border);
-  background: var(--bg-alt);
 }
 
 /* A CSV as the file has it, line for line; long lines scroll sideways rather than wrap. */

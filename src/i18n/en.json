@@ -221,9 +221,17 @@
     "noReceipts": "No receipt matched",
     "memo": "Memo"
   },
+  "confirmMatch": {
+    "title": "Confirm reconciliation",
+    "step": "File {{index}} of {{total}}",
+    "noReceipts": "No receipt is matched any more. The transaction can still be confirmed."
+  },
   "button": {
     "save": "Save",
     "cancel": "Cancel",
+    "next": "Next",
+    "back": "Back",
+    "confirm": "Confirm",
     "delete": "Delete",
     "preview": "Preview",
     "ocr": "Run OCR",
