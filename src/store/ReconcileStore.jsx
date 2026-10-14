@@ -701,9 +701,9 @@ export function ReconcileProvider({ children }) {
   // account, so a transfer is found even when it is off screen, but only the rows on screen are
   // written: the other side gets its note when its own account is shown. A memo already there is
   // kept and the note goes under it, and a note already present is not written twice. A written
-  // row carries `autoMemo`, the name of the rule, which the ledger shows as the blue of a matched
-  // row; it goes when the memo does. `rules` names the rules to apply, the ones ticked in the
-  // dialog; a rule left out writes nothing.
+  // row carries `autoMemo`, the name of the rule, which is what the clear menu takes back; it
+  // goes when the memo does. `rules` names the rules to apply, the ones ticked in the dialog; a
+  // rule left out writes nothing.
   const runAutoMemo = useCallback(
     (transactions, rules = ["transfer"]) => {
       const shown = new Set(transactions.map((t) => t.id));

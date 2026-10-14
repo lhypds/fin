@@ -225,7 +225,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                   data-tx={tx.id}
                   className={styles.row}
                   data-matched={matched}
-                  data-noted={!!tx.autoMemo}
+                  data-noted={!!tx.memo}
                   data-confirmed={!!tx.confirmed}
                   {...confirmProps}
                   onDragOver={(e) => {

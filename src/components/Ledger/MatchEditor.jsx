@@ -21,7 +21,7 @@ export default function MatchEditor({ tx, onClose, onPreview }) {
 
   function submit(e) {
     e.preventDefault();
-    // A memo emptied by hand takes the auto-memo mark (and its blue) with it.
+    // A memo emptied by hand takes the auto-memo mark with it; the row's blue goes with the memo.
     const text = memo.trim();
     updateTransaction(tx.id, text ? { memo: text } : { memo: "", autoMemo: null, aiMemo: null });
     showToast(t("toast.saved"));
