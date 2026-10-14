@@ -54,7 +54,7 @@
   },
   "autoMatch": {
     "title": "Auto match",
-    "intro": "The unmatched transactions shown will be paired with recognized, unmatched receipts by these rules:",
+    "intro": "The transactions shown will be paired with recognized, unmatched receipts by these rules:",
     "run": "Match",
     "rules": {
       "amount": "Same amount",
@@ -64,7 +64,7 @@
       "name": "Similar names",
       "nameDesc": "A payee on the receipt that resembles the transaction's description makes the match surer."
     },
-    "note": "Each receipt is matched to one transaction at most. Matches carry a confidence and can be undone with Clear → Clear auto matches."
+    "note": "Each receipt is matched to one transaction at most; a transaction can take several receipts (a transfer slip and its invoice, say), unless it has been confirmed. Matches carry a confidence and can be undone with Clear → Clear auto matches."
   },
   "autoMemo": {
     "title": "Auto memo",

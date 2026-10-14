@@ -5,6 +5,7 @@ import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, EditIcon, UnlinkIcon, Searc
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
 import { ledgerView, UNDATED } from "@utils/transactions";
+import { takesReceipts } from "@utils/matching";
 import { useCloseOnOutside } from "@utils/useCloseOnOutside";
 import styles from "./home.module.css";
 
@@ -71,7 +72,7 @@ export default function Home() {
     const confirmed = shown.rows.filter((tx) => tx.confirmed).length;
     return { tx: shown.rows.length, confirmed, unconfirmed: shown.rows.length - confirmed };
   }, [shown]);
-  const canAutoMatch = shown.rows.some((tx) => !tx.receiptIds?.length) && stats.unmatchedReceipts > 0;
+  const canAutoMatch = shown.rows.some(takesReceipts) && stats.unmatchedReceipts > 0;
   // What the clear menu can take back: a receipt auto-match put on an unconfirmed row, a note
   // auto-memo wrote, a confirmation, or the rows themselves.
   const canClearAutoMatch = shown.rows.some((tx) => !tx.confirmed && tx.receiptIds?.some((id) => receiptById.get(id)?.confidence != null));

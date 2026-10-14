@@ -277,9 +277,22 @@ export function scoreMatch(tx, receipt) {
   return Math.min(1, Math.max(0, score));
 }
 
-// Greedy 1:1 assignment, best scores first. Ambiguous pairs get a confidence haircut.
+// Whether auto-match may put a receipt on the row: any row without receipts, and a row holding
+// some as long as nobody has confirmed it with them. A payment often has more than one document
+// (the transfer slip and the invoice it settles), so a row that has one is not closed; a confirmed
+// row is, since the person signed off on the receipts it has.
+export const takesReceipts = (tx) => !tx.receiptIds?.length || !tx.confirmed;
+
+// What a row that already holds a receipt loses when ranked against an empty one for the same
+// receipt. Each payment usually has a document of its own, so with the scores close the empty row
+// is the better guess; a clearly better score (the name agrees, the date is nearer) still wins the
+// occupied row. The confidence reported is the score itself, not this rank.
+const OCCUPIED_FACTOR = 0.9;
+
+// Greedy assignment, best pairs first: each receipt lands on one row, a row can take any number
+// of receipts. A receipt that fits several rows gets a confidence haircut.
 export function autoMatch(transactions, receipts, options = DEFAULT_OPTIONS) {
-  const openTx = transactions.filter((t) => !t.receiptIds?.length);
+  const openTx = transactions.filter(takesReceipts);
   const openRc = receipts.filter((r) => !r.txId && r.status === "done" && r.ocr);
 
   const candidates = [];
@@ -289,25 +302,22 @@ export function autoMatch(transactions, receipts, options = DEFAULT_OPTIONS) {
       if (score != null && score >= options.threshold) candidates.push({ txId: t.id, receiptId: r.id, score });
     }
   }
-  candidates.sort((a, b) => b.score - a.score);
 
-  // Count competing candidates so a receipt that fits several rows is flagged as less certain.
   const perReceipt = new Map();
-  const perTx = new Map();
-  for (const c of candidates) {
-    perReceipt.set(c.receiptId, (perReceipt.get(c.receiptId) || 0) + 1);
-    perTx.set(c.txId, (perTx.get(c.txId) || 0) + 1);
-  }
+  for (const c of candidates) perReceipt.set(c.receiptId, (perReceipt.get(c.receiptId) || 0) + 1);
 
-  const usedTx = new Set();
-  const usedRc = new Set();
+  // The best pair is picked afresh each round: a row taken in one round ranks lower in the next.
+  const occupied = new Set(openTx.filter((t) => t.receiptIds?.length).map((t) => t.id));
+  const rank = (c) => (occupied.has(c.txId) ? c.score * OCCUPIED_FACTOR : c.score);
   const result = [];
-  for (const c of candidates) {
-    if (usedTx.has(c.txId) || usedRc.has(c.receiptId)) continue;
-    usedTx.add(c.txId);
-    usedRc.add(c.receiptId);
-    const ambiguous = perReceipt.get(c.receiptId) > 1 || perTx.get(c.txId) > 1;
-    result.push({ txId: c.txId, receiptId: c.receiptId, confidence: ambiguous ? c.score * 0.85 : c.score });
+  let pending = candidates;
+  while (pending.length) {
+    let best = pending[0];
+    for (const c of pending) if (rank(c) > rank(best)) best = c;
+    occupied.add(best.txId);
+    const ambiguous = perReceipt.get(best.receiptId) > 1;
+    result.push({ txId: best.txId, receiptId: best.receiptId, confidence: ambiguous ? best.score * 0.85 : best.score });
+    pending = pending.filter((c) => c.receiptId !== best.receiptId);
   }
   return result;
 }
