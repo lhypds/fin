@@ -5,6 +5,7 @@ import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, EditIcon, UnlinkIcon, Searc
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
 import { ledgerView, UNDATED } from "@utils/transactions";
+import { useCloseOnOutside } from "@utils/useCloseOnOutside";
 import styles from "./home.module.css";
 
 function readPref(key, fallback) {
@@ -29,25 +30,6 @@ const readFlag = (key, fallback) => {
   return v == null ? fallback : v === "1";
 };
 const writeFlag = (key, value) => writePref(key, value ? "1" : "0");
-
-// A menu closes the way stash's does: on a press anywhere outside `ref`, or on Escape.
-function useCloseOnOutside(ref, open, close) {
-  useEffect(() => {
-    if (!open) return;
-    function handleOutside(e) {
-      if (!ref.current?.contains(e.target)) close();
-    }
-    function handleKey(e) {
-      if (e.key === "Escape") close();
-    }
-    document.addEventListener("pointerdown", handleOutside);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("pointerdown", handleOutside);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [ref, open, close]);
-}
 
 export default function Home() {
   const { t } = useTranslation();

@@ -1,0 +1,114 @@
+/* A step back, the month itself, a step forward, joined into one strip: the month overlaps the
+   buttons' hairlines on both sides so the three share two lines, not four. */
+.picker {
+  display: flex;
+  align-items: center;
+}
+
+.step {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.step:hover:not(:disabled) {
+  background: var(--border);
+  color: var(--bg);
+}
+
+.step:disabled {
+  color: var(--faint);
+  cursor: default;
+}
+
+.step svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The month, and under it its list. */
+.monthWrap {
+  position: relative;
+  margin: 0 calc(-1 * var(--line));
+}
+
+.month {
+  height: 22px;
+  padding: 0 8px;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.month:hover,
+.monthWrap[data-open="true"] .month {
+  background: var(--bg-hover);
+}
+
+.month:focus-visible {
+  outline: var(--line) solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* The list is drawn like the header's menus (home.module.css, .menu): a column of rows the
+   month's height, their borders merging, the top one sharing the month's bottom line. It is no
+   narrower than the month, so the months line up under it, and scrolls past half the window. */
+.list {
+  position: absolute;
+  left: 0;
+  top: calc(100% - var(--line));
+  min-width: 100%;
+  max-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  z-index: 999;
+}
+
+.list > button {
+  box-sizing: border-box;
+  flex: none;
+  height: 22px;
+  padding: 0 8px;
+  border: var(--line) solid var(--border);
+  border-top: none;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.list > button:first-child {
+  border-top: var(--line) solid var(--border);
+}
+
+/* The month on screen is shaded; the one under the mouse or the keys is inverted, like a menu row. */
+.list > button[aria-selected="true"] {
+  background: var(--bg-hover);
+}
+
+.list > button:hover,
+.list > button:focus-visible {
+  background: var(--border);
+  color: var(--bg);
+  outline: none;
+}

@@ -11,7 +11,8 @@ import { ConfidenceTag } from "../StatusTag";
 import { RECEIPT_DRAG_TYPE, isReceiptDrag } from "../ReceiptPanel";
 import TxEditor from "./TxEditor";
 import MatchEditor from "./MatchEditor";
-import { EditIcon, TrashIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon } from "../icons";
+import MonthPicker from "./MonthPicker";
+import { EditIcon, TrashIcon, PlusIcon } from "../icons";
 import styles from "./ledger.module.css";
 
 /* Newest first; rows without a date sink to the bottom. Rows on the same day keep the order
@@ -38,7 +39,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
 
   // The month picker's entries, the one on screen, and its rows. The header's auto-match covers
   // the same rows, so the one definition of "what the ledger shows" lives in @utils/transactions.
-  const { months, index, current, rows: inMonth } = useMemo(() => ledgerView(transactions, bankId, month), [transactions, bankId, month]);
+  const { months, index, rows: inMonth } = useMemo(() => ledgerView(transactions, bankId, month), [transactions, bankId, month]);
   // A month key "2026-10" reads as "2026 - 10".
   const monthLabel = (m) => (m.key === UNDATED ? t("ledger.undated") : m.key.replace("-", " - "));
 
@@ -127,36 +128,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
   return (
     <div className={styles.ledger}>
       <div className={styles.toolbar}>
-        {/* Newest month first in the list, so "previous" steps down it and "next" steps up. */}
-        <div className={styles.months}>
-          <button
-            type="button"
-            className={styles.monthBtn}
-            disabled={index >= months.length - 1}
-            onClick={() => onMonthChange(months[index + 1].key)}
-            title={t("ledger.prevMonth")}
-            aria-label={t("ledger.prevMonth")}
-          >
-            <ChevronLeftIcon />
-          </button>
-          <select className={styles.monthSelect} value={current} onChange={(e) => onMonthChange(e.target.value)} aria-label={t("ledger.month")}>
-            {months.map((m) => (
-              <option key={m.key} value={m.key}>
-                {monthLabel(m)}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            className={styles.monthBtn}
-            disabled={index <= 0}
-            onClick={() => onMonthChange(months[index - 1].key)}
-            title={t("ledger.nextMonth")}
-            aria-label={t("ledger.nextMonth")}
-          >
-            <ChevronRightIcon />
-          </button>
-        </div>
+        <MonthPicker months={months} index={index} label={monthLabel} onChange={onMonthChange} />
         <button type="button" className="btn" onClick={() => setEditing("new")}>
           <PlusIcon />
           {t("ledger.add")}
