@@ -56,6 +56,50 @@
   line-height: 14px;
 }
 
+.ruleWarn {
+  color: var(--err);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+/* The AI rule's own settings, shown while it is ticked: the prompt, and the reference file. */
+.ai {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.prompt {
+  min-height: 92px;
+}
+
+.reference {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fileName {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.referenceHint {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+/* The native file input is driven by the button beside it. */
+.fileInput {
+  display: none;
+}
+
 .footer {
   display: flex;
   justify-content: flex-end;

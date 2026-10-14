@@ -48,9 +48,18 @@
     "title": "Auto memo",
     "intro": "The following memos will be added automatically:",
     "run": "Add memos",
+    "prompt": "Prompt",
+    "promptDefault": "You are a bookkeeping assistant. From the account details and each row's date, description and amount, write a short memo per row saying what it is for or who the counterparty is. When reference material is given, follow the memos it has for the same or similar descriptions. Leave a memo empty when you cannot tell.",
+    "reference": "Reference material",
+    "referenceHint": "An Excel or CSV file, such as past transactions with their memos written.",
+    "referenceType": "The reference material must be a CSV or Excel file",
+    "chooseFile": "Choose file",
+    "uploading": "Uploading…",
     "rules": {
       "transfer": "Internal transfer",
-      "transferDesc": "A transfer between two of the accounts on the same day is marked with the other account's name."
+      "transferDesc": "A transfer between two of the accounts on the same day is marked with the other account's name.",
+      "ai": "AI-written memos",
+      "aiDesc": "The account and each row's description and amount go to the AI, which decides what to write on the rows that have no memo; past material can be attached for it to follow."
     }
   },
   "backup": {
@@ -212,6 +221,10 @@
     "noMatches": "No new matches found",
     "memoed": "Memo written on {{count}} transactions",
     "noTransfers": "No internal transfers found",
+    "noMemos": "No memos to write",
+    "generating": "The AI is writing memos…",
+    "generateFailed": "AI memo generation failed: {{message}}",
+    "referenceFailed": "The reference material failed to upload: {{message}}",
     "nothingPending": "Nothing pending",
     "autoMatchesCleared": "{{count}} auto matches cleared",
     "autoMemosCleared": "Auto memo cleared on {{count}} transactions",

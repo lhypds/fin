@@ -10,6 +10,7 @@ import {
   saveState,
   loadState,
   restoreBackup as restoreOnServer,
+  generateMemos,
   fileUrl,
   thumbnailUrl,
 } from "@utils/api";
@@ -20,8 +21,9 @@ import { ReconcileContext } from "./context";
 
 // `banks` are the accounts; `transactions` their rows; `receipts` the uploaded receipts. A
 // statement (a CSV or Excel file, or a passbook image) is never kept: it is uploaded, read by the
-// model, and removed, leaving only what it said.
-const initialState = { banks: [], transactions: [], receipts: [] };
+// model, and removed, leaving only what it said. `settings` holds what the person set up: so far
+// `aiMemo`, the prompt the AI memos are written from and the reference file they follow.
+const initialState = { banks: [], transactions: [], receipts: [], settings: {} };
 
 // Bumped when the saved shape changes; `migrate` brings older files up to it.
 const STATE_VERSION = 4;
@@ -141,6 +143,9 @@ function reducer(state, action) {
     case "removeTransactions":
       return dropTransactions(state, new Set(action.ids));
 
+    case "updateSettings":
+      return { ...state, settings: { ...state.settings, ...action.patch } };
+
     default:
       return state;
   }
@@ -160,11 +165,18 @@ function autoNotePatterns() {
   return patterns;
 }
 
-// A memo with the auto memo's notes taken out, line by line.
-function stripAutoNotes(memo, patterns) {
-  return (memo || "")
+// A memo with the auto memo's notes taken out: the transfer notes line by line, and the memo the
+// model wrote (`aiText`) where it still stands as it was.
+function stripAutoNotes(memo, patterns, aiText = "") {
+  const ai = (aiText || "").trim();
+  const text = (memo || "").trim();
+  if (ai && text === ai) return "";
+  return text
     .split("\n")
-    .filter((line) => !patterns.some((p) => p.test(line.trim())))
+    .filter((line) => {
+      const l = line.trim();
+      return !(ai && l === ai) && !patterns.some((p) => p.test(l));
+    })
     .join("\n")
     .trim();
 }
@@ -195,8 +207,8 @@ function migrate(saved) {
   const version = versionOf(saved);
   const receipts = saved.receipts || [];
   const strip = (list) => (list || []).map(({ statementId: _statementId, ...t }) => t);
-  if (version >= 3) return { banks: saved.banks || [], transactions: strip(saved.transactions), receipts };
-  if (version === 2) return { banks: (saved.banks || []).map(({ imports: _imports, ...b }) => b), transactions: saved.transactions || [], receipts };
+  if (version >= 3) return { banks: saved.banks || [], transactions: strip(saved.transactions), receipts, settings: saved.settings || {} };
+  if (version === 2) return { banks: (saved.banks || []).map(({ imports: _imports, ...b }) => b), transactions: saved.transactions || [], receipts, settings: {} };
   const transactions = saved.transactions || [];
   const sources = saved.sources || [];
   const nameOf = (s) => s.bank || String(s.name || "").replace(/\.[a-z0-9]+$/i, "") || "—";
@@ -212,6 +224,7 @@ function migrate(saved) {
       return { ...t, bankId, bank: bankId ? banks.find((b) => b.id === bankId).name : t.bank || "" };
     }),
     receipts,
+    settings: {},
   };
 }
 
@@ -395,8 +408,14 @@ export function ReconcileProvider({ children }) {
           status: it.status === "processing" ? "pending" : it.status,
         };
       });
+      // A reference file for the AI memos that is no longer on disk is forgotten.
+      const aiMemo = loaded?.settings?.aiMemo;
+      const settings =
+        aiMemo?.referenceId && !present.has(aiMemo.referenceId)
+          ? { ...loaded.settings, aiMemo: { ...aiMemo, referenceId: null, referenceName: "" } }
+          : loaded?.settings || {};
       // Always a new state object, so the save effect runs once and takes the skip below.
-      dispatch({ type: "hydrate", state: loaded ? { ...loaded, receipts } : {} });
+      dispatch({ type: "hydrate", state: loaded ? { ...loaded, receipts, settings } : {} });
       // Whatever we just loaded (or the empty default) does not need to be written back; a file
       // that was just brought up to the current shape does.
       skipNextSaveRef.current = !saved || versionOf(saved) >= STATE_VERSION;
@@ -482,6 +501,7 @@ export function ReconcileProvider({ children }) {
         banks: state.banks,
         transactions: state.transactions,
         receipts: strip(state.receipts),
+        settings: state.settings,
       };
       const run = () =>
         saveState(snapshot).catch((err) => {
@@ -733,15 +753,95 @@ export function ReconcileProvider({ children }) {
     [dispatch],
   );
 
-  // Takes back what auto-memo did on the given rows: its notes come out of the memo line by line,
-  // whatever language they were written in, and what the person wrote stays. Returns how many
-  // rows were written.
+  // Takes back what auto-memo did on the given rows: the transfer notes come out of the memo line
+  // by line, whatever language they were written in, the model's memo goes where it still stands
+  // as written, and what the person wrote stays. Returns how many rows were written.
   const clearAutoMemos = useCallback(
     (transactions) => {
       const patterns = autoNotePatterns();
-      const patches = transactions.filter((t) => t.autoMemo).map((t) => ({ id: t.id, patch: { memo: stripAutoNotes(t.memo, patterns), autoMemo: null } }));
+      const patches = transactions
+        .filter((t) => t.autoMemo)
+        .map((t) => ({ id: t.id, patch: { memo: stripAutoNotes(t.memo, patterns, t.aiMemo), autoMemo: null, aiMemo: null } }));
       if (patches.length) dispatch({ type: "patchTransactions", patches });
       return patches.length;
+    },
+    [dispatch],
+  );
+
+  // The AI memos' settings, kept with the data: the prompt the model is given, and the reference
+  // file it follows, which lives on the server as an upload with role "reference".
+  const setAiMemoPrompt = useCallback(
+    (prompt) => {
+      const aiMemo = { ...(stateRef.current.settings.aiMemo || {}), prompt };
+      dispatch({ type: "updateSettings", patch: { aiMemo } });
+    },
+    [dispatch],
+  );
+
+  // Uploads a reference file (CSV or Excel) in place of the one before, which is removed.
+  const setAiMemoReference = useCallback(
+    async (file) => {
+      const type = spreadsheetType(file);
+      if (!type) throw new Error(i18n.t("autoMemo.referenceType"));
+      const meta = await uploadFile(file, type, "reference");
+      const before = stateRef.current.settings.aiMemo || {};
+      dispatch({ type: "updateSettings", patch: { aiMemo: { ...before, referenceId: meta.id, referenceName: file.name } } });
+      if (before.referenceId) deleteFile(before.referenceId).catch((err) => console.error("Failed to delete file", err));
+      return meta;
+    },
+    [dispatch],
+  );
+
+  const clearAiMemoReference = useCallback(() => {
+    const before = stateRef.current.settings.aiMemo || {};
+    if (before.referenceId) deleteFile(before.referenceId).catch((err) => console.error("Failed to delete file", err));
+    dispatch({ type: "updateSettings", patch: { aiMemo: { ...before, referenceId: null, referenceName: "" } } });
+  }, [dispatch]);
+
+  // Memos written by the model for the given rows (what the ledger shows) that have none yet,
+  // account by account so each call carries the account its rows belong to. A row is written
+  // only once the model has answered, and only if it still has no memo by then; a written row
+  // carries `autoMemo: "ai"` and the text as `aiMemo`, so the clear menu can take it back.
+  // Returns how many rows were written. A failed call throws, after what came back before it
+  // has been written.
+  const runAiMemo = useCallback(
+    async (transactions, prompt) => {
+      const { banks, settings } = stateRef.current;
+      const todo = transactions.filter((t) => !t.memo);
+      if (!todo.length) return 0;
+      const groups = new Map();
+      for (const t of todo) {
+        const key = t.bankId || "";
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(t);
+      }
+      const memos = new Map();
+      const write = () => {
+        const patches = [];
+        for (const tx of stateRef.current.transactions) {
+          const memo = memos.get(tx.id);
+          if (memo && !tx.memo) patches.push({ id: tx.id, patch: { memo, autoMemo: "ai", aiMemo: memo } });
+        }
+        if (patches.length) dispatch({ type: "patchTransactions", patches });
+        return patches.length;
+      };
+      try {
+        for (const [bankId, rows] of groups) {
+          const b = banks.find((x) => x.id === bankId);
+          const bank = b ? { name: b.name, branch: b.branch, accountType: b.accountType, accountNumber: b.accountNumber, holder: b.holder, currency: b.currency, memo: b.memo } : null;
+          const result = await generateMemos({
+            prompt,
+            bank,
+            rows: rows.map(({ id, date, description, withdrawal, deposit, currency }) => ({ id, date, description, withdrawal, deposit, currency })),
+            referenceId: settings.aiMemo?.referenceId || null,
+          });
+          for (const m of result.memos || []) if (m.memo) memos.set(m.id, m.memo);
+        }
+      } catch (err) {
+        write();
+        throw err;
+      }
+      return write();
     },
     [dispatch],
   );
@@ -798,6 +898,10 @@ export function ReconcileProvider({ children }) {
       ocrPending,
       runAutoMatch,
       runAutoMemo,
+      runAiMemo,
+      setAiMemoPrompt,
+      setAiMemoReference,
+      clearAiMemoReference,
       match,
       unmatch,
       unmatchAll,
@@ -830,6 +934,10 @@ export function ReconcileProvider({ children }) {
       ocrPending,
       runAutoMatch,
       runAutoMemo,
+      runAiMemo,
+      setAiMemoPrompt,
+      setAiMemoReference,
+      clearAiMemoReference,
       match,
       unmatch,
       unmatchAll,

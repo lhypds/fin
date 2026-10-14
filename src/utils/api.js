@@ -77,6 +77,13 @@ export async function deleteFile(id) {
   await check(await fetch(fileUrl(id), { method: "DELETE" }));
 }
 
+// Memos for ledger rows, written by the model. `payload` is { prompt, bank, rows, referenceId };
+// resolves to { memos: [{ id, memo }] }, one entry per row the model had something to say about.
+export async function generateMemos(payload) {
+  const res = await check(await fetch(`${API}/memos`, { method: "POST", ...json(payload) }));
+  return res.json();
+}
+
 export async function saveState(state) {
   await check(await fetch(`${API}/state`, { method: "PUT", ...json(state) }));
 }

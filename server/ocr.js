@@ -172,7 +172,7 @@ const SPECS = {
 
 export const OCR_KINDS = Object.keys(SPECS);
 
-function httpError(status, message) {
+export function httpError(status, message) {
   const err = new Error(message);
   err.status = status;
   return err;
@@ -215,7 +215,8 @@ function extractOutputText(data) {
 }
 
 // One call: the spec's instructions and schema, the given content parts, the parsed JSON back.
-async function callModel({ spec, content, apiKey, baseUrl, model }) {
+// Shared with memo.js, which writes memos through the same API.
+export async function callModel({ spec, content, apiKey, baseUrl, model }) {
   const base = (baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
   const body = {
     model,

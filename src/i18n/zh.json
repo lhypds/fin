@@ -48,9 +48,18 @@
     "title": "自动备注",
     "intro": "将会自动添加如下备注：",
     "run": "添加备注",
+    "prompt": "提示词",
+    "promptDefault": "你是一名会计助理。根据账户信息和每条流水的日期、摘要、金额，为每条流水写一条简短的备注，说明用途或交易对方。有参考资料时，摘要相同或相似的流水沿用资料里的备注写法。无法判断的留空。",
+    "reference": "参考资料",
+    "referenceHint": "Excel 或 CSV，例如过去已写好备注的流水。",
+    "referenceType": "参考资料必须是 CSV 或 Excel 文件",
+    "chooseFile": "选择文件",
+    "uploading": "上传中…",
     "rules": {
       "transfer": "内部账户转账",
-      "transferDesc": "同一天在两个账户之间转账的流水，标注对方账户。"
+      "transferDesc": "同一天在两个账户之间转账的流水，标注对方账户。",
+      "ai": "AI 生成备注",
+      "aiDesc": "把账户信息和流水的摘要、金额交给 AI，由它判断每条没有备注的流水该写什么；可附上过去的资料供它参考。"
     }
   },
   "backup": {
@@ -212,6 +221,10 @@
     "noMatches": "没有找到新的匹配",
     "memoed": "已为 {{count}} 笔流水写入备注",
     "noTransfers": "没有发现内部账户转账",
+    "noMemos": "没有可写入的备注",
+    "generating": "AI 正在生成备注…",
+    "generateFailed": "AI 生成备注失败：{{message}}",
+    "referenceFailed": "参考资料上传失败：{{message}}",
     "nothingPending": "没有待处理的文件",
     "autoMatchesCleared": "已清空 {{count}} 条自动对账",
     "autoMemosCleared": "已清空 {{count}} 笔流水的自动备注",

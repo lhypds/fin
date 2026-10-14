@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, BackupModal, AutoMatchModal, AutoMemoModal } from "@components";
-import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, EditIcon, UnlinkIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon } from "@components/icons";
+import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, EditIcon, UnlinkIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon, LoaderIcon } from "@components/icons";
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
 import { ledgerView, UNDATED } from "@utils/transactions";
@@ -62,6 +62,7 @@ export default function Home() {
     receiptById,
     runAutoMatch,
     runAutoMemo,
+    runAiMemo,
     clearAutoMatches,
     clearAutoMemos,
     clearConfirmations,
@@ -101,6 +102,8 @@ export default function Home() {
   const [backupOpen, setBackupOpen] = useState(false);
   const [autoMatchOpen, setAutoMatchOpen] = useState(false);
   const [autoMemoOpen, setAutoMemoOpen] = useState(false);
+  // While the model is writing memos: the button waits, and a toast says so.
+  const [generating, setGenerating] = useState(false);
   const [query, setQuery] = useState("");
   const [clearOpen, setClearOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -133,12 +136,25 @@ export default function Home() {
     showToast(n ? t("toast.matched", { count: n }) : t("toast.noMatches"));
   }
 
-  // Writes the memos the rows on screen earn by the rules ticked in the dialog; so far only the
-  // internal transfer one.
-  function handleAutoMemo(rules) {
+  // Writes the memos the rows on screen earn by the rules ticked in the dialog: the transfer
+  // rule at once, and the model's memos once it has answered, with a toast up while it works.
+  async function handleAutoMemo(rules, prompt) {
     setAutoMemoOpen(false);
-    const n = runAutoMemo(shown.rows, rules);
-    showToast(n ? t("toast.memoed", { count: n }) : t("toast.noTransfers"));
+    let n = runAutoMemo(shown.rows, rules);
+    if (!rules.includes("ai")) {
+      showToast(n ? t("toast.memoed", { count: n }) : t("toast.noTransfers"));
+      return;
+    }
+    setGenerating(true);
+    showToast(t("toast.generating"), null);
+    try {
+      n += await runAiMemo(shown.rows, prompt);
+      showToast(n ? t("toast.memoed", { count: n }) : t("toast.noMemos"));
+    } catch (err) {
+      showToast(t("toast.generateFailed", { message: err.message }), 6000);
+    } finally {
+      setGenerating(false);
+    }
   }
 
   // The three things the clear menu takes back, each on the rows on screen only, the same rows
@@ -221,8 +237,8 @@ export default function Home() {
             <ZapIcon />
             {t("header.autoMatch")}
           </button>
-          <button type="button" className="btn" onClick={() => setAutoMemoOpen(true)} disabled={!shown.rows.length}>
-            <EditIcon />
+          <button type="button" className="btn" onClick={() => setAutoMemoOpen(true)} disabled={!shown.rows.length || generating}>
+            {generating ? <LoaderIcon className="spin" /> : <EditIcon />}
             {t("header.autoMemo")}
           </button>
           {/* Clearing is four things under one button, as a menu like the account's: the auto

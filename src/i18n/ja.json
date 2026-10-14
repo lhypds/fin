@@ -48,9 +48,18 @@
     "title": "自動メモ",
     "intro": "次のメモを自動で追加します：",
     "run": "メモを追加",
+    "prompt": "プロンプト",
+    "promptDefault": "あなたは経理アシスタントです。口座情報と各取引の日付・摘要・金額から、取引ごとに用途や相手先を示す短いメモを書いてください。参考資料がある場合、摘要が同じか似ている取引は資料のメモの書き方に合わせてください。判断できないものは空のままにしてください。",
+    "reference": "参考資料",
+    "referenceHint": "Excel または CSV。例えば、メモを書き込んだ過去の取引。",
+    "referenceType": "参考資料は CSV または Excel ファイルにしてください",
+    "chooseFile": "ファイルを選択",
+    "uploading": "アップロード中…",
     "rules": {
       "transfer": "内部口座間振替",
-      "transferDesc": "同じ日に口座間で振り替えた取引に、相手の口座名を書きます。"
+      "transferDesc": "同じ日に口座間で振り替えた取引に、相手の口座名を書きます。",
+      "ai": "AI でメモを生成",
+      "aiDesc": "口座情報と各取引の摘要・金額を AI に渡し、メモのない取引に何を書くか判断させます。過去の資料を添えて参考にさせることもできます。"
     }
   },
   "backup": {
@@ -212,6 +221,10 @@
     "noMatches": "新しい照合は見つかりませんでした",
     "memoed": "{{count}} 件の取引にメモを書きました",
     "noTransfers": "内部口座間の振替は見つかりませんでした",
+    "noMemos": "書き込めるメモはありません",
+    "generating": "AI がメモを生成しています…",
+    "generateFailed": "AI のメモ生成に失敗：{{message}}",
+    "referenceFailed": "参考資料のアップロードに失敗：{{message}}",
     "nothingPending": "未読取のファイルはありません",
     "autoMatchesCleared": "自動照合 {{count}} 件をクリアしました",
     "autoMemosCleared": "{{count}} 件の取引の自動メモをクリアしました",

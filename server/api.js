@@ -19,11 +19,14 @@ import fsp from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { runOcr, OCR_KINDS, DEFAULT_MODEL, SPREADSHEET_TYPES } from "./ocr.js";
+import { generateMemos } from "./memo.js";
 import { createAuthApp, USERS_FILE } from "./auth.js";
 
 const ID_RE = /^\d{13,16}$/;
 const ACCEPTED_TYPES = new Set([...SPREADSHEET_TYPES, "image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"]);
-const ROLES = new Set(["receipt", "statement"]);
+// What an upload is for: a receipt (kept), a statement (read once and removed), or the reference
+// file the AI memos are written from (kept until replaced).
+const ROLES = new Set(["receipt", "statement", "reference"]);
 const STATE = "state.json";
 const META = "meta.json";
 const THUMB = "thumbnail.webp";
@@ -348,6 +351,39 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
         promise.then(done, done);
       }
       res.json(await job.promise);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Memos for ledger rows, written by the model from the person's instructions, the account, the
+  // rows, and the reference file (an upload with role "reference") when one is named.
+  app.post("/api/memos", express.json({ limit: "4mb" }), async (req, res, next) => {
+    try {
+      const { prompt, bank, rows, referenceId } = req.body || {};
+      if (typeof prompt !== "string" || prompt.length > 8000) return fail(res, 400, "prompt must be a string of at most 8000 characters");
+      if (!Array.isArray(rows) || !rows.length || rows.length > 1000) return fail(res, 400, "rows must be a list of 1 to 1000 rows");
+      if (bank != null && typeof bank !== "object") return fail(res, 400, "bank must be an object");
+      let referencePath = null;
+      let referenceType = null;
+      if (referenceId != null) {
+        const id = String(referenceId);
+        if (!ID_RE.test(id)) return fail(res, 400, "Invalid reference file id");
+        const meta = await readMeta(id);
+        if (!meta) return fail(res, 404, "Reference file not found");
+        if (!SPREADSHEET_TYPES.has(meta.type)) return fail(res, 415, "The reference file must be a CSV or Excel file");
+        referencePath = path.join(dirOf(id), meta.name);
+        referenceType = meta.type;
+      }
+      const clean = rows.map((r) => ({
+        id: String(r?.id ?? ""),
+        date: r?.date == null ? "" : String(r.date),
+        description: String(r?.description ?? ""),
+        withdrawal: Number(r?.withdrawal) || 0,
+        deposit: Number(r?.deposit) || 0,
+        currency: String(r?.currency || "JPY"),
+      }));
+      res.json(await generateMemos({ prompt, bank, rows: clean, referencePath, referenceType, apiKey, baseUrl, model }));
     } catch (err) {
       next(err);
     }
