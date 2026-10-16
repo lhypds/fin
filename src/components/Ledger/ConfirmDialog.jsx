@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@ui";
 import { useReconcile } from "@store";
@@ -34,15 +34,36 @@ export default function ConfirmDialog({ tx, onClose }) {
     if (!live) onClose();
   }, [live, onClose]);
 
-  if (!live) return null;
-
-  const amount = txAmount(live);
-  const sum = receipts.length ? receiptsSumMismatch(amount, receipts, live.currency) : null;
-
   function confirm() {
     updateTransaction(live.id, { confirmed: true });
     onClose();
   }
+
+  // Space is the primary button wherever the focus is: next receipt, or on the last one, confirm.
+  // The dialog has no text fields, and the focus wanders to Unmatch, Back or the viewer; a space
+  // there would press that button (or nothing), so the key is taken on the way down, before any
+  // button acts on it. Read through a ref so the listener is registered once.
+  const advanceRef = useRef(null);
+  useEffect(() => {
+    advanceRef.current = !live ? null : last ? confirm : () => setIndex(at + 1);
+  });
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key !== " " || e.defaultPrevented || e.isComposing) return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || e.target?.isContentEditable) return;
+      e.preventDefault();
+      advanceRef.current?.();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, []);
+
+  if (!live) return null;
+
+  const amount = txAmount(live);
+  const sum = receipts.length ? receiptsSumMismatch(amount, receipts, live.currency) : null;
 
   return (
     <Modal isOpen onClose={onClose} title={t("confirmMatch.title")} className={styles.modal}>
