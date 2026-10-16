@@ -15,8 +15,10 @@ import styles from "./confirm.module.css";
 // the row. Next goes from one receipt to the one after it; after the last the same button confirms
 // the row, and only then does it turn green. A receipt that does not belong is unmatched on the
 // spot and the row goes on without it; with none left the row can still be confirmed, as a row
-// without receipts can be from the ledger.
-export default function ConfirmDialog({ tx, onClose }) {
+// without receipts can be from the ledger. A row confirmed with the space key calls `onConfirm`
+// in place of `onClose`, so the ledger can move on to the next row as it does for a row
+// confirmed by Space without the dialog; the button, clicked, closes as Cancel does.
+export default function ConfirmDialog({ tx, onClose, onConfirm }) {
   const { t } = useTranslation();
   const { txById, receiptById, unmatch, updateTransaction } = useReconcile();
   const [index, setIndex] = useState(0);
@@ -34,9 +36,9 @@ export default function ConfirmDialog({ tx, onClose }) {
     if (!live) onClose();
   }, [live, onClose]);
 
-  function confirm() {
+  function confirm(byKey = false) {
     updateTransaction(live.id, { confirmed: true });
-    onClose();
+    ((byKey && onConfirm) || onClose)();
   }
 
   // Space is the primary button wherever the focus is: next receipt, or on the last one, confirm.
@@ -45,7 +47,7 @@ export default function ConfirmDialog({ tx, onClose }) {
   // button acts on it. Read through a ref so the listener is registered once.
   const advanceRef = useRef(null);
   useEffect(() => {
-    advanceRef.current = !live ? null : last ? confirm : () => setIndex(at + 1);
+    advanceRef.current = !live ? null : last ? () => confirm(true) : () => setIndex(at + 1);
   });
   useEffect(() => {
     const handleKey = (e) => {
@@ -130,7 +132,7 @@ export default function ConfirmDialog({ tx, onClose }) {
             </button>
           )}
           {/* One button for both steps, so the focus it takes on opening stays on it to the end. */}
-          <button type="button" className="btn primary lg" onClick={last ? confirm : () => setIndex(at + 1)} autoFocus>
+          <button type="button" className="btn primary lg" onClick={last ? () => confirm() : () => setIndex(at + 1)} autoFocus>
             {last ? t("button.confirm") : t("button.next")}
           </button>
         </div>

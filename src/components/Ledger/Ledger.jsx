@@ -130,12 +130,18 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
     return () => document.removeEventListener("keydown", handleKey);
   }, [rows, focusRow]);
 
-  // The dialog hands the focus back to the row it was opened for, confirmed or not, so the arrows
-  // and the next Space carry on from there.
+  // The dialog hands the focus back to the ledger: cancelled or confirmed by click, to the row it
+  // was opened for; confirmed with the space key, to the row after it (on the last row, to the
+  // row itself), as Space on a row without receipts does, so the next Space carries on down.
   const closeConfirm = useCallback(() => {
     setConfirming(null);
     focusRow(confirming);
   }, [confirming, focusRow]);
+  const finishConfirm = useCallback(() => {
+    setConfirming(null);
+    const i = rows.findIndex((tx) => tx.id === confirming?.id);
+    focusRow((i >= 0 && rows[i + 1]) || confirming);
+  }, [confirming, rows, focusRow]);
 
   const emptyText = () => {
     if (transactions.length === 0) return t("ledger.empty");
@@ -208,8 +214,8 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     // The cursor moves on to the next row, so the next Space carries on down the
-                    // list; on the last row it stays. A row that opens the dialog keeps it: the
-                    // row is confirmed there, and the focus comes back to it after.
+                    // list; on the last row it stays. A row that opens the dialog keeps it for
+                    // now: the row is confirmed there, and Space there moves the focus on after.
                     if (toggleConfirmed(tx)) focusRow(rows[rows.indexOf(tx) + 1]);
                   }
                 },
@@ -345,7 +351,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
         />
       )}
       {editingMatch && <MatchEditor tx={editingMatch} onClose={() => setEditingMatch(null)} onPreview={onPreviewReceipt} />}
-      {confirming && <ConfirmDialog tx={confirming} onClose={closeConfirm} />}
+      {confirming && <ConfirmDialog tx={confirming} onClose={closeConfirm} onConfirm={finishConfirm} />}
     </div>
   );
 }
