@@ -259,8 +259,8 @@
 }
 
 .toggle:hover {
-  background: var(--muted);
-  color: var(--bg);
+  background: var(--soft-line);
+  color: var(--fg);
 }
 
 .toggle svg {
