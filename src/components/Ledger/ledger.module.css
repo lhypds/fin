@@ -1,7 +1,7 @@
 .ledger {
-  /* Two equal halves: bank transactions | reconciliation. The left half keeps a minimum so its
-     fixed columns never collapse; below 1024px the split stops being 50/50 and the table scrolls. */
-  --halves: minmax(488px, 1fr) minmax(240px, 1fr);
+  /* Two equal halves: bank transactions | reconciliation, 50/50 at every width. Each keeps the
+     left half's minimum so its fixed columns never collapse; narrower than that, the table scrolls. */
+  --halves: repeat(2, minmax(488px, 1fr));
   /* date | bank | description | amount | actions. 96px holds a six-character bank name such as 三菱UFJ銀行. */
   --cols-left: 92px 96px minmax(108px, 1fr) 120px 72px;
   display: flex;
@@ -32,11 +32,19 @@
   overflow-y: hidden;
 }
 
+/* overflow-y: auto makes this box a horizontal scroller too (overflow-x computes to auto), and
+   .scroll-y's overscroll-behavior: none would then swallow a sideways swipe over the rows instead
+   of passing it to .scrollX. The x axis is let through; the y axis keeps none. Doubled class to
+   win over the global .scroll-y whatever the stylesheet order. */
+.scrollX > .scroll {
+  overscroll-behavior-x: auto;
+}
+
 .scroll {
   flex: 1;
   min-height: 0;
-  /* 488 + 240: fits a 1440px screen with both drawers open. Wider than the pane, it makes .scrollX scroll. */
-  min-width: 728px;
+  /* Two 488px halves. Wider than the pane, it makes .scrollX scroll. */
+  min-width: 976px;
 }
 
 .table {

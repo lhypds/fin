@@ -259,7 +259,7 @@
 }
 
 .toggle:hover {
-  background: var(--border);
+  background: var(--muted);
   color: var(--bg);
 }
 
