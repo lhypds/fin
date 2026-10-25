@@ -186,7 +186,11 @@ export default function Home() {
     <div className={styles.app}>
       <header className={styles.header}>
         <div className={styles.brand}>
-          <h1 className={styles.logo}>{t("app.title")}</h1>
+          <h1 className={styles.logo}>
+            <a href="/" className={styles.logoLink}>
+              {t("app.title")}
+            </a>
+          </h1>
           {/* English has no subtitle; Chinese and Japanese name the job beside the logo. */}
           {t("app.subtitle") && <span className="muted">{t("app.subtitle")}</span>}
         </div>
