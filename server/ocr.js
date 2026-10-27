@@ -248,7 +248,8 @@ export async function callModel({ spec, content, apiKey, baseUrl, model }) {
 
 // A statement is read part by part and the parts joined: the rows in file order, the bank and
 // currency from the first part that names them, the remarks from every part. An Excel workbook
-// is first turned into CSV text, sheet by sheet, and goes the same way.
+// is first turned into CSV text, sheet by sheet, and goes the same way. The parts are read at the
+// same time: one after another, a few hundred rows took longer than the proxy in front waits.
 async function readStatement({ spec, filePath, type, apiKey, baseUrl, model }) {
   const buf = await fsp.readFile(filePath);
   let texts;
@@ -262,13 +263,17 @@ async function readStatement({ spec, filePath, type, apiKey, baseUrl, model }) {
     texts = [decodeCsv(buf)];
   }
   const parts = texts.flatMap((text) => statementParts(text, STATEMENT_PART_ROWS));
+  const results = await Promise.all(
+    parts.map((part, i) => {
+      const content = [
+        { type: "input_text", text: spec.prompt(i + 1, parts.length) },
+        { type: "input_text", text: part },
+      ];
+      return callModel({ spec, content, apiKey, baseUrl, model });
+    }),
+  );
   const merged = { bank: null, currency: "", transactions: [], notes: [] };
-  for (let i = 0; i < parts.length; i++) {
-    const content = [
-      { type: "input_text", text: spec.prompt(i + 1, parts.length) },
-      { type: "input_text", text: parts[i] },
-    ];
-    const result = await callModel({ spec, content, apiKey, baseUrl, model });
+  for (const result of results) {
     merged.bank ||= result.bank || null;
     merged.currency ||= result.currency || "";
     merged.transactions.push(...(result.transactions || []));
