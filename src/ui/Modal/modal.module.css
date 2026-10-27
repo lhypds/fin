@@ -16,7 +16,10 @@
   min-width: 320px;
   max-width: 480px;
   width: 90%;
+  /* On mobile, vh counts the height behind the browser's toolbars; dvh is what is actually visible.
+     This cap also holds for dialogs that set their own height. */
   max-height: 90vh;
+  max-height: 90dvh;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -55,4 +58,5 @@
 .content {
   padding: 0 16px 16px;
   flex: 1;
+  min-height: 0;
 }
