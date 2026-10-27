@@ -19,6 +19,7 @@
   margin: 0;
   padding: 8px;
   overflow: auto;
+  overscroll-behavior: none;
   border: var(--line) solid var(--border);
   background: var(--bg-alt);
   font-size: 10px;

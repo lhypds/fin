@@ -2,15 +2,21 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, TextArea, showToast } from "@ui";
 import { useReconcile } from "@store";
+import { toNumberOrNull } from "@utils/format";
+import { accountBalance, lastBalanceRow } from "@utils/transactions";
 import styles from "./bank.module.css";
 
 // An account's details: what it is called (the one thing shown for it), the bank it is at,
-// whatever of branch, type, number and holder is worth noting, and a memo in the person's own
-// words.
+// whatever of branch, type, number and holder is worth noting, its balance, and a memo in the
+// person's own words.
 export default function BankEditor({ bank, onClose, onCreated }) {
   const { t } = useTranslation();
-  const { addBank, updateBank } = useReconcile();
+  const { transactions, addBank, updateBank } = useReconcile();
+  // The balance comes from the account's last statement row; one typed here stands in for it
+  // until a newer row arrives. Left as the statement has it, or emptied, it follows the statement.
+  const lastRow = bank ? lastBalanceRow(transactions, bank.id) : null;
   const [form, setForm] = useState(() => ({
+    balance: bank ? (accountBalance(bank, transactions) ?? "") : "",
     label: bank?.label || "",
     name: bank?.name || "",
     branch: bank?.branch || "",
@@ -27,7 +33,11 @@ export default function BankEditor({ bank, onClose, onCreated }) {
     e.preventDefault();
     const label = form.label.trim();
     if (!label) return setError(t("bankEditor.labelRequired"));
+    const typed = toNumberOrNull(form.balance);
+    const typedOver = typed != null && typed !== lastRow?.balance;
     const fields = {
+      balance: typedOver ? typed : null,
+      balanceTxId: typedOver ? (lastRow?.id ?? null) : null,
       label,
       name: form.name.trim(),
       branch: form.branch.trim(),
@@ -73,6 +83,19 @@ export default function BankEditor({ bank, onClose, onCreated }) {
           <div className="field">
             <label htmlFor="bank-number">{t("bankEditor.accountNumber")}</label>
             <input id="bank-number" className="input mono" value={form.accountNumber} onChange={set("accountNumber")} inputMode="numeric" />
+          </div>
+        </div>
+        <div className={styles.grid2}>
+          <div className="field">
+            <label htmlFor="bank-balance">{t("bankEditor.balance")}</label>
+            <input
+              id="bank-balance"
+              className="input mono"
+              value={form.balance}
+              onChange={set("balance")}
+              inputMode="decimal"
+              placeholder={lastRow ? String(lastRow.balance) : ""}
+            />
           </div>
         </div>
         <div className="field">

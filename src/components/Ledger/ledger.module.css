@@ -30,6 +30,8 @@
   flex-direction: column;
   overflow-x: auto;
   overflow-y: hidden;
+  /* No bounce at the left and right ends, the same as .scroll-y's none at the top and bottom. */
+  overscroll-behavior: none;
 }
 
 /* overflow-y: auto makes this box a horizontal scroller too (overflow-x computes to auto), and

@@ -94,11 +94,12 @@
 .top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
+  height: 16px;
 }
 
 .name {
+  flex: 1;
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -121,6 +122,73 @@
   flex: none;
   display: flex;
   gap: 2px;
+}
+
+/* The balance at the right end of the name line, as small as the line under the name; the
+   buttons take its place on hover. */
+.balance {
+  flex: none;
+  font-size: 10px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Buttons at the right end (edit, delete): shown only while the card is hovered, in place of the
+   balance. Its fixed height keeps it from making the name line taller. */
+.rowButton {
+  flex: none;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  line-height: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.rowButton svg {
+  width: 12px;
+  height: 12px;
+}
+
+.rowButton:hover,
+.rowButton:focus-visible {
+  color: var(--fg);
+}
+
+/* Buttons sit closer to each other than to the name: the line's 8px gap pulled in to 4px. */
+.rowButton + .rowButton {
+  margin-left: -4px;
+}
+
+/* Only where there is a pointer to hover with. On a touch screen (iOS) a tap "hovers" the card
+   first, and a hover that changes what the card holds eats the tap: the card is chosen only on a
+   second one. */
+@media (hover: hover) {
+  .card:hover .rowButton {
+    display: inline-flex;
+  }
+
+  .card:hover .balance {
+    display: none;
+  }
+}
+
+/* On a touch screen the buttons come up on the card chosen instead: one tap chooses it, and then
+   they are there. */
+@media (hover: none) {
+  .card[data-active="true"] .rowButton {
+    display: inline-flex;
+  }
+
+  .card[data-active="true"] .balance {
+    display: none;
+  }
 }
 
 /* A statement while it is being read: an item after the accounts, drawn like a receipt card, with

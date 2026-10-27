@@ -143,6 +143,7 @@
     "branch": "支店",
     "accountType": "口座種別",
     "accountNumber": "口座番号",
+    "balance": "残高",
     "holder": "口座名義",
     "memo": "メモ",
     "labelRequired": "口座名を入力してください"

@@ -143,6 +143,7 @@
     "branch": "Branch",
     "accountType": "Account type",
     "accountNumber": "Account no.",
+    "balance": "Balance",
     "holder": "Account holder",
     "memo": "Memo",
     "labelRequired": "Enter the account's name"

@@ -143,6 +143,7 @@
     "branch": "支店",
     "accountType": "账户类型",
     "accountNumber": "账号",
+    "balance": "余额",
     "holder": "户名",
     "memo": "备注",
     "labelRequired": "请填写账户名"

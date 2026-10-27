@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { ActionButton, showToast } from "@ui";
 import { useReconcile } from "@store";
 import { STATEMENT_ACCEPT, isSpreadsheetFile } from "@utils/files";
+import { fmtMoney } from "@utils/format";
+import { accountBalance } from "@utils/transactions";
 import DropZone from "../DropZone";
 import FileThumb from "../FileThumb";
 import StatusTag from "../StatusTag";
@@ -38,6 +40,24 @@ function ReadingItem({ read, bank, onCancel }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// A bare icon button on an account's name line; a click on it does not choose the account.
+function RowButton({ label, onClick, children }) {
+  return (
+    <button
+      type="button"
+      className={styles.rowButton}
+      title={label}
+      aria-label={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -171,14 +191,13 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
               >
                 <div className={styles.top}>
                   <div className={styles.name}>{bank.label}</div>
-                  <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
-                    <ActionButton tooltip={t("button.edit")} onClick={() => setEditing(bank)}>
-                      <EditIcon />
-                    </ActionButton>
-                    <ActionButton tooltip={t("button.delete")} onClick={() => handleDeleteBank(bank)}>
-                      <TrashIcon />
-                    </ActionButton>
-                  </div>
+                  <span className={`${styles.balance} mono`}>{fmtMoney(accountBalance(bank, transactions), bank.currency)}</span>
+                  <RowButton label={t("button.edit")} onClick={() => setEditing(bank)}>
+                    <EditIcon />
+                  </RowButton>
+                  <RowButton label={t("button.delete")} onClick={() => handleDeleteBank(bank)}>
+                    <TrashIcon />
+                  </RowButton>
                 </div>
                 {account && <div className={styles.meta}>{account}</div>}
                 {bank.holder && <div className={styles.meta}>{bank.holder}</div>}

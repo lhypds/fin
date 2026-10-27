@@ -8,6 +8,7 @@
   min-height: 0;
   overflow: auto;
   scrollbar-width: none;
+  overscroll-behavior: none;
   display: flex;
   align-items: center;
   justify-content: center;
