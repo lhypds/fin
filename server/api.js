@@ -1,19 +1,19 @@
-// The app's HTTP API: uploads, thumbnails, OCR, and the reconciliation state. Every upload is
-// numbered and kept: receipts, reference files, and statements (CSV or Excel, or a passbook
-// image) alike. A file the client is done with (a statement once read, a receipt removed, a
-// reference replaced) is only marked removed and drops out of the list; it stays on disk.
+// The app's HTTP API: uploads, thumbnails, OCR, and the reconciliation state. Receipts stay as
+// uploads; so does a statement (CSV or Excel, or a passbook image), which the client marks done
+// once the result is in.
 // Returned as an express app so the same code mounts on the Vite dev server and on server/index.js.
 //
 //   data/
 //   ├── state.json                 banks, transactions, receipts, matches
-//   ├── upload-counter.json        the last upload number given out
 //   ├── backups/<unix ms>/         one folder per backup, taken on request
 //   │   └── state.json             state.json as it was at that time
 //   └── uploads/<unix ms>/         one folder per upload
 //       ├── <original file name>   byte-identical to what was uploaded
-//       ├── meta.json              no, name, type, size, role, uploadedAt, thumbnail, removedAt
+//       ├── meta.json              name, type, size, role, uploadedAt, thumbnail, doneAt
 //       ├── thumbnail.webp         images only
-//       └── ocr.json               written when OCR has run (raw model output + model, time)
+//       ├── ocr.json               written when OCR has run (raw model output + model, time)
+//       └── import.json            statements only, once read: the account that took the file,
+//                                  the rows added, and what was read (or why the read failed)
 
 import express from "express";
 import fs from "node:fs";
@@ -30,11 +30,11 @@ const ACCEPTED_TYPES = new Set([...SPREADSHEET_TYPES, "image/png", "image/jpeg",
 // file the AI memos are written from (kept until replaced).
 const ROLES = new Set(["receipt", "statement", "reference"]);
 const STATE = "state.json";
-const COUNTER = "upload-counter.json";
 const META = "meta.json";
 const THUMB = "thumbnail.webp";
 const OCR = "ocr.json";
-const RESERVED_NAMES = new Set([META, THUMB, OCR]);
+const IMPORT = "import.json";
+const RESERVED_NAMES = new Set([META, THUMB, OCR, IMPORT]);
 const THUMB_SIZE = 480;
 
 function validFileName(name) {
@@ -80,54 +80,23 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
 
   const exists = (file) => fsp.access(file).then(() => true, () => false);
 
-  // Upload numbers: 1, 2, 3, … in the order the files came in, never given out twice (not even
-  // after the data is cleared, since the counter lives outside uploads/). Handed out one at a
-  // time. On start, uploads from before numbering are numbered in the order they came in.
-  const counterPath = path.join(dataDir, COUNTER);
-  const writeCounter = async (last) => {
-    const tmp = `${counterPath}.tmp`;
-    await fsp.writeFile(tmp, JSON.stringify({ last }));
-    await fsp.rename(tmp, counterPath);
-  };
-  let numbering = (async () => {
-    let last = Number((await readJson(counterPath))?.last) || 0;
-    const unnumbered = [];
-    for (const id of (await fsp.readdir(uploadsDir)).filter((n) => ID_RE.test(n)).sort()) {
-      const meta = await readMeta(id);
-      if (!meta) continue;
-      if (Number.isInteger(meta.no)) last = Math.max(last, meta.no);
-      else unnumbered.push([id, meta]);
-    }
-    for (const [id, meta] of unnumbered) await writeMeta(id, { no: ++last, ...meta });
-    await writeCounter(last);
-  })().catch((err) => console.error("Failed to number the uploads", err));
-  function takeNo() {
-    const next = numbering.then(async () => {
-      const no = (Number((await readJson(counterPath))?.last) || 0) + 1;
-      await writeCounter(no);
-      return no;
-    });
-    numbering = next.catch(() => {});
-    return next;
-  }
-
   // `ocr` tells the client a result is on disk, so after a reload it can pick up a run whose
   // response no page was around to receive. `role` is what the upload was for (receipt or
-  // statement); a statement still listed is one whose read was cut off, and `name`, `type` and
-  // `bankId` are what the client needs to finish it. Removed uploads are left out.
+  // statement); a statement not `done` is one whose read was cut off, and `name`, `type` and
+  // `bankId` are what the client needs to finish it.
   async function listFiles() {
     const out = [];
     for (const name of (await fsp.readdir(uploadsDir)).sort()) {
       if (!ID_RE.test(name)) continue;
       const meta = await readMeta(name);
-      if (!meta || meta.removedAt) continue;
+      if (!meta) continue;
       out.push({
         id: name,
-        no: meta.no ?? null,
         name: meta.name,
         type: meta.type,
         role: meta.role || null,
         bankId: meta.bankId || null,
+        done: !!meta.doneAt,
         thumbnail: !!meta.thumbnail,
         ocr: await exists(path.join(dirOf(name), OCR)),
       });
@@ -291,7 +260,6 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
       const bankHeader = req.headers["x-file-bank"];
       const bankId = typeof bankHeader === "string" && /^[\w-]{1,64}$/.test(bankHeader) ? bankHeader : null;
 
-      const no = await takeNo();
       const id = await newDir(uploadsDir);
       const dir = dirOf(id);
       await fsp.writeFile(path.join(dir, name), req.body);
@@ -310,7 +278,7 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
         }
       }
 
-      const meta = { no, id, name, type, size: req.body.length, role, bankId, uploadedAt: new Date(Number(id)).toISOString(), thumbnail };
+      const meta = { id, name, type, size: req.body.length, role, bankId, uploadedAt: new Date(Number(id)).toISOString(), thumbnail };
       await writeMeta(id, meta);
       res.json(meta);
     } catch (err) {
@@ -426,12 +394,27 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
     }
   });
 
-  // Marks an upload removed: it drops out of the list but stays on disk, under its number, and
-  // can still be fetched by id. One already gone or already removed is fine.
-  app.delete("/api/files/:id", async (req, res, next) => {
+  // Marks a statement as read (or its read called off), so a reload does not pick it up again.
+  // The file itself is kept, and what the client says came of it (status, the account that took
+  // it, the rows added, the model's result) goes next to it in import.json.
+  app.post("/api/files/:id/done", express.json({ limit: "16mb" }), async (req, res, next) => {
     try {
       const meta = await readMeta(req.params.id);
-      if (meta && !meta.removedAt) await writeMeta(req.params.id, { ...meta, removedAt: new Date().toISOString() });
+      if (!meta) return fail(res, 404, "File not found");
+      const at = new Date().toISOString();
+      const outcome = req.body && typeof req.body === "object" && !Array.isArray(req.body) ? req.body : {};
+      const record = { file: { id: meta.id, name: meta.name, type: meta.type, uploadedAt: meta.uploadedAt }, at, ...outcome };
+      await fsp.writeFile(path.join(dirOf(req.params.id), IMPORT), JSON.stringify(record, null, 2));
+      if (!meta.doneAt) await writeMeta(req.params.id, { ...meta, doneAt: at });
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.delete("/api/files/:id", async (req, res, next) => {
+    try {
+      await fsp.rm(dirOf(req.params.id), { recursive: true, force: true });
       res.json({ ok: true });
     } catch (err) {
       next(err);

@@ -7,6 +7,7 @@ import {
   runOcr,
   fetchOcr,
   deleteFile,
+  markFileDone,
   saveState,
   loadState,
   restoreBackup as restoreOnServer,
@@ -325,11 +326,14 @@ export function ReconcileProvider({ children }) {
   // file read for no account goes to the account with the number it names, made on the spot when
   // there is none. A row already on the account (same date, description, amounts and balance) is
   // skipped, so reading a file again adds nothing it added before. Returns how many rows were
-  // added, the newest date among them, the account, and which kind of read it was.
+  // added, the newest date among them, the account, and which kind of read it was; and, for the
+  // record kept with the file, the account as it now stands, whether it was made for this file, the
+  // rows added, how many were already there, and the details a passbook filled in.
   const applyRead = useCallback(
     (read, result) => {
       const { banks, transactions } = stateRef.current;
       let bank = resolveAccount(banks, read, result);
+      const created = !bank;
       if (!bank) {
         // The new account is called after its bank, or "new account" when the file names none.
         const bankName = String(result.bank || "").trim();
@@ -337,6 +341,8 @@ export function ReconcileProvider({ children }) {
         dispatch({ type: "addBank", bank });
       }
       let items = [];
+      let duplicates = 0;
+      const details = {};
       if (read.kind === "statement") {
         const existing = transactions.filter((t) => t.bankId === bank.id);
         const rows = (result.transactions || []).map((t) => ({
@@ -346,7 +352,9 @@ export function ReconcileProvider({ children }) {
           deposit: Number(t.deposit) || 0,
           balance: t.balance == null ? null : Number(t.balance),
         }));
-        const { fresh } = splitNew(existing, rows);
+        const split = splitNew(existing, rows);
+        const { fresh } = split;
+        duplicates = split.duplicates;
         // The rows are in the statement's currency, which is the account's unless the file says
         // otherwise; a row's currency can be changed on the row.
         items = fresh.map((r) => ({
@@ -365,7 +373,6 @@ export function ReconcileProvider({ children }) {
       // about the account; its details are typed in by hand.
       if (read.kind === "passbook") {
         const seen = result.account || {};
-        const details = {};
         for (const key of ["branch", "accountType", "accountNumber", "holder"]) {
           const value = String(seen[key] || "").trim();
           if (value && !bank[key]) details[key] = value;
@@ -373,7 +380,18 @@ export function ReconcileProvider({ children }) {
         if (Object.keys(details).length) dispatch({ type: "updateBank", id: bank.id, patch: details });
       }
       const latest = items.reduce((m, r) => (r.date && r.date > m ? r.date : m), "");
-      return { added: items.length, latest: latest || null, bankId: bank.id, kind: read.kind };
+      const { id, label, name, branch, accountType, accountNumber, holder, currency } = { ...bank, ...details };
+      return {
+        added: items.length,
+        latest: latest || null,
+        bankId: bank.id,
+        kind: read.kind,
+        account: { id, label, name, branch, accountType, accountNumber, holder, currency },
+        created,
+        rows: items,
+        duplicates,
+        details,
+      };
     },
     [dispatch],
   );
@@ -387,8 +405,8 @@ export function ReconcileProvider({ children }) {
 
   // Reads statements the model has been given: waits for each result (joining a run the server
   // already has going, or taking a result it already wrote, when `resume`), puts it on its
-  // account, and removes the file. Returns the run counts; a read called off counts as done with
-  // no result.
+  // account, and marks the file done (it is kept on the server). Returns the run counts; a read
+  // called off counts as done with no result.
   const runReads = useCallback(
     async (items, { resume = false } = {}) => {
       setReads((r) => [...r, ...items]);
@@ -397,20 +415,27 @@ export function ReconcileProvider({ children }) {
       const readOne = async (read) => {
         const controller = new AbortController();
         abortersRef.current.set(read.id, controller);
+        // What is kept with the file once the read is over: the account that took it, the rows
+        // it added, and what the model read (or why the read failed).
+        let outcome = null;
         try {
           let record = resume ? await fetchOcr(read.id).catch(() => null) : null;
           if (record?.kind !== read.kind) record = await runOcr(read.id, read.kind, controller.signal);
           if (cancelledRef.current.has(read.id)) return null;
-          return applyRead(read, record.result);
+          const applied = applyRead(read, record.result);
+          const { account, created, rows, duplicates, details } = applied;
+          outcome = { status: "done", kind: read.kind, account, created, added: rows.length, duplicates, rows, details, model: record.model, result: record.result };
+          return applied;
         } catch (err) {
           if (cancelledRef.current.has(read.id)) return null;
+          outcome = { status: "error", kind: read.kind, error: err.message || String(err) };
           throw err;
         } finally {
           abortersRef.current.delete(read.id);
           setReads((r) => r.filter((x) => x.id !== read.id));
           setProgress((p) => ({ ...p, statement: { ...p.statement, done: p.statement.done + 1 } }));
           if (!cancelledRef.current.delete(read.id)) {
-            deleteFile(read.id).catch((err) => console.error("Failed to remove the statement after reading it", err));
+            markFileDone(read.id, outcome).catch((err) => console.error("Failed to mark the statement done after reading it", err));
           }
         }
       };
@@ -424,13 +449,13 @@ export function ReconcileProvider({ children }) {
     [applyRead],
   );
 
-  // Stops waiting for a read and removes its file. The model may still finish on the server;
-  // what it says is then thrown away.
+  // Stops waiting for a read and marks its file done (the file is kept). The model may still
+  // finish on the server; what it says is then thrown away.
   const cancelRead = useCallback((id) => {
     cancelledRef.current.add(id);
     abortersRef.current.get(id)?.abort();
     setReads((r) => r.filter((x) => x.id !== id));
-    deleteFile(id).catch((err) => console.error("Failed to delete file", err));
+    markFileDone(id, { status: "cancelled" }).catch((err) => console.error("Failed to mark the statement done", err));
   }, []);
 
   // Loads the state from the server and puts it in place of what is here; `files` tells us which
@@ -504,11 +529,11 @@ export function ReconcileProvider({ children }) {
         if (!result) return;
         const { loaded, files, present } = result;
 
-        // Statements are read and then marked removed, so one still listed is a read this page (or another)
+        // Statements are read and then marked done, so one not done is a read this page (or another)
         // was cut off from, by a reload mid-run. It is picked up where it was left: the result
         // the server has, or the run it is still on, goes to the account the file was for.
         const keep = new Set((loaded?.receipts || []).map((r) => r.id));
-        const leftovers = files.filter((f) => f.role === "statement" && !keep.has(f.id));
+        const leftovers = files.filter((f) => f.role === "statement" && !f.done && !keep.has(f.id));
         if (leftovers.length) {
           const items = leftovers.map((f) => ({ id: f.id, name: f.name, type: f.type, kind: isSpreadsheet(f.type) ? "statement" : "passbook", bankId: f.bankId || null }));
           runReads(items, { resume: true }).then(({ errors, lastError, results }) => {
@@ -588,7 +613,7 @@ export function ReconcileProvider({ children }) {
   const moveBank = useCallback((id, before) => dispatch({ type: "moveBank", id, before }), [dispatch]);
 
   // Reads statements for an account (or for the account each turns out to be from, when `bankId`
-  // is null): every file goes up, is read by the model, and comes down again. Returns the usual
+  // is null): every file goes up, is read by the model, and stays on the server. Returns the usual
   // run counts, with how many files were not statements at all.
   const readStatements = useCallback(
     async (fileList, bankId = null) => {

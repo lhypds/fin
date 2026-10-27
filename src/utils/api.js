@@ -77,6 +77,12 @@ export async function deleteFile(id) {
   await check(await fetch(fileUrl(id), { method: "DELETE" }));
 }
 
+// Marks a statement as read (or its read called off); the file stays on the server, and
+// `outcome` (status, the account that took it, the rows added, what was read) is kept next to it.
+export async function markFileDone(id, outcome = null) {
+  await check(await fetch(`${fileUrl(id)}/done`, { method: "POST", ...json(outcome || {}) }));
+}
+
 // Memos for ledger rows, written by the model. `payload` is { prompt, bank, rows, referenceId };
 // resolves to { memos: [{ id, memo }] }, one entry per row the model had something to say about.
 export async function generateMemos(payload) {

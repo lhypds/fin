@@ -133,9 +133,10 @@ function RowButton({ label, onClick, children }) {
 }
 
 // The accounts, one of which (or all of them) the ledger shows. A file dropped here is read by
-// the model and then discarded: a CSV or Excel statement into rows, after asking which account it
-// belongs to (or making a new one); a passbook photo or PDF into the account on its cover, made
-// if there is none with that number, filling in details not typed in yet. Only the results stay.
+// the model, and kept on the server with a record of what came of them: a CSV or Excel statement
+// into rows, after asking which account it belongs to (or making a new one); a passbook photo or
+// PDF into the account on its cover, made if there is none with that number, filling in details
+// not typed in yet.
 export default function BankPanel({ selectedId, onSelect, onImported }) {
   const { t } = useTranslation();
   const { banks, transactions, reads, readStatements, cancelRead, removeBank, moveBank, progress } = useReconcile();

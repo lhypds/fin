@@ -11,9 +11,8 @@ account number, holder) and makes the account, or completes one with that number
 never read. The bank's CSV or Excel
 export is what the rows come from: dropping one asks which account it belongs to (or makes a new one), then
 the model reads it into rows on the ledger, in parts of about a hundred rows so nothing is lost;
-it never touches the account's details, which are typed in or come from the passbook. Every
-uploaded file (statement, passbook, receipt, reference) gets a number and is kept on the server;
-one the app is done with is only marked removed. A read can be
+it never touches the account's details, which are typed in or come from the passbook. Both
+files are kept on the server after they are read. A read can be
 called off while it runs, and a page reloaded mid-read picks it up again (the server runs the
 model once per file and lets a second asker join). Receipts on the right are uploaded as images
 or PDFs, kept, read by OCR, and matched to the rows. The ledger shows one account (or all of
@@ -57,10 +56,11 @@ Data lives under `data/` (`DATA_DIR` in `.env`):
 data/
 ├── users.json                 login accounts
 ├── state.json                 banks, transactions, receipts, matches
-├── upload-counter.json        the last upload number given out
-└── uploads/<unix ms>/         one folder per upload, kept for good
+└── uploads/<unix ms>/         one folder per upload (receipt, statement, reference)
     ├── <original file name>   byte-identical upload
-    ├── meta.json              its number (`no`), role, and `removedAt` once the app is done with it
+    ├── meta.json              role; a statement gets `doneAt` once it has been read
+    ├── import.json            statement / passbook only: the account that took it, the rows
+    │                          added (and duplicates skipped), what was read, or the error
     ├── thumbnail.webp         images only
     └── ocr.json               raw model output, once it has run
 ```
