@@ -44,16 +44,23 @@ function inCurrency(bank, currency) {
 }
 
 // An account's last statement row in `currency` (the main one when left out) that shows a balance:
-// the newest date, and on that day the row imported last, since a statement prints a day's rows
-// oldest first. Null when there is none.
+// the newest date, and on that day the row no other row of the day follows. Banks print a day's
+// rows oldest first or newest first, so file order cannot tell; the balances can: a row starts
+// from its balance plus what went out less what came in, and the last row's balance is where no
+// other row starts. When the balances don't single one out, the row imported last. Null when
+// there is none.
 export function lastBalanceRow(transactions, bank, currency = bank.currency || "JPY") {
   const counts = inCurrency(bank, currency);
-  let last = null;
+  let day = [];
   for (const tx of transactions) {
     if (tx.bankId !== bank.id || !tx.date || tx.balance == null || !counts(tx)) continue;
-    if (!last || tx.date >= last.date) last = tx;
+    if (!day.length || tx.date > day[0].date) day = [tx];
+    else if (tx.date === day[0].date) day.push(tx);
   }
-  return last;
+  if (!day.length) return null;
+  const before = (tx) => Number(tx.balance) + (Number(tx.withdrawal) || 0) - (Number(tx.deposit) || 0);
+  const ends = day.filter((tx) => !day.some((o) => o !== tx && before(o) === Number(tx.balance)));
+  return ends.length === 1 ? ends[0] : day[day.length - 1];
 }
 
 // What an account holds in `currency` (the main one when left out): the balance typed into the
