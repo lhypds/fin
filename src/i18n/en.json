@@ -144,6 +144,7 @@
     "accountType": "Account type",
     "accountNumber": "Account no.",
     "balance": "Balance",
+    "currency": "Currency",
     "holder": "Account holder",
     "memo": "Memo",
     "labelRequired": "Enter the account's name"

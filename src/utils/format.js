@@ -1,4 +1,7 @@
-const ZERO_DECIMAL = new Set(["JPY", "KRW", "VND", "CLP", "ISK", "HUF", "TWD"]);
+// The currencies an account can be set to, the usual ones first.
+export const CURRENCIES = ["JPY", "USD", "EUR", "CNY", "GBP", "HKD", "TWD", "KRW", "SGD", "AUD", "CAD", "CHF"];
+
+const ZERO_DECIMAL =new Set(["JPY", "KRW", "VND", "CLP", "ISK", "HUF", "TWD"]);
 
 const formatters = new Map();
 

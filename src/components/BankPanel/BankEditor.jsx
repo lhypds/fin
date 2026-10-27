@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, TextArea, showToast } from "@ui";
 import { useReconcile } from "@store";
-import { toNumberOrNull } from "@utils/format";
+import { CURRENCIES, toNumberOrNull } from "@utils/format";
 import { accountBalance, lastBalanceRow } from "@utils/transactions";
 import styles from "./bank.module.css";
 
@@ -17,6 +17,7 @@ export default function BankEditor({ bank, onClose, onCreated }) {
   const lastRow = bank ? lastBalanceRow(transactions, bank.id) : null;
   const [form, setForm] = useState(() => ({
     balance: bank ? (accountBalance(bank, transactions) ?? "") : "",
+    currency: (bank?.currency || "JPY").toUpperCase(),
     label: bank?.label || "",
     name: bank?.name || "",
     branch: bank?.branch || "",
@@ -38,6 +39,7 @@ export default function BankEditor({ bank, onClose, onCreated }) {
     const fields = {
       balance: typedOver ? typed : null,
       balanceTxId: typedOver ? (lastRow?.id ?? null) : null,
+      currency: form.currency,
       label,
       name: form.name.trim(),
       branch: form.branch.trim(),
@@ -96,6 +98,17 @@ export default function BankEditor({ bank, onClose, onCreated }) {
               inputMode="decimal"
               placeholder={lastRow ? String(lastRow.balance) : ""}
             />
+          </div>
+          <div className="field">
+            <label htmlFor="bank-currency">{t("bankEditor.currency")}</label>
+            <select id="bank-currency" className="select mono" value={form.currency} onChange={set("currency")}>
+              {/* An account read in a currency not on the list keeps it as a choice. */}
+              {(CURRENCIES.includes(form.currency) ? CURRENCIES : [form.currency, ...CURRENCIES]).map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         <div className="field">
