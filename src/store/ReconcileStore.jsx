@@ -16,7 +16,7 @@ import {
 } from "@utils/api";
 import { autoMatch as computeMatches } from "@utils/matching";
 import { findInternalTransfers } from "@utils/transfers";
-import { splitNew } from "@utils/transactions";
+import { splitNew, normDate } from "@utils/transactions";
 import { aiMemoPromptFor } from "@utils/aiMemo";
 import { ReconcileContext } from "./context";
 
@@ -251,10 +251,23 @@ function perAccountPrompts(state) {
   };
 }
 
+// Dates read before they were normalised on the way in ("2026-6-9") written as every other date
+// is ("2026-06-09"), on the rows and on the receipts. Not tied to a version: it holds for any file.
+function paddedDates(state) {
+  const transactions = state.transactions.map((t) => (t.date && normDate(t.date) !== t.date ? { ...t, date: normDate(t.date) } : t));
+  const receipts = state.receipts.map((r) => (r.ocr?.date && normDate(r.ocr.date) !== r.ocr.date ? { ...r, ocr: { ...r.ocr, date: normDate(r.ocr.date) } } : r));
+  return { ...state, transactions, receipts };
+}
+
 function migrate(saved) {
   const shaped = migrateShape(saved);
-  return shaped && perAccountPrompts(shaped);
+  return shaped && paddedDates(perAccountPrompts(shaped));
 }
+
+// Whether migrate() changed any date, so the file is written back even when its version is current.
+const datesChanged = (saved, loaded) =>
+  (saved?.transactions || []).some((t, i) => t.date !== loaded.transactions[i]?.date) ||
+  (saved?.receipts || []).some((r, i) => r.ocr?.date !== loaded.receipts[i]?.ocr?.date);
 
 async function runQueue(items, fn, concurrency) {
   let cursor = 0;
@@ -327,7 +340,7 @@ export function ReconcileProvider({ children }) {
       if (read.kind === "statement") {
         const existing = transactions.filter((t) => t.bankId === bank.id);
         const rows = (result.transactions || []).map((t) => ({
-          date: t.date || null,
+          date: normDate(t.date) || null,
           description: t.description || "",
           withdrawal: Number(t.withdrawal) || 0,
           deposit: Number(t.deposit) || 0,
@@ -367,7 +380,7 @@ export function ReconcileProvider({ children }) {
 
   const applyReceiptResult = useCallback(
     (id, result) => {
-      dispatch({ type: "updateReceipt", id, patch: { status: "done", error: null, ocr: result } });
+      dispatch({ type: "updateReceipt", id, patch: { status: "done", error: null, ocr: { ...result, date: normDate(result.date) ?? null } } });
     },
     [dispatch],
   );
@@ -449,8 +462,8 @@ export function ReconcileProvider({ children }) {
       // Always a new state object, so the save effect runs once and takes the skip below.
       dispatch({ type: "hydrate", state: loaded ? { ...loaded, receipts, settings } : {} });
       // Whatever we just loaded (or the empty default) does not need to be written back; a file
-      // that was just brought up to the current shape does.
-      skipNextSaveRef.current = !saved || versionOf(saved) >= STATE_VERSION;
+      // that was just brought up to the current shape, or had its dates padded, does.
+      skipNextSaveRef.current = !saved || (versionOf(saved) >= STATE_VERSION && !datesChanged(saved, loaded));
       setReady(true);
       return { loaded, files: files || [], present };
     },

@@ -246,6 +246,17 @@ export async function callModel({ spec, content, apiKey, baseUrl, model }) {
   }
 }
 
+const pad2 = (n) => String(n).padStart(2, "0");
+
+// The model's date as the app writes dates, YYYY-MM-DD with a two-digit month and day: it
+// sometimes copies a statement's "2026/6/9" as "2026-6-9" despite the schema. Anything that is not
+// a year, month and day comes back as it was. The client does the same (normDate in
+// src/utils/transactions.js).
+function normDate(value) {
+  const m = /^\s*(\d{4})\s*[-/.年]\s*(\d{1,2})\s*[-/.月]\s*(\d{1,2})\s*日?\s*$/.exec(value ?? "");
+  return m ? `${m[1]}-${pad2(m[2])}-${pad2(m[3])}` : value;
+}
+
 // A statement is read part by part and the parts joined: the rows in file order, the bank and
 // currency from the first part that names them, the remarks from every part. An Excel workbook
 // is first turned into CSV text, sheet by sheet, and goes the same way. The parts are read at the
@@ -276,7 +287,7 @@ async function readStatement({ spec, filePath, type, apiKey, baseUrl, model }) {
   for (const result of results) {
     merged.bank ||= result.bank || null;
     merged.currency ||= result.currency || "";
-    merged.transactions.push(...(result.transactions || []));
+    merged.transactions.push(...(result.transactions || []).map((t) => ({ ...t, date: normDate(t.date) })));
     if (result.notes && !merged.notes.includes(result.notes)) merged.notes.push(result.notes);
   }
   return { ...merged, currency: merged.currency || "JPY", notes: merged.notes.join(" / ") };
@@ -290,5 +301,9 @@ export async function runOcr({ kind, filePath, type, name, apiKey, baseUrl, mode
   }
   if (kind === "statement") return readStatement({ spec, filePath, type, apiKey, baseUrl, model });
   const content = [{ type: "input_text", text: spec.prompt() }, await buildInputPart(filePath, type, name)];
-  return callModel({ spec, content, apiKey, baseUrl, model });
+  const result = await callModel({ spec, content, apiKey, baseUrl, model });
+  // A receipt's date, or a passbook page's rows.
+  if (result?.date) result.date = normDate(result.date);
+  if (Array.isArray(result?.transactions)) result.transactions = result.transactions.map((t) => ({ ...t, date: normDate(t.date) }));
+  return result;
 }

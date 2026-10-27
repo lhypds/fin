@@ -82,6 +82,15 @@ export function isoDate(ms = Date.now()) {
 
 export const currentMonth = () => isoDate().slice(0, 7);
 
+// A date as every date in the app is written, YYYY-MM-DD with a two-digit month and day: the
+// model sometimes copies a statement's "2026/6/9" as "2026-6-9", which sorts after "2026-10-1" and
+// files under a month of its own. "2026-6-9", "2026/6/9", "2026.6.9" and "2026年6月9日" all become
+// "2026-06-09"; anything else comes back as it was.
+export function normDate(value) {
+  const m = /^\s*(\d{4})\s*[-/.年]\s*(\d{1,2})\s*[-/.月]\s*(\d{1,2})\s*日?\s*$/.exec(value ?? "");
+  return m ? `${m[1]}-${pad2(m[2])}-${pad2(m[3])}` : value;
+}
+
 // The months a list of rows falls in, newest first, under an entry for all of them at once, with
 // the rows that carry no date as a last entry. An empty list offers the current month so the
 // picker always has a month to show.
