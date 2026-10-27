@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Modal } from "@ui";
 import { useReconcile } from "@store";
 import { fmtMoney } from "@utils/format";
-import { ALL, UNDATED, accountBalances, monthOf } from "@utils/transactions";
+import { ALL, UNDATED, accountBalances, monthLabel, monthOf } from "@utils/transactions";
+import MonthPicker from "../Ledger/MonthPicker";
 import { findInternalTransfers } from "@utils/transfers";
 import styles from "./assets.module.css";
 
@@ -47,11 +48,14 @@ function Pie({ slices, currency }) {
 // How many rows each side of a month lists by name; the rest share one slice.
 const TOP = 10;
 
-// A month's money in and money out in `currency`, transfers between the accounts left out (they
-// move money, they do not earn or spend it). Each side is its total and its rows, largest first.
-function monthFlows(transactions, banks, month, currency) {
+// A month's money in and money out in `currency`, in one account (`bankId`) or all of them,
+// transfers between the accounts left out (they move money, they do not earn or spend it). Each
+// side is its total and its rows, largest first.
+function monthFlows(transactions, banks, month, currency, bankId) {
   const main = new Map(banks.map((b) => [b.id, b.currency || "JPY"]));
-  const inMonth = transactions.filter((tx) => monthOf(tx) === month && (tx.currency || main.get(tx.bankId) || "JPY") === currency);
+  const inMonth = transactions.filter(
+    (tx) => monthOf(tx) === month && (!bankId || tx.bankId === bankId) && (tx.currency || main.get(tx.bankId) || "JPY") === currency,
+  );
   const moved = new Set(findInternalTransfers(inMonth, transactions).flatMap((p) => [p.from.id, p.to.id]));
   const side = (field) => {
     const rows = inMonth
@@ -111,8 +115,8 @@ function FlowChart({ title, side, currency }) {
 // added up): the total, a pie of how it is split between the accounts, and every account with its
 // balance. A balance comes from the account's statements or the one typed in its editor; an
 // account below zero (a card owing) counts against the total but has no slice. A second tab has
-// one month's income and spending, the ledger's month (`month`) at first.
-export default function AssetsModal({ month: ledgerMonth, onClose }) {
+// one month's income and spending, in the ledger's month (`month`) and account (`bankId`) at first.
+export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId = null, onClose }) {
   const { t } = useTranslation();
   const { banks, transactions } = useReconcile();
 
@@ -136,7 +140,14 @@ export default function AssetsModal({ month: ledgerMonth, onClose }) {
   const months = useMemo(() => [...new Set(transactions.map(monthOf))].filter((m) => m !== UNDATED).sort().reverse(), [transactions]);
   const [chosenMonth, setChosenMonth] = useState(ledgerMonth !== ALL && ledgerMonth !== UNDATED ? ledgerMonth : null);
   const month = months.includes(chosenMonth) ? chosenMonth : months[0];
-  const flows = useMemo(() => month && monthFlows(transactions, banks, month, currency), [transactions, banks, month, currency]);
+  const pickerMonths = useMemo(() => months.map((key) => ({ key })), [months]);
+  // One account, or all of them ("").
+  const [chosenBank, setChosenBank] = useState(ledgerBankId || "");
+  const flowBank = banks.some((b) => b.id === chosenBank) ? chosenBank : "";
+  const flows = useMemo(
+    () => month && monthFlows(transactions, banks, month, currency, flowBank),
+    [transactions, banks, month, currency, flowBank],
+  );
 
   const rows = held.filter((h) => h.currency === currency).sort((a, b) => b.balance - a.balance);
   const total = rows.reduce((sum, r) => sum + r.balance, 0);
@@ -158,13 +169,18 @@ export default function AssetsModal({ month: ledgerMonth, onClose }) {
 
         {(currencies.length > 1 || (tab === "monthly" && months.length > 0)) && (
           <div className={styles.controls}>
+            {/* The month as the ledger's toolbar has it: a step back, the month and its list, a step forward. */}
+            {tab === "monthly" && months.length > 0 && (
+              <MonthPicker months={pickerMonths} index={months.indexOf(month)} label={(m) => monthLabel(m.key, t)} onChange={setChosenMonth} />
+            )}
             {tab === "monthly" && months.length > 0 && (
               <label className={styles.control}>
-                {t("ledger.month")}
-                <select className="select mono" value={month} onChange={(e) => setChosenMonth(e.target.value)}>
-                  {months.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
+                {t("assets.account")}
+                <select className="select" value={flowBank} onChange={(e) => setChosenBank(e.target.value)}>
+                  <option value="">{t("banks.all")}</option>
+                  {banks.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.label}
                     </option>
                   ))}
                 </select>

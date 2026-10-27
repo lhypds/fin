@@ -26,9 +26,10 @@
   color: var(--muted);
 }
 
-/* .select is full width by default; here it fits its options. */
+/* .select is full width by default; here it fits its options, as tall as the month picker beside it. */
 .body :global(.select) {
   width: auto;
+  height: 22px;
 }
 
 .control :global(.select) {
