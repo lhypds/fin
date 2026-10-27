@@ -4,7 +4,7 @@ import { ActionButton, showToast } from "@ui";
 import { useReconcile } from "@store";
 import { STATEMENT_ACCEPT, isSpreadsheetFile } from "@utils/files";
 import { fmtMoney } from "@utils/format";
-import { accountBalance } from "@utils/transactions";
+import { accountBalances } from "@utils/transactions";
 import DropZone from "../DropZone";
 import FileThumb from "../FileThumb";
 import StatusTag from "../StatusTag";
@@ -243,6 +243,8 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
             const account = [bank.branch, bank.accountNumber].filter(Boolean).join(" ");
             // The card is dragged to reorder the list, and takes statement files dropped on it.
             const move = reorder(bank.id, bank.label);
+            // The main currency's balance on the name line, the others' each on a line under it.
+            const [main, ...others] = accountBalances(bank, transactions);
             return (
               <article
                 key={bank.id}
@@ -283,7 +285,7 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
               >
                 <div className={styles.top}>
                   <div className={styles.name}>{bank.label}</div>
-                  <span className={`${styles.balance} mono`}>{fmtMoney(accountBalance(bank, transactions), bank.currency)}</span>
+                  <span className={`${styles.balance} mono`}>{fmtMoney(main.balance, main.currency)}</span>
                   {bank.url && (
                     <RowButton label={t("banks.openSite")} onClick={() => openSite(bank)}>
                       <ExternalLinkIcon />
@@ -296,6 +298,11 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
                     <TrashIcon />
                   </RowButton>
                 </div>
+                {others.map((o) => (
+                  <span key={o.currency} className={`${styles.otherBalance} mono`}>
+                    {o.balance == null ? o.currency : fmtMoney(o.balance, o.currency)}
+                  </span>
+                ))}
                 {account && <div className={styles.meta}>{account}</div>}
                 {bank.holder && <div className={styles.meta}>{bank.holder}</div>}
               </article>

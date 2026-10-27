@@ -146,6 +146,8 @@
     "accountNumber": "Account no.",
     "balance": "Balance",
     "currency": "Currency",
+    "addCurrency": "Add currency",
+    "removeCurrency": "Remove currency",
     "holder": "Account holder",
     "url": "Bank URL",
     "memo": "Memo",

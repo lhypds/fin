@@ -146,6 +146,8 @@
     "accountNumber": "账号",
     "balance": "余额",
     "currency": "币种",
+    "addCurrency": "添加币种",
+    "removeCurrency": "移除币种",
     "holder": "户名",
     "url": "银行网址",
     "memo": "备注",

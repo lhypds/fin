@@ -146,6 +146,8 @@
     "accountNumber": "口座番号",
     "balance": "残高",
     "currency": "通貨",
+    "addCurrency": "通貨を追加",
+    "removeCurrency": "通貨を削除",
     "holder": "口座名義",
     "url": "銀行URL",
     "memo": "メモ",

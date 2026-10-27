@@ -4,6 +4,7 @@ import { Modal, TextArea, showToast } from "@ui";
 import { useReconcile } from "@store";
 import { CURRENCIES, toNumberOrNull } from "@utils/format";
 import { accountBalance, lastBalanceRow } from "@utils/transactions";
+import { PlusIcon, XIcon } from "../icons";
 import styles from "./bank.module.css";
 
 // A bank's site typed as "www.smbc.co.jp" opens as a web address, not a path in this app.
@@ -11,18 +12,71 @@ function withScheme(url) {
   return url && !/^[a-z][a-z\d+.-]*:/i.test(url) ? `https://${url}` : url;
 }
 
+// The currencies a balance row can be in: those on the list (and its own, when it was read in one
+// that is not) less the ones other rows of the account already hold.
+function currencyChoices(own, taken) {
+  const list = CURRENCIES.includes(own) ? CURRENCIES : [own, ...CURRENCIES];
+  return list.filter((c) => c === own || !taken.includes(c));
+}
+
+// A balance with its currency: the input and the select side by side as two columns of the form,
+// with a button after the select on the other currencies' rows, to remove one. Only the main row
+// is labelled.
+function BalanceRow({ main, value, currency, taken, placeholder, onChange, button }) {
+  const { t } = useTranslation();
+  const id = main ? "bank-balance" : undefined;
+  return (
+    <div className={styles.grid2}>
+      <div className="field">
+        {main && <label htmlFor={id}>{t("bankEditor.balance")}</label>}
+        <input
+          id={id}
+          className="input mono"
+          value={value}
+          onChange={(e) => onChange({ balance: e.target.value })}
+          inputMode="decimal"
+          placeholder={placeholder}
+          aria-label={main ? undefined : `${t("bankEditor.balance")} ${currency}`}
+        />
+      </div>
+      <div className="field">
+        {main && <label htmlFor="bank-currency">{t("bankEditor.currency")}</label>}
+        <div className={styles.currencyLine}>
+          <select
+            id={main ? "bank-currency" : undefined}
+            className="select mono"
+            value={currency}
+            onChange={(e) => onChange({ currency: e.target.value })}
+            aria-label={main ? undefined : t("bankEditor.currency")}
+          >
+            {currencyChoices(currency, taken).map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          {button}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // An account's details: what it is called (the one thing shown for it), the bank it is at,
 // whatever of branch, type, number and holder is worth noting, its balance, and a memo in the
-// person's own words.
+// person's own words. Besides its main currency an account can hold others (a Wise or Revolut
+// account), each with a balance of its own: the + under the balances adds one.
 export default function BankEditor({ bank, onClose, onCreated }) {
   const { t } = useTranslation();
   const { transactions, addBank, updateBank } = useReconcile();
-  // The balance comes from the account's last statement row; one typed here stands in for it
-  // until a newer row arrives. Left as the statement has it, or emptied, it follows the statement.
-  const lastRow = bank ? lastBalanceRow(transactions, bank.id) : null;
+  // A balance comes from the account's last statement row in that currency; one typed here stands
+  // in for it until a newer row arrives. Left as the statement has it, or emptied, it follows the
+  // statement.
   const [form, setForm] = useState(() => ({
     balance: bank ? (accountBalance(bank, transactions) ?? "") : "",
     currency: (bank?.currency || "JPY").toUpperCase(),
+    // The other currencies, in the order they were added.
+    balances: (bank?.balances || []).map((b) => ({ currency: b.currency, balance: accountBalance(bank, transactions, b.currency) ?? "" })),
     label: bank?.label || "",
     name: bank?.name || "",
     branch: bank?.branch || "",
@@ -35,17 +89,34 @@ export default function BankEditor({ bank, onClose, onCreated }) {
   const [error, setError] = useState(null);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const setOther = (i) => (patch) => setForm((f) => ({ ...f, balances: f.balances.map((b, j) => (j === i ? { ...b, ...patch } : b)) }));
+
+  const held = [form.currency, ...form.balances.map((b) => b.currency)];
+  const free = CURRENCIES.find((c) => !held.includes(c));
+  const addCurrency = () => setForm((f) => ({ ...f, balances: [...f.balances, { currency: free, balance: "" }] }));
+  const removeCurrency = (i) => setForm((f) => ({ ...f, balances: f.balances.filter((_, j) => j !== i) }));
+
+  // The account as it will be saved, so the rows each currency counts are those of the new set.
+  const saved = bank && { ...bank, currency: form.currency, balances: form.balances };
+  const lastIn = (currency) => (saved ? lastBalanceRow(transactions, saved, currency) : null);
+
+  // What is kept of a typed balance: only one that differs from the statement's, with the row it
+  // was typed against.
+  function typedBalance(value, currency) {
+    const last = lastIn(currency);
+    const typed = toNumberOrNull(value);
+    const over = typed != null && typed !== last?.balance;
+    return { balance: over ? typed : null, balanceTxId: over ? (last?.id ?? null) : null };
+  }
 
   function submit(e) {
     e.preventDefault();
     const label = form.label.trim();
     if (!label) return setError(t("bankEditor.labelRequired"));
-    const typed = toNumberOrNull(form.balance);
-    const typedOver = typed != null && typed !== lastRow?.balance;
     const fields = {
-      balance: typedOver ? typed : null,
-      balanceTxId: typedOver ? (lastRow?.id ?? null) : null,
+      ...typedBalance(form.balance, form.currency),
       currency: form.currency,
+      balances: form.balances.map((b) => ({ currency: b.currency, ...typedBalance(b.balance, b.currency) })),
       label,
       name: form.name.trim(),
       branch: form.branch.trim(),
@@ -94,30 +165,40 @@ export default function BankEditor({ bank, onClose, onCreated }) {
             <input id="bank-number" className="input mono" value={form.accountNumber} onChange={set("accountNumber")} inputMode="numeric" />
           </div>
         </div>
-        <div className={styles.grid2}>
-          <div className="field">
-            <label htmlFor="bank-balance">{t("bankEditor.balance")}</label>
-            <input
-              id="bank-balance"
-              className="input mono"
-              value={form.balance}
-              onChange={set("balance")}
-              inputMode="decimal"
-              placeholder={lastRow ? String(lastRow.balance) : ""}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="bank-currency">{t("bankEditor.currency")}</label>
-            <select id="bank-currency" className="select mono" value={form.currency} onChange={set("currency")}>
-              {/* An account read in a currency not on the list keeps it as a choice. */}
-              {(CURRENCIES.includes(form.currency) ? CURRENCIES : [form.currency, ...CURRENCIES]).map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <BalanceRow
+          main
+          value={form.balance}
+          currency={form.currency}
+          taken={held}
+          placeholder={lastIn(form.currency) ? String(lastIn(form.currency).balance) : ""}
+          onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+        />
+        {form.balances.map((b, i) => (
+          <BalanceRow
+            key={i}
+            value={b.balance}
+            currency={b.currency}
+            taken={held}
+            placeholder={lastIn(b.currency) ? String(lastIn(b.currency).balance) : ""}
+            onChange={setOther(i)}
+            button={
+              <button type="button" className={styles.currencyButton} title={t("bankEditor.removeCurrency")} aria-label={t("bankEditor.removeCurrency")} onClick={() => removeCurrency(i)}>
+                <XIcon />
+              </button>
+            }
+          />
+        ))}
+        {/* Under the balances: another currency for the account. */}
+        <button
+          type="button"
+          className={`${styles.currencyButton} ${styles.addCurrency}`}
+          title={t("bankEditor.addCurrency")}
+          aria-label={t("bankEditor.addCurrency")}
+          onClick={addCurrency}
+          disabled={!free}
+        >
+          <PlusIcon />
+        </button>
         <div className="field">
           <label htmlFor="bank-url">{t("bankEditor.url")}</label>
           <input id="bank-url" className="input mono" type="url" value={form.url} onChange={set("url")} placeholder="https://" />

@@ -32,24 +32,44 @@ export function splitNew(existing, incoming) {
 
 export const monthOf = (tx) => (tx.date ? tx.date.slice(0, 7) : UNDATED);
 
-// An account's last statement row that shows a balance: the newest date, and on that day the row
-// imported last, since a statement prints a day's rows oldest first. Null when there is none.
-export function lastBalanceRow(transactions, bankId) {
+// An account holds its main currency (`currency`, `balance`, `balanceTxId`) and may hold others
+// besides, each with a balance of its own (`balances`: [{ currency, balance, balanceTxId }]). A row
+// counts toward the other currency it is in, and toward the main one otherwise, so an account
+// with no others counts every row, whatever currency it is in.
+function inCurrency(bank, currency) {
+  const main = bank.currency || "JPY";
+  if (currency !== main) return (tx) => (tx.currency || main) === currency;
+  const others = new Set((bank.balances || []).map((b) => b.currency));
+  return (tx) => !others.has(tx.currency || main);
+}
+
+// An account's last statement row in `currency` (the main one when left out) that shows a balance:
+// the newest date, and on that day the row imported last, since a statement prints a day's rows
+// oldest first. Null when there is none.
+export function lastBalanceRow(transactions, bank, currency = bank.currency || "JPY") {
+  const counts = inCurrency(bank, currency);
   let last = null;
   for (const tx of transactions) {
-    if (tx.bankId !== bankId || !tx.date || tx.balance == null) continue;
+    if (tx.bankId !== bank.id || !tx.date || tx.balance == null || !counts(tx)) continue;
     if (!last || tx.date >= last.date) last = tx;
   }
   return last;
 }
 
-// What an account holds: the balance typed into the editor while it is still about the account's
-// last row (`balanceTxId`), else the balance that row shows. A newer row brings the statement's
-// figure back. Null when neither is known.
-export function accountBalance(bank, transactions) {
-  const last = lastBalanceRow(transactions, bank.id);
-  if (bank.balance != null && (bank.balanceTxId ?? null) === (last?.id ?? null)) return bank.balance;
+// What an account holds in `currency` (the main one when left out): the balance typed into the
+// editor while it is still about the last row in that currency (`balanceTxId`), else the balance
+// that row shows. A newer row brings the statement's figure back. Null when neither is known.
+export function accountBalance(bank, transactions, currency = bank.currency || "JPY") {
+  const typed = currency === (bank.currency || "JPY") ? bank : (bank.balances || []).find((b) => b.currency === currency) || {};
+  const last = lastBalanceRow(transactions, bank, currency);
+  if (typed.balance != null && (typed.balanceTxId ?? null) === (last?.id ?? null)) return typed.balance;
   return last ? last.balance : null;
+}
+
+// Every currency the account holds with its balance, the main one first.
+export function accountBalances(bank, transactions) {
+  const currencies = [bank.currency || "JPY", ...(bank.balances || []).map((b) => b.currency)];
+  return currencies.map((currency) => ({ currency, balance: accountBalance(bank, transactions, currency) }));
 }
 
 const pad2 = (n) => String(n).padStart(2, "0");

@@ -354,6 +354,64 @@
   gap: 12px;
 }
 
+
+/* A currency select with, on an added currency's row, × after it to remove that currency. */
+.currencyLine {
+  display: flex;
+  gap: 8px;
+}
+
+.currencyButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.currencyButton:hover:not(:disabled) {
+  background: var(--border);
+  color: var(--bg);
+}
+
+.currencyButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.currencyButton svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Adding a currency, under the balances: a small square at the left. After .currencyButton so
+   its size wins. */
+.addCurrency {
+  align-self: flex-start;
+  width: 18px;
+  height: 18px;
+}
+
+.addCurrency svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* The account's other currencies on the card, one per line at the right, under the name line. */
+.otherBalance {
+  align-self: flex-end;
+  font-size: 10px;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* Three lines of memo to start with; the handle makes it taller. Keep in step with the editor's minHeight. */
 .memo {
   min-height: 68px;
