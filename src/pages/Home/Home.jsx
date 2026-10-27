@@ -360,7 +360,7 @@ export default function Home() {
 
       {preview && <PreviewModal id={preview} onClose={closePreview} />}
       {backupOpen && <BackupModal onClose={() => setBackupOpen(false)} />}
-      {assetsOpen && <AssetsModal onClose={() => setAssetsOpen(false)} />}
+      {assetsOpen && <AssetsModal month={shown.current} onClose={() => setAssetsOpen(false)} />}
       {autoMatchOpen && <AutoMatchModal onClose={() => setAutoMatchOpen(false)} onConfirm={handleAutoMatch} />}
       {autoMemoOpen && <AutoMemoModal rows={shown.rows} bankId={activeBankId} onClose={() => setAutoMemoOpen(false)} onConfirm={handleAutoMemo} />}
       {exportOpen && (

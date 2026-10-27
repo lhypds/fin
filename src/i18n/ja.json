@@ -145,7 +145,17 @@
     "account": "口座",
     "sum": "合計",
     "none": "残高のある口座がまだありません。",
-    "unknown": "残高のない {{count}} 口座は含まれていません。"
+    "unknown": "残高のない {{count}} 口座は含まれていません。",
+    "monthly": "月別の収支",
+    "income": "収入",
+    "spending": "支出",
+    "net": "収支",
+    "count": "{{count}} 件",
+    "others": "その他 {{count}} 件",
+    "topSpending": "金額の大きい支出 {{count}} 件",
+    "topIncome": "金額の大きい収入 {{count}} 件",
+    "transfersNote": "口座間の振替 {{count}} 件は含みません",
+    "noFlows": "この月の収支はありません。"
   },
   "bankEditor": {
     "title": "銀行口座を編集",

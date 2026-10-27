@@ -145,7 +145,17 @@
     "account": "Account",
     "sum": "Total",
     "none": "No account has a balance yet.",
-    "unknown": "{{count}} accounts without a balance are left out."
+    "unknown": "{{count}} accounts without a balance are left out.",
+    "monthly": "Monthly income and spending",
+    "income": "Income",
+    "spending": "Spending",
+    "net": "Net",
+    "count": "{{count}} rows",
+    "others": "{{count}} others",
+    "topSpending": "Top {{count}} spending",
+    "topIncome": "Top {{count}} income",
+    "transfersNote": "{{count}} transfer rows between the accounts left out",
+    "noFlows": "Nothing in or out this month."
   },
   "bankEditor": {
     "title": "Edit bank account",

@@ -126,6 +126,66 @@
   color: var(--muted);
 }
 
+/* A date before a row's name in the legend, as narrow as "10-27". */
+.note {
+  flex: none;
+  color: var(--muted);
+}
+
+/* What the accounts hold, and one month's income and spending, as two tabs: the chosen one
+   underlined, the line under them running the width of the dialog. */
+.tabs {
+  display: flex;
+  gap: 16px;
+  border-bottom: var(--line) solid var(--soft-line);
+}
+
+.tab {
+  padding: 0 0 6px;
+  margin-bottom: calc(-1 * var(--line));
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--fg);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--fg);
+  border-bottom-color: var(--fg);
+}
+
+.tab:focus-visible {
+  outline: var(--line) solid var(--focus);
+  outline-offset: 2px;
+}
+
+.flow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.flowTitle {
+  margin: 0;
+  font-size: inherit;
+  font-weight: normal;
+  color: var(--muted);
+}
+
+.income {
+  color: var(--ok);
+}
+
+.spending {
+  color: var(--err);
+}
+
 .tableWrap {
   overflow-x: auto;
 }

@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Modal } from "@ui";
 import { useReconcile } from "@store";
 import { fmtMoney } from "@utils/format";
-import { accountBalances } from "@utils/transactions";
+import { ALL, UNDATED, accountBalances, monthOf } from "@utils/transactions";
+import { findInternalTransfers } from "@utils/transfers";
 import styles from "./assets.module.css";
 
 // One color per account in the pie, in order; they repeat past the tenth account. The same as
@@ -43,11 +44,75 @@ function Pie({ slices, currency }) {
   );
 }
 
+// How many rows each side of a month lists by name; the rest share one slice.
+const TOP = 10;
+
+// A month's money in and money out in `currency`, transfers between the accounts left out (they
+// move money, they do not earn or spend it). Each side is its total and its rows, largest first.
+function monthFlows(transactions, banks, month, currency) {
+  const main = new Map(banks.map((b) => [b.id, b.currency || "JPY"]));
+  const inMonth = transactions.filter((tx) => monthOf(tx) === month && (tx.currency || main.get(tx.bankId) || "JPY") === currency);
+  const moved = new Set(findInternalTransfers(inMonth, transactions).flatMap((p) => [p.from.id, p.to.id]));
+  const side = (field) => {
+    const rows = inMonth
+      .filter((tx) => !moved.has(tx.id) && Number(tx[field]) > 0)
+      .map((tx) => ({ tx, value: Number(tx[field]) }))
+      .sort((a, b) => b.value - a.value);
+    return { rows, total: rows.reduce((sum, r) => sum + r.value, 0) };
+  };
+  return { spending: side("withdrawal"), income: side("deposit"), transfers: moved.size };
+}
+
+// One side of the month: its largest rows by name, the rest as one grey slice, as a pie with
+// its legend. A row is named by its memo, or its statement text without one.
+function FlowChart({ title, side, currency }) {
+  const { t } = useTranslation();
+  if (!side.rows.length) return null;
+  const top = side.rows.slice(0, TOP);
+  const rest = side.rows.slice(TOP);
+  const slices = top.map((r, i) => ({
+    key: r.tx.id,
+    name: r.tx.memo?.trim() || r.tx.description || "",
+    note: r.tx.date?.slice(5),
+    value: r.value,
+    color: COLORS[i % COLORS.length],
+  }));
+  if (rest.length)
+    slices.push({
+      key: "rest",
+      name: t("assets.others", { count: rest.length }),
+      value: rest.reduce((sum, r) => sum + r.value, 0),
+      color: "var(--faint)",
+    });
+  return (
+    <div className={styles.flow}>
+      <h3 className={styles.flowTitle}>{title}</h3>
+      <div className={styles.chart}>
+        <Pie slices={slices} currency={currency} />
+        <ul className={styles.legend}>
+          {slices.map((s) => (
+            <li key={s.key}>
+              <span className={styles.swatch} style={{ background: s.color }} />
+              {s.note && <span className={`${styles.note} mono`}>{s.note}</span>}
+              <span className={styles.legendName} title={s.name}>
+                {s.name}
+              </span>
+              <span className={`${styles.num} mono`}>{fmtMoney(s.value, currency)}</span>
+              <span className={`${styles.num} ${styles.share} mono`}>{((s.value / side.total) * 100).toFixed(1)}%</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 // What the accounts hold, in one currency at a time (amounts in different currencies are not
 // added up): the total, a pie of how it is split between the accounts, and every account with its
 // balance. A balance comes from the account's statements or the one typed in its editor; an
-// account below zero (a card owing) counts against the total but has no slice.
-export default function AssetsModal({ onClose }) {
+// account below zero (a card owing) counts against the total but has no slice. A second tab has
+// one month's income and spending, the ledger's month (`month`) at first.
+export default function AssetsModal({ month: ledgerMonth, onClose }) {
   const { t } = useTranslation();
   const { banks, transactions } = useReconcile();
 
@@ -62,8 +127,16 @@ export default function AssetsModal({ onClose }) {
     for (const h of held) count.set(h.currency, (count.get(h.currency) || 0) + 1);
     return [...count].sort((a, b) => b[1] - a[1]).map(([c]) => c);
   }, [held]);
+  const [tab, setTab] = useState("assets");
   const [chosen, setChosen] = useState(null);
-  const currency = currencies.includes(chosen) ? chosen : currencies[0];
+  const currency = currencies.includes(chosen) ? chosen : currencies[0] || "JPY";
+
+  // The months with dated rows, newest first; the ledger's month to start with, or the newest
+  // when it shows every month or the undated rows.
+  const months = useMemo(() => [...new Set(transactions.map(monthOf))].filter((m) => m !== UNDATED).sort().reverse(), [transactions]);
+  const [chosenMonth, setChosenMonth] = useState(ledgerMonth !== ALL && ledgerMonth !== UNDATED ? ledgerMonth : null);
+  const month = months.includes(chosenMonth) ? chosenMonth : months[0];
+  const flows = useMemo(() => month && monthFlows(transactions, banks, month, currency), [transactions, banks, month, currency]);
 
   const rows = held.filter((h) => h.currency === currency).sort((a, b) => b.balance - a.balance);
   const total = rows.reduce((sum, r) => sum + r.balance, 0);
@@ -75,22 +148,44 @@ export default function AssetsModal({ onClose }) {
   return (
     <Modal isOpen onClose={onClose} title={t("assets.title")} className={styles.modal}>
       <div className={styles.body}>
-        {currencies.length > 1 && (
+        <div className={styles.tabs} role="tablist">
+          {["assets", "monthly"].map((key) => (
+            <button key={key} type="button" role="tab" className={styles.tab} aria-selected={tab === key} onClick={() => setTab(key)}>
+              {t(key === "assets" ? "assets.total" : "assets.monthly")}
+            </button>
+          ))}
+        </div>
+
+        {(currencies.length > 1 || (tab === "monthly" && months.length > 0)) && (
           <div className={styles.controls}>
-            <label className={styles.control}>
-              {t("bankEditor.currency")}
-              <select className="select mono" value={currency} onChange={(e) => setChosen(e.target.value)}>
-                {currencies.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {tab === "monthly" && months.length > 0 && (
+              <label className={styles.control}>
+                {t("ledger.month")}
+                <select className="select mono" value={month} onChange={(e) => setChosenMonth(e.target.value)}>
+                  {months.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {currencies.length > 1 && (
+              <label className={styles.control}>
+                {t("bankEditor.currency")}
+                <select className="select mono" value={currency} onChange={(e) => setChosen(e.target.value)}>
+                  {currencies.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
         )}
 
-        {rows.length === 0 ? (
+        {tab === "assets" && (rows.length === 0 ? (
           <p className="muted">{t("assets.none")}</p>
         ) : (
           <>
@@ -158,8 +253,39 @@ export default function AssetsModal({ onClose }) {
               </table>
             </div>
           </>
+        ))}
+        {tab === "assets" && unknown > 0 && <p className={styles.statNote}>{t("assets.unknown", { count: unknown })}</p>}
+
+        {tab === "monthly" && !flows && <p className="muted">{t("assets.noFlows")}</p>}
+        {tab === "monthly" && flows && (
+          <>
+            <div className={styles.stats}>
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>{t("assets.income")}</span>
+                <span className={`${styles.statValue} ${styles.income} mono`}>{fmtMoney(flows.income.total, currency)}</span>
+                <span className={styles.statNote}>{t("assets.count", { count: flows.income.rows.length })}</span>
+              </div>
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>{t("assets.spending")}</span>
+                <span className={`${styles.statValue} ${styles.spending} mono`}>{fmtMoney(flows.spending.total, currency)}</span>
+                <span className={styles.statNote}>{t("assets.count", { count: flows.spending.rows.length })}</span>
+              </div>
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>{t("assets.net")}</span>
+                <span className={`${styles.statValue} mono`}>{fmtMoney(flows.income.total - flows.spending.total, currency)}</span>
+                {flows.transfers > 0 && <span className={styles.statNote}>{t("assets.transfersNote", { count: flows.transfers })}</span>}
+              </div>
+            </div>
+            {!flows.income.rows.length && !flows.spending.rows.length ? (
+              <p className="muted">{t("assets.noFlows")}</p>
+            ) : (
+              <>
+                <FlowChart title={t("assets.topSpending", { count: TOP })} side={flows.spending} currency={currency} />
+                <FlowChart title={t("assets.topIncome", { count: TOP })} side={flows.income} currency={currency} />
+              </>
+            )}
+          </>
         )}
-        {unknown > 0 && <p className={styles.statNote}>{t("assets.unknown", { count: unknown })}</p>}
       </div>
     </Modal>
   );

@@ -145,7 +145,17 @@
     "account": "账户",
     "sum": "合计",
     "none": "还没有账户有余额。",
-    "unknown": "{{count}} 个账户还没有余额，未计入。"
+    "unknown": "{{count}} 个账户还没有余额，未计入。",
+    "monthly": "月度收支",
+    "income": "收入",
+    "spending": "支出",
+    "net": "结余",
+    "count": "{{count}} 笔",
+    "others": "其他 {{count}} 笔",
+    "topSpending": "金额最大的 {{count}} 笔支出",
+    "topIncome": "金额最大的 {{count}} 笔收入",
+    "transfersNote": "账户之间的 {{count}} 笔转账不计入",
+    "noFlows": "这个月没有收支。"
   },
   "bankEditor": {
     "title": "编辑银行账户",
