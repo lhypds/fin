@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, BackupModal, AutoMatchModal, AutoMemoModal, ExportModal } from "@components";
+import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, BackupModal, AutoMatchModal, AutoMemoModal, ExportModal, confirm } from "@components";
 import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, EditIcon, UnlinkIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon, DownloadIcon, LoaderIcon } from "@components/icons";
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
@@ -142,32 +142,32 @@ export default function Home() {
 
   // The three things the clear menu takes back, each on the rows on screen only, the same rows
   // auto-match and auto-memo work on. Each asks first.
-  function handleClearAutoMatch() {
+  async function handleClearAutoMatch() {
     setClearOpen(false);
-    if (!window.confirm(t("header.clearAutoMatchConfirm"))) return;
+    if (!(await confirm(t("header.clearAutoMatchConfirm"), { confirmLabel: t("header.clear") }))) return;
     const n = clearAutoMatches(shown.rows);
     showToast(t("toast.autoMatchesCleared", { count: n }));
   }
 
-  function handleClearAutoMemo() {
+  async function handleClearAutoMemo() {
     setClearOpen(false);
-    if (!window.confirm(t("header.clearAutoMemoConfirm"))) return;
+    if (!(await confirm(t("header.clearAutoMemoConfirm"), { confirmLabel: t("header.clear") }))) return;
     const n = clearAutoMemos(shown.rows);
     showToast(t("toast.autoMemosCleared", { count: n }));
   }
 
-  function handleClearConfirmed() {
+  async function handleClearConfirmed() {
     setClearOpen(false);
-    if (!window.confirm(t("header.clearConfirmedConfirm"))) return;
+    if (!(await confirm(t("header.clearConfirmedConfirm"), { confirmLabel: t("header.clear") }))) return;
     const n = clearConfirmations(shown.rows);
     showToast(t("toast.confirmationsCleared", { count: n }));
   }
 
-  function handleClearMonth() {
+  async function handleClearMonth() {
     setClearOpen(false);
     // The month as the ledger's picker writes it: a month, or every month at once.
     const label = monthLabel(shown.current, t);
-    if (!window.confirm(t("header.clearMonthConfirm", { month: label, count: shown.rows.length }))) return;
+    if (!(await confirm(t("header.clearMonthConfirm", { month: label, count: shown.rows.length }), { confirmLabel: t("button.delete") }))) return;
     const n = removeTransactions(shown.rows);
     showToast(t("toast.rowsRemoved", { count: n }));
   }

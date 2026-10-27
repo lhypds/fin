@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Modal, showToast } from "@ui";
 import { useReconcile } from "@store";
 import { fmtMoney, txAmount, toNumberOrNull } from "@utils/format";
+import { confirm } from "../ConfirmModal";
 import StatusTag from "../StatusTag";
 import FileViewer from "../FileViewer";
 import { PlayIcon, LoaderIcon, UnlinkIcon } from "../icons";
@@ -55,7 +56,7 @@ function ReceiptDetails({ item }) {
   const set = (key) => (e) => setDraft((d) => ({ ...d, [key]: e.target.value }));
 
   async function run() {
-    if (item.status === "done" && !window.confirm(t("receipts.rerunConfirm"))) return;
+    if (item.status === "done" && !(await confirm(t("receipts.rerunConfirm"), { confirmLabel: t("preview.rerun") }))) return;
     const { errors, lastError } = await ocrPending([item.id]);
     if (errors) showToast(t("toast.ocrFailed", { message: lastError?.message || "" }), 6000);
     else showToast(t("toast.ocrDone", { ok: 1, errors: 0 }));

@@ -12,6 +12,7 @@ import { RECEIPT_DRAG_TYPE, isReceiptDrag } from "../ReceiptPanel";
 import TxEditor from "./TxEditor";
 import MatchEditor from "./MatchEditor";
 import ConfirmDialog from "./ConfirmDialog";
+import { confirm } from "../ConfirmModal";
 import MonthPicker from "./MonthPicker";
 import { EditIcon, TrashIcon, PlusIcon } from "../icons";
 import styles from "./ledger.module.css";
@@ -56,8 +57,8 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
     });
   }, [inMonth, receiptById, query]);
 
-  function handleDelete(tx) {
-    if (!window.confirm(t("ledger.deleteConfirm"))) return;
+  async function handleDelete(tx) {
+    if (!(await confirm(t("ledger.deleteConfirm"), { confirmLabel: t("button.delete") }))) return;
     removeTransaction(tx.id);
   }
 

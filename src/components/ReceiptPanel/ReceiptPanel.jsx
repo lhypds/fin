@@ -4,6 +4,7 @@ import { ActionButton, Checkbox, showToast } from "@ui";
 import { useReconcile } from "@store";
 import { fmtMoney } from "@utils/format";
 import { receiptHaystack, matchesQuery } from "@utils/search";
+import { confirm } from "../ConfirmModal";
 import DropZone from "../DropZone";
 import FileThumb from "../FileThumb";
 import StatusTag from "../StatusTag";
@@ -39,14 +40,14 @@ export default function ReceiptPanel({ onPreview }) {
   }
 
   async function handleDelete(r) {
-    if (!window.confirm(t("receipts.deleteConfirm"))) return;
+    if (!(await confirm(t("receipts.deleteConfirm"), { confirmLabel: t("button.delete") }))) return;
     await removeReceipt(r.id);
   }
 
   // A receipt that has been read already is only read again on confirmation: the new result
   // replaces the current one, including fields edited by hand.
-  function handleRun(r) {
-    if (r.status === "done" && !window.confirm(t("receipts.rerunConfirm"))) return;
+  async function handleRun(r) {
+    if (r.status === "done" && !(await confirm(t("receipts.rerunConfirm"), { confirmLabel: t("preview.rerun") }))) return;
     runOcr([r.id]);
   }
 

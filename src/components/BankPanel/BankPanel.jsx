@@ -6,6 +6,7 @@ import { STATEMENT_ACCEPT, isSpreadsheetFile } from "@utils/files";
 import DropZone from "../DropZone";
 import FileThumb from "../FileThumb";
 import StatusTag from "../StatusTag";
+import { confirm } from "../ConfirmModal";
 import BankEditor from "./BankEditor";
 import ImportTarget from "./ImportTarget";
 import { PlusIcon, EditIcon, TrashIcon, LoaderIcon, XIcon } from "../icons";
@@ -85,9 +86,9 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
     if (sheets.length) setChoosing({ files: sheets, bankId: card ? bank.id : null });
   }
 
-  function handleDeleteBank(bank) {
+  async function handleDeleteBank(bank) {
     const count = transactions.filter((tx) => tx.bankId === bank.id).length;
-    if (!window.confirm(t("banks.deleteConfirm", { name: bank.label, count }))) return;
+    if (!(await confirm(t("banks.deleteConfirm", { name: bank.label, count }), { confirmLabel: t("button.delete") }))) return;
     removeBank(bank.id);
   }
 

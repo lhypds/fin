@@ -1,6 +1,7 @@
 import Home from "@pages/Home";
 import Login from "@pages/Login";
 import { Toast } from "@ui";
+import { ConfirmModal } from "@components";
 import { AuthProvider, ReconcileProvider, useAuth } from "@store";
 
 // The workspace only mounts once someone is logged in: its store loads the data on mount, and
@@ -20,6 +21,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Gate />
+      <ConfirmModal />
       <Toast />
     </AuthProvider>
   );

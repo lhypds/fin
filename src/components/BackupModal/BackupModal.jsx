@@ -4,6 +4,7 @@ import { Modal, ActionButton, showToast } from "@ui";
 import { useReconcile } from "@store";
 import { listBackups, createBackup, deleteBackup } from "@utils/api";
 import { fmtDateTime } from "@utils/format";
+import { confirm } from "../ConfirmModal";
 import { ArchiveIcon, LoaderIcon, TrashIcon } from "../icons";
 import styles from "./backup.module.css";
 
@@ -51,7 +52,7 @@ export default function BackupModal({ onClose }) {
   async function restore() {
     const chosen = backups?.find((b) => b.id === choice);
     if (!chosen) return;
-    if (!window.confirm(t("backup.restoreConfirm", { time: fmtDateTime(chosen.id) }))) return;
+    if (!(await confirm(t("backup.restoreConfirm", { time: fmtDateTime(chosen.id) }), { confirmLabel: t("backup.restore") }))) return;
     setBusy("restore");
     try {
       await restoreBackup(chosen.id);
@@ -64,7 +65,7 @@ export default function BackupModal({ onClose }) {
   }
 
   async function remove(b) {
-    if (!window.confirm(t("backup.deleteConfirm", { time: fmtDateTime(b.id) }))) return;
+    if (!(await confirm(t("backup.deleteConfirm", { time: fmtDateTime(b.id) }), { confirmLabel: t("button.delete") }))) return;
     setBusy("delete");
     try {
       await deleteBackup(b.id);
