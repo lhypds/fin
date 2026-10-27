@@ -11,7 +11,7 @@ import StatusTag from "../StatusTag";
 import { confirm } from "../ConfirmModal";
 import BankEditor from "./BankEditor";
 import ImportTarget from "./ImportTarget";
-import { PlusIcon, EditIcon, TrashIcon, LoaderIcon, XIcon } from "../icons";
+import { PlusIcon, EditIcon, TrashIcon, LoaderIcon, XIcon, ExternalLinkIcon } from "../icons";
 import styles from "./bank.module.css";
 
 function hasFiles(e) {
@@ -112,6 +112,9 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
     removeBank(bank.id);
   }
 
+  // The bank's own site, in a new tab: from the button on the card, or a double click on it.
+  const openSite = (bank) => window.open(bank.url, "_blank", "noopener,noreferrer");
+
   // Keys count only on the card itself: Enter and Space on the buttons inside it bubble up here too.
   const selectOnKey = (id) => (e) => {
     if (e.target !== e.currentTarget) return;
@@ -172,6 +175,10 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
                 data-active={selectedId === bank.id}
                 data-over={overId === bank.id}
                 onClick={() => onSelect(bank.id)}
+                onDoubleClick={(e) => {
+                  // A quick double click on a button inside (edit, delete) is not one on the card.
+                  if (bank.url && !e.target.closest("button")) openSite(bank);
+                }}
                 onKeyDown={selectOnKey(bank.id)}
                 onDragOver={(e) => {
                   if (!hasFiles(e)) return;
@@ -192,6 +199,11 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
                 <div className={styles.top}>
                   <div className={styles.name}>{bank.label}</div>
                   <span className={`${styles.balance} mono`}>{fmtMoney(accountBalance(bank, transactions), bank.currency)}</span>
+                  {bank.url && (
+                    <RowButton label={t("banks.openSite")} onClick={() => openSite(bank)}>
+                      <ExternalLinkIcon />
+                    </RowButton>
+                  )}
                   <RowButton label={t("button.edit")} onClick={() => setEditing(bank)}>
                     <EditIcon />
                   </RowButton>

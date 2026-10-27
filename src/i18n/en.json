@@ -133,7 +133,8 @@
     "empty": "Drop a passbook photo to set up an account, then its CSV or Excel statements to read the rows.",
     "rowCount": "{{count}} rows",
     "deleteConfirm": "Delete {{name}} and its {{count}} transactions?",
-    "unnamed": "New account"
+    "unnamed": "New account",
+    "openSite": "Open bank website"
   },
   "bankEditor": {
     "title": "Edit bank account",
@@ -146,6 +147,7 @@
     "balance": "Balance",
     "currency": "Currency",
     "holder": "Account holder",
+    "url": "Bank URL",
     "memo": "Memo",
     "labelRequired": "Enter the account's name"
   },

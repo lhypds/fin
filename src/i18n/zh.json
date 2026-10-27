@@ -133,7 +133,8 @@
     "empty": "拖入通帳照片新建账户，再拖入流水 CSV 或 Excel 读取流水。",
     "rowCount": "{{count}} 行",
     "deleteConfirm": "删除 {{name}} 及其 {{count}} 条流水？",
-    "unnamed": "新账户"
+    "unnamed": "新账户",
+    "openSite": "打开银行网站"
   },
   "bankEditor": {
     "title": "编辑银行账户",
@@ -146,6 +147,7 @@
     "balance": "余额",
     "currency": "币种",
     "holder": "户名",
+    "url": "银行网址",
     "memo": "备注",
     "labelRequired": "请填写账户名"
   },

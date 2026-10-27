@@ -180,7 +180,7 @@ function stripAutoNotes(memo, patterns, aiText = "") {
 
 // An account at bank `name`, called `name` too until it is given a name of its own.
 function newBank(id, name, currency) {
-  return { id, name, label: name, branch: "", accountType: "", accountNumber: "", holder: "", memo: "", aiMemoPrompt: "", currency: currency || "JPY", createdAt: Date.now() };
+  return { id, name, label: name, branch: "", accountType: "", accountNumber: "", holder: "", url: "", memo: "", aiMemoPrompt: "", currency: currency || "JPY", createdAt: Date.now() };
 }
 
 // Accounts saved before they had a name of their own (version 4 and earlier) are called what

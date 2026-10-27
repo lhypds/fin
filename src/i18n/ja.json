@@ -133,7 +133,8 @@
     "empty": "通帳の写真をドロップして口座を作り、明細（CSV・Excel）をドロップして取引を読み取ります。",
     "rowCount": "{{count}} 行",
     "deleteConfirm": "{{name}} とその取引 {{count}} 件を削除しますか？",
-    "unnamed": "新しい口座"
+    "unnamed": "新しい口座",
+    "openSite": "銀行サイトを開く"
   },
   "bankEditor": {
     "title": "銀行口座を編集",
@@ -146,6 +147,7 @@
     "balance": "残高",
     "currency": "通貨",
     "holder": "口座名義",
+    "url": "銀行URL",
     "memo": "メモ",
     "labelRequired": "口座名を入力してください"
   },

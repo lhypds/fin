@@ -6,6 +6,11 @@ import { CURRENCIES, toNumberOrNull } from "@utils/format";
 import { accountBalance, lastBalanceRow } from "@utils/transactions";
 import styles from "./bank.module.css";
 
+// A bank's site typed as "www.smbc.co.jp" opens as a web address, not a path in this app.
+function withScheme(url) {
+  return url && !/^[a-z][a-z\d+.-]*:/i.test(url) ? `https://${url}` : url;
+}
+
 // An account's details: what it is called (the one thing shown for it), the bank it is at,
 // whatever of branch, type, number and holder is worth noting, its balance, and a memo in the
 // person's own words.
@@ -24,6 +29,7 @@ export default function BankEditor({ bank, onClose, onCreated }) {
     accountType: bank?.accountType || "",
     accountNumber: bank?.accountNumber || "",
     holder: bank?.holder || "",
+    url: bank?.url || "",
     memo: bank?.memo || "",
   }));
   const [error, setError] = useState(null);
@@ -46,6 +52,7 @@ export default function BankEditor({ bank, onClose, onCreated }) {
       accountType: form.accountType.trim(),
       accountNumber: form.accountNumber.trim(),
       holder: form.holder.trim(),
+      url: withScheme(form.url.trim()),
       memo: form.memo.trim(),
     };
     if (bank) updateBank(bank.id, fields);
@@ -110,6 +117,10 @@ export default function BankEditor({ bank, onClose, onCreated }) {
               ))}
             </select>
           </div>
+        </div>
+        <div className="field">
+          <label htmlFor="bank-url">{t("bankEditor.url")}</label>
+          <input id="bank-url" className="input mono" type="url" value={form.url} onChange={set("url")} placeholder="https://" />
         </div>
         <div className="field">
           <label htmlFor="bank-memo">{t("bankEditor.memo")}</label>
