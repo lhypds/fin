@@ -5,7 +5,7 @@ import { useReconcile } from "@store";
 import { fmtMoney, txAmount } from "@utils/format";
 import { receiptsSumMismatch } from "@utils/matching";
 import { transactionHaystack, matchesQuery } from "@utils/search";
-import { ledgerView, monthLabel, ALL } from "@utils/transactions";
+import { ledgerView, monthLabel, ALL, NO_FILTER, MIN_AMOUNTS, minAmountLabel } from "@utils/transactions";
 import FileThumb from "../FileThumb";
 import { ConfidenceTag } from "../StatusTag";
 import { RECEIPT_DRAG_TYPE, isReceiptDrag } from "../ReceiptPanel";
@@ -32,11 +32,9 @@ function sortByDate(list) {
 }
 
 // One month of one account (or of all of them) at a time. `bankId` is the account chosen on the
-// left, `month` the one chosen here, both held by the page so an import can move them. `kinds`
-// says whether money in (`deposit`) and money out (`withdrawal`) are shown.
-const BOTH_KINDS = { deposit: true, withdrawal: true };
-
-export default function Ledger({ bankId = null, month = "", onMonthChange, kinds = BOTH_KINDS, onKindsChange, onPreviewReceipt, query = "" }) {
+// left, `month` the one chosen here, both held by the page so an import can move them. `filter`
+// says whether money in (`deposit`) and money out (`withdrawal`) are shown, and from what amount.
+export default function Ledger({ bankId = null, month = "", onMonthChange, filter = NO_FILTER, onFilterChange, onPreviewReceipt, query = "" }) {
   const { t } = useTranslation();
   const { transactions, receiptById, match, removeTransaction, updateTransaction } = useReconcile();
   const [editing, setEditing] = useState(null);
@@ -46,7 +44,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, kinds
 
   // The month picker's entries, the one on screen, and its rows. The header's auto-match covers
   // the same rows, so the one definition of "what the ledger shows" lives in @utils/transactions.
-  const { months, index, current, rows: inMonth, inMonth: monthRows } = useMemo(() => ledgerView(transactions, bankId, month, kinds), [transactions, bankId, month, kinds]);
+  const { months, index, current, rows: inMonth, inMonth: monthRows } = useMemo(() => ledgerView(transactions, bankId, month, filter), [transactions, bankId, month, filter]);
   // A picker entry, written the way the ledger writes a month everywhere.
   const labelOf = (m) => monthLabel(m.key, t);
 
@@ -86,9 +84,10 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, kinds
   const rowRefs = useRef(new Map());
   const cursorRef = useRef(null);
 
-  // The selected rows, apart from the focus: a click selects its row alone, Ctrl (⌘ on a Mac)
-  // adds or takes one away, Shift selects every row on screen from the anchor (the row last
-  // clicked without Shift) to the one clicked. The keyboard's row is selected alone, like a click.
+  // The selected rows, apart from the focus: a click selects its row alone (or, on the row that is
+  // already selected alone, takes the selection away), Ctrl (⌘ on a Mac) adds or takes one away,
+  // Shift selects every row on screen from the anchor (the row last clicked without Shift) to the
+  // one clicked, Escape selects none. The keyboard's row is selected alone, like a click.
   const [selected, setSelected] = useState(() => new Set());
   const anchorRef = useRef(null);
   useEffect(() => {
@@ -115,8 +114,20 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, kinds
         else next.add(tx.id);
         return next;
       });
-    } else setSelected(new Set([tx.id]));
+    } else setSelected((prev) => (prev.size === 1 && prev.has(tx.id) ? new Set() : new Set([tx.id])));
   }
+
+  // Escape anywhere on the page clears the selection, unless a dialog, a menu that takes Escape
+  // for itself, or a text field (the search clears its text) has it.
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.key !== "Escape" || e.defaultPrevented || isModalOpen()) return;
+      if (e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]")) return;
+      setSelected((prev) => (prev.size ? new Set() : prev));
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, []);
 
   const focusRow = useCallback((tx) => {
     const el = tx && rowRefs.current.get(tx.id);
@@ -193,10 +204,22 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, kinds
       <div className={styles.toolbar}>
         <div className={styles.filters}>
           <MonthPicker months={months} index={index} label={labelOf} onChange={onMonthChange} />
-          <Checkbox checked={kinds.deposit} onChange={(on) => onKindsChange?.({ ...kinds, deposit: on })}>
+          <select
+            className={`select ${styles.amountFilter}`}
+            value={filter.minAmount}
+            onChange={(e) => onFilterChange?.({ ...filter, minAmount: Number(e.target.value) })}
+            aria-label={t("ledger.amountFilter")}
+          >
+            {MIN_AMOUNTS.map((n) => (
+              <option key={n} value={n}>
+                {n ? minAmountLabel(n) : t("ledger.anyAmount")}
+              </option>
+            ))}
+          </select>
+          <Checkbox checked={filter.deposit} onChange={(on) => onFilterChange?.({ ...filter, deposit: on })}>
             {t("ledger.showDeposit")}
           </Checkbox>
-          <Checkbox checked={kinds.withdrawal} onChange={(on) => onKindsChange?.({ ...kinds, withdrawal: on })}>
+          <Checkbox checked={filter.withdrawal} onChange={(on) => onFilterChange?.({ ...filter, withdrawal: on })}>
             {t("ledger.showWithdrawal")}
           </Checkbox>
         </div>
@@ -246,7 +269,12 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, kinds
                 role: "button",
                 tabIndex: 0,
                 "aria-pressed": !!tx.confirmed,
-                onDoubleClick: () => toggleConfirmed(tx),
+                // The first click of the pair may have taken the selection away; the row keeps it.
+                onDoubleClick: () => {
+                  setSelected(new Set([tx.id]));
+                  anchorRef.current = tx.id;
+                  toggleConfirmed(tx);
+                },
                 // The second press of a double click would select the word under the pointer;
                 // stopping its default leaves the text alone, while a drag across the row still
                 // selects.

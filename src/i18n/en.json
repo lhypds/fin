@@ -186,6 +186,8 @@
     "allMonths": "All months",
     "showDeposit": "Deposits",
     "showWithdrawal": "Withdrawals",
+    "amountFilter": "Amount",
+    "anyAmount": "All amounts",
     "empty": "No transactions yet. Add a bank account on the left and drop its statement onto it, or add a row by hand.",
     "emptyMonth": "No transactions in {{month}}.",
     "emptyFiltered": "Nothing here.",

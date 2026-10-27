@@ -119,21 +119,37 @@ export function monthLabel(key, t) {
 }
 
 // Which side of the account a row is on: money out, or money in (a row with no amount counts as in).
-const isWithdrawal =(tx) => Boolean(tx.withdrawal);
+const isWithdrawal = (tx) => Boolean(tx.withdrawal);
+
+// The ledger's filter with nothing hidden: money in, money out, any amount.
+export const NO_FILTER = { deposit: true, withdrawal: true, minAmount: 0 };
+
+// The amounts the ledger's filter offers: every row, or only those over 1,000, 10,000 or 100,000.
+export const MIN_AMOUNTS = [0, 1000, 10000, 100000];
+
+// How the filter writes an amount: "> 1K" and so on, the same in every language.
+export const minAmountLabel = (n) => `> ${n / 1000}K`;
+
+// Whether a row passes the ledger's filter: on a side it shows, and over its amount if it has one.
+function passes(tx, filter) {
+  if (!(isWithdrawal(tx) ? filter.withdrawal : filter.deposit)) return false;
+  const amount = Number(tx.withdrawal || tx.deposit || 0);
+  return !filter.minAmount || amount > filter.minAmount;
+}
 
 // What the ledger shows for a chosen account and month: the months the account's rows (or every
 // row, with no account chosen) fall in, which of them is on screen, and its rows. The month on
 // screen is the chosen one, or the newest when none is chosen yet or the chosen one has no rows
-// in this account; "all" is every row the account has. `kinds` narrows the rows to money in
-// (`deposit`), money out (`withdrawal`) or both; the months offered stay the same either way, and
-// `inMonth` keeps the month's rows before that.
-export function ledgerView(transactions, bankId, month, kinds = { deposit: true, withdrawal: true }) {
+// in this account; "all" is every row the account has. `filter` narrows the rows to money in
+// (`deposit`), money out (`withdrawal`) or both, and to amounts over `minAmount`; the months
+// offered stay the same either way, and `inMonth` keeps the month's rows before that.
+export function ledgerView(transactions, bankId, month, filter = NO_FILTER) {
   const scoped = bankId ? transactions.filter((tx) => tx.bankId === bankId) : transactions;
   const months = monthsOf(scoped);
   const found = months.findIndex((m) => m.key === month);
   const index = found >= 0 ? found : months.findIndex((m) => m.key !== ALL);
   const current = months[index].key;
   const inMonth = current === ALL ? scoped : scoped.filter((tx) => monthOf(tx) === current);
-  const rows = inMonth.filter((tx) => (isWithdrawal(tx) ? kinds.withdrawal : kinds.deposit));
+  const rows = inMonth.filter((tx) => passes(tx, filter));
   return { months, index, current, rows, inMonth };
 }

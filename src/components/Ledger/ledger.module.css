@@ -20,11 +20,17 @@
   border-bottom: var(--line) solid var(--border);
 }
 
-/* The month and the money-in / money-out checkboxes beside it. */
+/* The month, the amount and the money-in / money-out checkboxes beside it. */
 .filters {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+/* The amount, as tall as the month beside it and only as wide as its longest option. */
+.amountFilter {
+  width: auto;
+  height: 22px;
 }
 
 /* The two scroll axes live on two nested boxes: the outer one scrolls horizontally and shows its

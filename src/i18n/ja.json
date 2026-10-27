@@ -186,6 +186,8 @@
     "allMonths": "すべての月",
     "showDeposit": "入金",
     "showWithdrawal": "出金",
+    "amountFilter": "金額",
+    "anyAmount": "すべて",
     "empty": "取引がありません。左側で銀行口座を追加して明細をドロップして読み取るか、手動で追加してください。",
     "emptyMonth": "{{month}} の取引はありません。",
     "emptyFiltered": "該当なし。",

@@ -4,7 +4,7 @@ import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, Backup
 import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, EditIcon, UnlinkIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon, DownloadIcon, LoaderIcon, PieIcon } from "@components/icons";
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
-import { ledgerView, monthLabel } from "@utils/transactions";
+import { ledgerView, monthLabel, NO_FILTER } from "@utils/transactions";
 import { takesReceipts } from "@utils/matching";
 import { useCloseOnOutside } from "@utils/useCloseOnOutside";
 import styles from "./home.module.css";
@@ -69,11 +69,12 @@ export default function Home() {
   const [bankId, setBankId] = useState(() => readPref("bank.selected", ""));
   const [month, setMonth] = useState(() => readPref("ledger.month", ""));
   const activeBankId = banks.some((b) => b.id === bankId) ? bankId : null;
-  // Money in and money out, each shown or hidden by the ledger's checkboxes; both on at first.
-  const [kinds, setKinds] = useState({ deposit: true, withdrawal: true });
+  // The ledger's filter beside the month: money in and money out, each shown or hidden, and the
+  // smallest amount shown. Everything is shown at first.
+  const [filter, setFilter] = useState(NO_FILTER);
   // What the ledger has on screen. Auto-match pairs only these rows: other months, other
-  // accounts and the hidden side are left as they are.
-  const shown = useMemo(() => ledgerView(transactions, activeBankId, month, kinds), [transactions, activeBankId, month, kinds]);
+  // accounts and the rows the filter hides are left as they are.
+  const shown = useMemo(() => ledgerView(transactions, activeBankId, month, filter), [transactions, activeBankId, month, filter]);
   // The status bar counts the rows of the bank and month on screen, not every transaction stored:
   // all of them, then the confirmed and the unconfirmed, in the order of the ledger's tabs.
   const shownStats = useMemo(() => {
@@ -323,7 +324,7 @@ export default function Home() {
         </button>
 
         <main className={styles.main}>
-          <Ledger bankId={activeBankId} month={month} onMonthChange={setMonth} kinds={kinds} onKindsChange={setKinds} query={query} onPreviewReceipt={setPreview} />
+          <Ledger bankId={activeBankId} month={month} onMonthChange={setMonth} filter={filter} onFilterChange={setFilter} query={query} onPreviewReceipt={setPreview} />
         </main>
 
         <button
