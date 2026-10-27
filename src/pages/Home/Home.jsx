@@ -32,6 +32,9 @@ const readFlag = (key, fallback) => {
 };
 const writeFlag = (key, value) => writePref(key, value ? "1" : "0");
 
+// A phone-sized screen has no room for the side panels beside the ledger.
+const isMobile = () => window.matchMedia?.("(max-width: 768px)").matches ?? false;
+
 export default function Home() {
   const { t } = useTranslation();
   const {
@@ -56,8 +59,11 @@ export default function Home() {
   const ocrTotal = progress.statement.total + progress.receipt.total;
   const ocrDone = progress.statement.done + progress.receipt.done;
   const ocrPercent = ocrTotal ? Math.round((ocrDone / ocrTotal) * 100) : 0;
-  const [leftOpen, setLeftOpen] = useState(() => readFlag("panel.left", true));
-  const [rightOpen, setRightOpen] = useState(() => readFlag("panel.right", true));
+  // On mobile both panels start collapsed and their state isn't saved, so the desktop layout
+  // keeps its own remembered choice.
+  const [mobile] = useState(isMobile);
+  const [leftOpen, setLeftOpen] = useState(() => !mobile && readFlag("panel.left", true));
+  const [rightOpen, setRightOpen] = useState(() => !mobile && readFlag("panel.right", true));
   // What the ledger shows: one account or all of them, and one month. Both are remembered across
   // reloads; an account that has since been deleted falls back to all of them.
   const [bankId, setBankId] = useState(() => readPref("bank.selected", ""));
@@ -93,8 +99,12 @@ export default function Home() {
   const clearRef = useRef(null);
   const menuRef = useRef(null);
 
-  useEffect(() => writeFlag("panel.left", leftOpen), [leftOpen]);
-  useEffect(() => writeFlag("panel.right", rightOpen), [rightOpen]);
+  useEffect(() => {
+    if (!mobile) writeFlag("panel.left", leftOpen);
+  }, [mobile, leftOpen]);
+  useEffect(() => {
+    if (!mobile) writeFlag("panel.right", rightOpen);
+  }, [mobile, rightOpen]);
   useEffect(() => writePref("bank.selected", activeBankId || ""), [activeBankId]);
   useEffect(() => writePref("ledger.month", month), [month]);
 
