@@ -51,6 +51,30 @@
   border: var(--line) solid var(--soft-line);
 }
 
+/* The month's balances and what it left, label and amount on a line each, in small type. */
+.summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-content: center;
+  gap: 2px 12px;
+  margin: 0;
+  font-size: 11px;
+}
+
+.summary dt {
+  color: var(--muted);
+}
+
+.summary dd {
+  margin: 0;
+  text-align: right;
+}
+
+.summary .statNote {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+}
+
 .statLabel {
   color: var(--muted);
 }
@@ -166,10 +190,29 @@
   outline-offset: 2px;
 }
 
+/* The two sides, closer together than the dialog's other blocks. */
+.flows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .flow {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* Both sides stand as tall as a full list (ten rows and the rest), however few rows they have,
+   so the two blocks are the same height; a shorter list sits centred in it. */
+.flow .legend {
+  min-height: calc(11 * 14px + 10 * 2px);
+  justify-content: center;
+  gap: 2px;
+}
+
+.flow .legend li {
+  height: 14px;
 }
 
 .flowTitle {

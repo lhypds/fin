@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Modal } from "@ui";
 import { useReconcile } from "@store";
 import { fmtMoney } from "@utils/format";
-import { ALL, UNDATED, accountBalances, monthLabel, monthOf } from "@utils/transactions";
+import { ALL, UNDATED, accountBalances, balanceBefore, monthLabel, monthOf, nextMonth } from "@utils/transactions";
 import MonthPicker from "../Ledger/MonthPicker";
 import { findInternalTransfers } from "@utils/transfers";
 import styles from "./assets.module.css";
@@ -45,6 +45,9 @@ function Pie({ slices, currency }) {
   );
 }
 
+// An amount of money with its direction written out: "+" in, "-" out, no sign on zero.
+const fmtSigned = (value, currency) => (value > 0 ? "+" : value < 0 ? "-" : "") + fmtMoney(Math.abs(value), currency);
+
 // How many rows each side of a month lists by name; the rest share one slice.
 const TOP = 10;
 
@@ -68,8 +71,9 @@ function monthFlows(transactions, banks, month, currency, bankId) {
 }
 
 // One side of the month: its largest rows by name, the rest as one grey slice, as a pie with
-// its legend. A row is named by its memo, or its statement text without one.
-function FlowChart({ title, side, currency }) {
+// its legend. A row is named by its memo, or its statement text without one. `sign` is 1 for
+// money in, -1 for money out, and writes the amounts "+" or "-".
+function FlowChart({ title, side, sign, currency }) {
   const { t } = useTranslation();
   if (!side.rows.length) return null;
   const top = side.rows.slice(0, TOP);
@@ -101,7 +105,7 @@ function FlowChart({ title, side, currency }) {
               <span className={styles.legendName} title={s.name}>
                 {s.name}
               </span>
-              <span className={`${styles.num} mono`}>{fmtMoney(s.value, currency)}</span>
+              <span className={`${styles.num} ${sign > 0 ? styles.income : styles.spending} mono`}>{fmtSigned(sign * s.value, currency)}</span>
               <span className={`${styles.num} ${styles.share} mono`}>{((s.value / side.total) * 100).toFixed(1)}%</span>
             </li>
           ))}
@@ -148,6 +152,18 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
     () => month && monthFlows(transactions, banks, month, currency, flowBank),
     [transactions, banks, month, currency, flowBank],
   );
+  const net = flows ? flows.income.total - flows.spending.total : 0;
+  // What the account (or every account, added up) held when the month began and when it ended,
+  // from the statements' balances; the accounts with none are left out, null when none has one.
+  const monthBalances = useMemo(() => {
+    if (!month) return null;
+    const scoped = banks.filter((b) => !flowBank || b.id === flowBank);
+    const sum = (date) => {
+      const known = scoped.map((b) => balanceBefore(b, transactions, currency, date)).filter((v) => v != null);
+      return known.length ? known.reduce((a, v) => a + Number(v), 0) : null;
+    };
+    return { start: sum(`${month}-01`), end: sum(`${nextMonth(month)}-01`) };
+  }, [transactions, banks, month, currency, flowBank]);
 
   const rows = held.filter((h) => h.currency === currency).sort((a, b) => b.balance - a.balance);
   const total = rows.reduce((sum, r) => sum + r.balance, 0);
@@ -278,27 +294,36 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
             <div className={styles.stats}>
               <div className={styles.stat}>
                 <span className={styles.statLabel}>{t("assets.income")}</span>
-                <span className={`${styles.statValue} ${styles.income} mono`}>{fmtMoney(flows.income.total, currency)}</span>
+                <span className={`${styles.statValue} ${styles.income} mono`}>{fmtSigned(flows.income.total, currency)}</span>
                 <span className={styles.statNote}>{t("assets.count", { count: flows.income.rows.length })}</span>
               </div>
               <div className={styles.stat}>
                 <span className={styles.statLabel}>{t("assets.spending")}</span>
-                <span className={`${styles.statValue} ${styles.spending} mono`}>{fmtMoney(flows.spending.total, currency)}</span>
+                <span className={`${styles.statValue} ${styles.spending} mono`}>{fmtSigned(-flows.spending.total, currency)}</span>
                 <span className={styles.statNote}>{t("assets.count", { count: flows.spending.rows.length })}</span>
               </div>
-              <div className={styles.stat}>
-                <span className={styles.statLabel}>{t("assets.net")}</span>
-                <span className={`${styles.statValue} mono`}>{fmtMoney(flows.income.total - flows.spending.total, currency)}</span>
-                {flows.transfers > 0 && <span className={styles.statNote}>{t("assets.transfersNote", { count: flows.transfers })}</span>}
-              </div>
+              {/* The balances either side of the month and what it left, in small type in one card. */}
+              <dl className={`${styles.stat} ${styles.summary}`}>
+                {monthBalances?.start != null && (
+                  <>
+                    <dt>{t("assets.startBalance")}</dt>
+                    <dd className="mono">{fmtMoney(monthBalances.start, currency)}</dd>
+                    <dt>{t("assets.endBalance")}</dt>
+                    <dd className="mono">{fmtMoney(monthBalances.end, currency)}</dd>
+                  </>
+                )}
+                <dt>{t("assets.net")}</dt>
+                <dd className={`${net > 0 ? styles.income : net < 0 ? styles.spending : ""} mono`}>{fmtSigned(net, currency)}</dd>
+                {flows.transfers > 0 && <p className={styles.statNote}>{t("assets.transfersNote", { count: flows.transfers })}</p>}
+              </dl>
             </div>
             {!flows.income.rows.length && !flows.spending.rows.length ? (
               <p className="muted">{t("assets.noFlows")}</p>
             ) : (
-              <>
-                <FlowChart title={t("assets.topSpending", { count: TOP })} side={flows.spending} currency={currency} />
-                <FlowChart title={t("assets.topIncome", { count: TOP })} side={flows.income} currency={currency} />
-              </>
+              <div className={styles.flows}>
+                <FlowChart title={t("assets.topSpending", { count: TOP })} side={flows.spending} sign={-1} currency={currency} />
+                <FlowChart title={t("assets.topIncome", { count: TOP })} side={flows.income} sign={1} currency={currency} />
+              </div>
             )}
           </>
         )}

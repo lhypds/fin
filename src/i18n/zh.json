@@ -155,7 +155,9 @@
     "topSpending": "金额最大的 {{count}} 笔支出",
     "topIncome": "金额最大的 {{count}} 笔收入",
     "transfersNote": "账户之间的 {{count}} 笔转账不计入",
-    "noFlows": "这个月没有收支。"
+    "noFlows": "这个月没有收支。",
+    "startBalance": "月初余额",
+    "endBalance": "月末余额"
   },
   "bankEditor": {
     "title": "编辑银行账户",

@@ -155,7 +155,9 @@
     "topSpending": "Top {{count}} spending",
     "topIncome": "Top {{count}} income",
     "transfersNote": "{{count}} transfer rows between the accounts left out",
-    "noFlows": "Nothing in or out this month."
+    "noFlows": "Nothing in or out this month.",
+    "startBalance": "Start of month",
+    "endBalance": "End of month"
   },
   "bankEditor": {
     "title": "Edit bank account",

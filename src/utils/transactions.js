@@ -47,20 +47,40 @@ function inCurrency(bank, currency) {
 // the newest date, and on that day the row no other row of the day follows. Banks print a day's
 // rows oldest first or newest first, so file order cannot tell; the balances can: a row starts
 // from its balance plus what went out less what came in, and the last row's balance is where no
-// other row starts. When the balances don't single one out, the row imported last. Null when
-// there is none.
-export function lastBalanceRow(transactions, bank, currency = bank.currency || "JPY") {
+// other row starts. When the balances don't single one out, the row imported last. Only rows
+// dated before `until` (an ISO date) count when it is given. Null when there is none.
+export function lastBalanceRow(transactions, bank, currency = bank.currency || "JPY", until = null) {
   const counts = inCurrency(bank, currency);
   let day = [];
   for (const tx of transactions) {
     if (tx.bankId !== bank.id || !tx.date || tx.balance == null || !counts(tx)) continue;
+    if (until && tx.date >= until) continue;
     if (!day.length || tx.date > day[0].date) day = [tx];
     else if (tx.date === day[0].date) day.push(tx);
   }
   if (!day.length) return null;
-  const before = (tx) => Number(tx.balance) + (Number(tx.withdrawal) || 0) - (Number(tx.deposit) || 0);
-  const ends = day.filter((tx) => !day.some((o) => o !== tx && before(o) === Number(tx.balance)));
+  const ends = day.filter((tx) => !day.some((o) => o !== tx && startBalance(o) === Number(tx.balance)));
   return ends.length === 1 ? ends[0] : day[day.length - 1];
+}
+
+// What the account held just before a statement row: its balance plus what went out less what came in.
+const startBalance = (tx) => Number(tx.balance) + (Number(tx.withdrawal) || 0) - (Number(tx.deposit) || 0);
+
+// What an account held in `currency` at the start of `date` (an ISO date), from its statements:
+// the balance of the last row before that day, or, when the statements begin on or after it, what
+// the account held before its first row (the row of its first day no other row of the day leads
+// to). The balance typed in the editor stands in for the last row's, as in accountBalance. Null
+// when the account has no row with a balance.
+export function balanceBefore(bank, transactions, currency, date) {
+  const last = lastBalanceRow(transactions, bank, currency, date);
+  if (last) return last.id === lastBalanceRow(transactions, bank, currency)?.id ? accountBalance(bank, transactions, currency) : last.balance;
+  const counts = inCurrency(bank, currency);
+  const rows = transactions.filter((tx) => tx.bankId === bank.id && tx.date && tx.balance != null && counts(tx));
+  if (!rows.length) return null;
+  const first = rows.reduce((d, tx) => (tx.date < d ? tx.date : d), rows[0].date);
+  const day = rows.filter((tx) => tx.date === first);
+  const starts = day.filter((tx) => !day.some((o) => o !== tx && Number(o.balance) === startBalance(tx)));
+  return startBalance(starts.length === 1 ? starts[0] : day[0]);
 }
 
 // What an account holds in `currency` (the main one when left out): the balance typed into the
@@ -88,6 +108,12 @@ export function isoDate(ms = Date.now()) {
 }
 
 export const currentMonth = () => isoDate().slice(0, 7);
+
+// The month after a month key: "2026-12" to "2027-01".
+export function nextMonth(key) {
+  const [y, m] = key.split("-").map(Number);
+  return m === 12 ? `${y + 1}-01` : `${y}-${pad2(m + 1)}`;
+}
 
 // A date as every date in the app is written, YYYY-MM-DD with a two-digit month and day: the
 // model sometimes copies a statement's "2026/6/9" as "2026-6-9", which sorts after "2026-10-1" and

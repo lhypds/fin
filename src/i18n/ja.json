@@ -155,7 +155,9 @@
     "topSpending": "金額の大きい支出 {{count}} 件",
     "topIncome": "金額の大きい収入 {{count}} 件",
     "transfersNote": "口座間の振替 {{count}} 件は含みません",
-    "noFlows": "この月の収支はありません。"
+    "noFlows": "この月の収支はありません。",
+    "startBalance": "月初残高",
+    "endBalance": "月末残高"
   },
   "bankEditor": {
     "title": "銀行口座を編集",
