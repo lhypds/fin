@@ -504,7 +504,7 @@ export function ReconcileProvider({ children }) {
         if (!result) return;
         const { loaded, files, present } = result;
 
-        // Statements are read and removed, so one still on disk is a read this page (or another)
+        // Statements are read and then marked removed, so one still listed is a read this page (or another)
         // was cut off from, by a reload mid-run. It is picked up where it was left: the result
         // the server has, or the run it is still on, goes to the account the file was for.
         const keep = new Set((loaded?.receipts || []).map((r) => r.id));

@@ -1,15 +1,17 @@
-// The app's HTTP API: uploads, thumbnails, OCR, and the reconciliation state. Receipts stay as
-// uploads; a statement (CSV or Excel, or a passbook image) is uploaded only to be read, and the
-// client deletes it once the result is in.
+// The app's HTTP API: uploads, thumbnails, OCR, and the reconciliation state. Every upload is
+// numbered and kept: receipts, reference files, and statements (CSV or Excel, or a passbook
+// image) alike. A file the client is done with (a statement once read, a receipt removed, a
+// reference replaced) is only marked removed and drops out of the list; it stays on disk.
 // Returned as an express app so the same code mounts on the Vite dev server and on server/index.js.
 //
 //   data/
 //   ├── state.json                 banks, transactions, receipts, matches
+//   ├── upload-counter.json        the last upload number given out
 //   ├── backups/<unix ms>/         one folder per backup, taken on request
 //   │   └── state.json             state.json as it was at that time
 //   └── uploads/<unix ms>/         one folder per upload
 //       ├── <original file name>   byte-identical to what was uploaded
-//       ├── meta.json              name, type, size, role, uploadedAt, thumbnail
+//       ├── meta.json              no, name, type, size, role, uploadedAt, thumbnail, removedAt
 //       ├── thumbnail.webp         images only
 //       └── ocr.json               written when OCR has run (raw model output + model, time)
 
@@ -28,6 +30,7 @@ const ACCEPTED_TYPES = new Set([...SPREADSHEET_TYPES, "image/png", "image/jpeg",
 // file the AI memos are written from (kept until replaced).
 const ROLES = new Set(["receipt", "statement", "reference"]);
 const STATE = "state.json";
+const COUNTER = "upload-counter.json";
 const META = "meta.json";
 const THUMB = "thumbnail.webp";
 const OCR = "ocr.json";
@@ -73,21 +76,54 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
   }
 
   const readMeta = (id) => readJson(path.join(dirOf(id), META));
+  const writeMeta = (id, meta) => fsp.writeFile(path.join(dirOf(id), META), JSON.stringify(meta, null, 2));
 
   const exists = (file) => fsp.access(file).then(() => true, () => false);
 
+  // Upload numbers: 1, 2, 3, … in the order the files came in, never given out twice (not even
+  // after the data is cleared, since the counter lives outside uploads/). Handed out one at a
+  // time. On start, uploads from before numbering are numbered in the order they came in.
+  const counterPath = path.join(dataDir, COUNTER);
+  const writeCounter = async (last) => {
+    const tmp = `${counterPath}.tmp`;
+    await fsp.writeFile(tmp, JSON.stringify({ last }));
+    await fsp.rename(tmp, counterPath);
+  };
+  let numbering = (async () => {
+    let last = Number((await readJson(counterPath))?.last) || 0;
+    const unnumbered = [];
+    for (const id of (await fsp.readdir(uploadsDir)).filter((n) => ID_RE.test(n)).sort()) {
+      const meta = await readMeta(id);
+      if (!meta) continue;
+      if (Number.isInteger(meta.no)) last = Math.max(last, meta.no);
+      else unnumbered.push([id, meta]);
+    }
+    for (const [id, meta] of unnumbered) await writeMeta(id, { no: ++last, ...meta });
+    await writeCounter(last);
+  })().catch((err) => console.error("Failed to number the uploads", err));
+  function takeNo() {
+    const next = numbering.then(async () => {
+      const no = (Number((await readJson(counterPath))?.last) || 0) + 1;
+      await writeCounter(no);
+      return no;
+    });
+    numbering = next.catch(() => {});
+    return next;
+  }
+
   // `ocr` tells the client a result is on disk, so after a reload it can pick up a run whose
   // response no page was around to receive. `role` is what the upload was for (receipt or
-  // statement); a statement still here is one whose read was cut off, and `name`, `type` and
-  // `bankId` are what the client needs to finish it.
+  // statement); a statement still listed is one whose read was cut off, and `name`, `type` and
+  // `bankId` are what the client needs to finish it. Removed uploads are left out.
   async function listFiles() {
     const out = [];
     for (const name of (await fsp.readdir(uploadsDir)).sort()) {
       if (!ID_RE.test(name)) continue;
       const meta = await readMeta(name);
-      if (!meta) continue;
+      if (!meta || meta.removedAt) continue;
       out.push({
         id: name,
+        no: meta.no ?? null,
         name: meta.name,
         type: meta.type,
         role: meta.role || null,
@@ -255,6 +291,7 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
       const bankHeader = req.headers["x-file-bank"];
       const bankId = typeof bankHeader === "string" && /^[\w-]{1,64}$/.test(bankHeader) ? bankHeader : null;
 
+      const no = await takeNo();
       const id = await newDir(uploadsDir);
       const dir = dirOf(id);
       await fsp.writeFile(path.join(dir, name), req.body);
@@ -273,8 +310,8 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
         }
       }
 
-      const meta = { id, name, type, size: req.body.length, role, bankId, uploadedAt: new Date(Number(id)).toISOString(), thumbnail };
-      await fsp.writeFile(path.join(dir, META), JSON.stringify(meta, null, 2));
+      const meta = { no, id, name, type, size: req.body.length, role, bankId, uploadedAt: new Date(Number(id)).toISOString(), thumbnail };
+      await writeMeta(id, meta);
       res.json(meta);
     } catch (err) {
       next(err);
@@ -389,9 +426,12 @@ export function createApiApp({ dataDir, apiKey, baseUrl, model = DEFAULT_MODEL, 
     }
   });
 
+  // Marks an upload removed: it drops out of the list but stays on disk, under its number, and
+  // can still be fetched by id. One already gone or already removed is fine.
   app.delete("/api/files/:id", async (req, res, next) => {
     try {
-      await fsp.rm(dirOf(req.params.id), { recursive: true, force: true });
+      const meta = await readMeta(req.params.id);
+      if (meta && !meta.removedAt) await writeMeta(req.params.id, { ...meta, removedAt: new Date().toISOString() });
       res.json({ ok: true });
     } catch (err) {
       next(err);
