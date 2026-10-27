@@ -235,9 +235,11 @@
   },
   "matchEditor": {
     "title": "编辑对账",
+    "titleMany": "编辑 {{count}} 条备注",
     "receipts": "对账收据",
     "noReceipts": "未关联收据",
-    "memo": "备注"
+    "memo": "备注",
+    "memoMixed": "各行不同。输入后全部改为此内容。"
   },
   "confirmMatch": {
     "title": "确认对账",

@@ -786,6 +786,8 @@ export function ReconcileProvider({ children }) {
   const unmatch = useCallback((receiptId) => dispatch({ type: "unmatch", receiptId }), [dispatch]);
 
   const updateTransaction = useCallback((id, patch) => dispatch({ type: "updateTransaction", id, patch }), [dispatch]);
+  // The same patch on several rows, in one save.
+  const updateTransactions = useCallback((ids, patch) => dispatch({ type: "patchTransactions", patches: ids.map((id) => ({ id, patch })) }), [dispatch]);
   const addTransaction = useCallback(
     (tx) => {
       const item = { id: uid(), bankId: null, bank: "", memo: "", receiptIds: [], currency: "JPY", withdrawal: 0, deposit: 0, balance: null, ...tx };
@@ -972,6 +974,7 @@ export function ReconcileProvider({ children }) {
       match,
       unmatch,
       updateTransaction,
+      updateTransactions,
       addTransaction,
       removeTransaction,
       updateReceipt,
@@ -1008,6 +1011,7 @@ export function ReconcileProvider({ children }) {
       match,
       unmatch,
       updateTransaction,
+      updateTransactions,
       addTransaction,
       removeTransaction,
       updateReceipt,

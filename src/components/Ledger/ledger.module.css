@@ -121,7 +121,7 @@
 }
 
 /* Every data row is a button (the header is not): a double click confirms it, green across both
-   halves, and another double click takes the confirmation back; a single click only focuses it.
+   halves, and another double click takes the confirmation back; a single click only selects it.
    A matched row, or one with a memo (typed, or written by the auto memo), is blue until then.
    Both colours sit after :hover so they hold while hovered, green after blue so it wins on a
    matched row. */
@@ -138,11 +138,15 @@
   background: var(--ok-bg);
 }
 
-/* The keyboard's row is shaded the way a hovered one is, with no ring. The shade is a tint over
-   the row's own colour rather than the hover grey itself, so the cursor shows on a blue or green
-   row too (hover leaves those alone) and the green still says the row is confirmed. */
-.row[role="button"]:focus-visible {
+/* A selected row (clicked, Ctrl- or Shift-clicked, or reached with the arrows) is shaded the way a
+   hovered one is; the focus itself shows no ring. The shade is a tint over the row's own colour
+   rather than the hover grey itself, so it shows on a blue or green row too (hover leaves those
+   alone) and the green still says the row is confirmed. */
+.row[role="button"]:focus {
   outline: none;
+}
+
+.row[data-selected="true"] {
   background-image: linear-gradient(var(--tint), var(--tint));
 }
 

@@ -235,9 +235,11 @@
   },
   "matchEditor": {
     "title": "照合を編集",
+    "titleMany": "{{count}} 件のメモを編集",
     "receipts": "照合した証憑",
     "noReceipts": "証憑なし",
-    "memo": "メモ"
+    "memo": "メモ",
+    "memoMixed": "行ごとに異なります。入力すると全件をこの内容にします。"
   },
   "confirmMatch": {
     "title": "照合を確認",

@@ -86,9 +86,43 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, kinds
   const rowRefs = useRef(new Map());
   const cursorRef = useRef(null);
 
+  // The selected rows, apart from the focus: a click selects its row alone, Ctrl (⌘ on a Mac)
+  // adds or takes one away, Shift selects every row on screen from the anchor (the row last
+  // clicked without Shift) to the one clicked. The keyboard's row is selected alone, like a click.
+  const [selected, setSelected] = useState(() => new Set());
+  const anchorRef = useRef(null);
+  useEffect(() => {
+    setSelected(new Set());
+    anchorRef.current = null;
+  }, [bankId, month]);
+
+  function selectByClick(e, tx) {
+    // Buttons and thumbnails in the row keep their clicks; the second click of a double click
+    // is the confirmation's, not another selection.
+    if (e.target.closest("button, a, input") || e.detail > 1) return;
+    const anchor = rows.findIndex((r) => r.id === anchorRef.current);
+    if (e.shiftKey && anchor >= 0) {
+      const i = rows.indexOf(tx);
+      const [from, to] = anchor < i ? [anchor, i] : [i, anchor];
+      setSelected(new Set(rows.slice(from, to + 1).map((r) => r.id)));
+      return;
+    }
+    anchorRef.current = tx.id;
+    if (e.ctrlKey || e.metaKey) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        if (next.has(tx.id)) next.delete(tx.id);
+        else next.add(tx.id);
+        return next;
+      });
+    } else setSelected(new Set([tx.id]));
+  }
+
   const focusRow = useCallback((tx) => {
     const el = tx && rowRefs.current.get(tx.id);
     if (!el) return;
+    setSelected(new Set([tx.id]));
+    anchorRef.current = tx.id;
     el.focus({ preventScroll: true });
     // focus() alone scrolls only until the row's edge is inside the pane, which leaves it under
     // the sticky header; this brings it out from under the header, or up from below the bottom.
@@ -204,7 +238,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, kinds
               const mismatch = sum != null;
               // Every row is a toggle: a double click anywhere on it that no button or thumbnail
               // claims flips the human confirmation, matched or not (a row can be checked off
-              // without a receipt). A single click only focuses the row, so a stray click cannot
+              // without a receipt). A single click only selects the row, so a stray click cannot
               // confirm one. Keys count only on the row itself, since Enter and Space on the
               // buttons inside it bubble up here too. A focus on any of those buttons still moves
               // the cursor here, so the arrows carry on from the row that was last worked on.
@@ -218,7 +252,13 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, kinds
                 // selects.
                 onMouseDown: (e) => {
                   if (e.detail > 1) e.preventDefault();
+                  // Shift would stretch a text selection to the pointer; the rows are selected instead.
+                  else if (e.shiftKey && !e.target.closest("button, a, input")) {
+                    e.preventDefault();
+                    e.currentTarget.focus({ preventScroll: true });
+                  }
                 },
+                onClick: (e) => selectByClick(e, tx),
                 onFocus: () => {
                   cursorRef.current = { id: tx.id, index: rows.indexOf(tx) };
                 },
@@ -246,6 +286,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, kinds
                   data-matched={matched}
                   data-noted={!!tx.memo}
                   data-confirmed={!!tx.confirmed}
+                  data-selected={selected.has(tx.id)}
                   {...confirmProps}
                   onDragOver={(e) => {
                     if (!isReceiptDrag(e)) return;
@@ -339,7 +380,11 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, kinds
                     {/* The cell's one button opens the reconciliation editor, where receipts are unmatched
                         and the note typed. It keeps the right edge, centred on the stack beside it. */}
                     <div className={styles.matchActions} onDoubleClick={(e) => e.stopPropagation()}>
-                      <ActionButton tooltip={t("button.edit")} onClick={() => setEditingMatch(tx)}>
+                      {/* On one of several selected rows, the editor takes them all, for their memo. */}
+                      <ActionButton
+                        tooltip={t("button.edit")}
+                        onClick={() => setEditingMatch({ tx, txs: selected.has(tx.id) ? rows.filter((r) => selected.has(r.id)) : [tx] })}
+                      >
                         <EditIcon />
                       </ActionButton>
                     </div>
@@ -363,7 +408,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, kinds
           }}
         />
       )}
-      {editingMatch && <MatchEditor tx={editingMatch} onClose={() => setEditingMatch(null)} onPreview={onPreviewReceipt} />}
+      {editingMatch && <MatchEditor tx={editingMatch.tx} txs={editingMatch.txs} onClose={() => setEditingMatch(null)} onPreview={onPreviewReceipt} />}
       {confirming && <ConfirmDialog tx={confirming} onClose={closeConfirm} onConfirm={finishConfirm} />}
     </div>
   );

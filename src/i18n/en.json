@@ -235,9 +235,11 @@
   },
   "matchEditor": {
     "title": "Edit reconciliation",
+    "titleMany": "Edit memo of {{count}} rows",
     "receipts": "Matched receipts",
     "noReceipts": "No receipt matched",
-    "memo": "Memo"
+    "memo": "Memo",
+    "memoMixed": "Differs by row. Type to set all of them to this."
   },
   "confirmMatch": {
     "title": "Confirm reconciliation",
