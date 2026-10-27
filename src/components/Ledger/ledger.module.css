@@ -20,6 +20,13 @@
   border-bottom: var(--line) solid var(--border);
 }
 
+/* The month and the money-in / money-out checkboxes beside it. */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 /* The two scroll axes live on two nested boxes: the outer one scrolls horizontally and shows its
    scrollbar when the pane is narrower than the table, the inner one scrolls vertically with its
    scrollbar hidden (.scroll-y). Firefox cannot hide one axis of a single box. */

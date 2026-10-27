@@ -110,24 +110,30 @@ function monthsOf(transactions) {
   return [{ key: ALL }, ...list];
 }
 
-// How the ledger writes a month wherever it names one: "2026-10" as "2026 - 10", the two entries
+// How the ledger writes a month wherever it names one: "2026-10" as its key, the two entries
 // that are not months by their names.
 export function monthLabel(key, t) {
   if (key === ALL) return t("ledger.allMonths");
   if (key === UNDATED) return t("ledger.undated");
-  return key.replace("-", " - ");
+  return key;
 }
+
+// Which side of the account a row is on: money out, or money in (a row with no amount counts as in).
+const isWithdrawal =(tx) => Boolean(tx.withdrawal);
 
 // What the ledger shows for a chosen account and month: the months the account's rows (or every
 // row, with no account chosen) fall in, which of them is on screen, and its rows. The month on
 // screen is the chosen one, or the newest when none is chosen yet or the chosen one has no rows
-// in this account; "all" is every row the account has.
-export function ledgerView(transactions, bankId, month) {
+// in this account; "all" is every row the account has. `kinds` narrows the rows to money in
+// (`deposit`), money out (`withdrawal`) or both; the months offered stay the same either way, and
+// `inMonth` keeps the month's rows before that.
+export function ledgerView(transactions, bankId, month, kinds = { deposit: true, withdrawal: true }) {
   const scoped = bankId ? transactions.filter((tx) => tx.bankId === bankId) : transactions;
   const months = monthsOf(scoped);
   const found = months.findIndex((m) => m.key === month);
   const index = found >= 0 ? found : months.findIndex((m) => m.key !== ALL);
   const current = months[index].key;
-  const rows = current === ALL ? scoped : scoped.filter((tx) => monthOf(tx) === current);
-  return { months, index, current, rows };
+  const inMonth = current === ALL ? scoped : scoped.filter((tx) => monthOf(tx) === current);
+  const rows = inMonth.filter((tx) => (isWithdrawal(tx) ? kinds.withdrawal : kinds.deposit));
+  return { months, index, current, rows, inMonth };
 }

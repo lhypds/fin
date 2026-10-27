@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActionButton, isModalOpen } from "@ui";
+import { ActionButton, Checkbox, isModalOpen } from "@ui";
 import { useReconcile } from "@store";
 import { fmtMoney, txAmount } from "@utils/format";
 import { receiptsSumMismatch } from "@utils/matching";
@@ -32,8 +32,11 @@ function sortByDate(list) {
 }
 
 // One month of one account (or of all of them) at a time. `bankId` is the account chosen on the
-// left, `month` the one chosen here, both held by the page so an import can move them.
-export default function Ledger({ bankId = null, month = "", onMonthChange, onPreviewReceipt, query = "" }) {
+// left, `month` the one chosen here, both held by the page so an import can move them. `kinds`
+// says whether money in (`deposit`) and money out (`withdrawal`) are shown.
+const BOTH_KINDS = { deposit: true, withdrawal: true };
+
+export default function Ledger({ bankId = null, month = "", onMonthChange, kinds = BOTH_KINDS, onKindsChange, onPreviewReceipt, query = "" }) {
   const { t } = useTranslation();
   const { transactions, receiptById, match, removeTransaction, updateTransaction } = useReconcile();
   const [editing, setEditing] = useState(null);
@@ -43,7 +46,7 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
 
   // The month picker's entries, the one on screen, and its rows. The header's auto-match covers
   // the same rows, so the one definition of "what the ledger shows" lives in @utils/transactions.
-  const { months, index, current, rows: inMonth } = useMemo(() => ledgerView(transactions, bankId, month), [transactions, bankId, month]);
+  const { months, index, current, rows: inMonth, inMonth: monthRows } = useMemo(() => ledgerView(transactions, bankId, month, kinds), [transactions, bankId, month, kinds]);
   // A picker entry, written the way the ledger writes a month everywhere.
   const labelOf = (m) => monthLabel(m.key, t);
 
@@ -146,14 +149,23 @@ export default function Ledger({ bankId = null, month = "", onMonthChange, onPre
 
   const emptyText = () => {
     if (transactions.length === 0) return t("ledger.empty");
-    if (inMonth.length === 0) return t("ledger.emptyMonth", { month: labelOf(months[index]) });
+    if (monthRows.length === 0) return t("ledger.emptyMonth", { month: labelOf(months[index]) });
+    if (inMonth.length === 0) return t("ledger.emptyFiltered");
     return t("ledger.emptySearch");
   };
 
   return (
     <div className={styles.ledger}>
       <div className={styles.toolbar}>
-        <MonthPicker months={months} index={index} label={labelOf} onChange={onMonthChange} />
+        <div className={styles.filters}>
+          <MonthPicker months={months} index={index} label={labelOf} onChange={onMonthChange} />
+          <Checkbox checked={kinds.deposit} onChange={(on) => onKindsChange?.({ ...kinds, deposit: on })}>
+            {t("ledger.showDeposit")}
+          </Checkbox>
+          <Checkbox checked={kinds.withdrawal} onChange={(on) => onKindsChange?.({ ...kinds, withdrawal: on })}>
+            {t("ledger.showWithdrawal")}
+          </Checkbox>
+        </div>
         <button type="button" className="btn" onClick={() => setEditing("new")}>
           <PlusIcon />
           {t("ledger.add")}

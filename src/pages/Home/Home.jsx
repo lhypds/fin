@@ -69,9 +69,11 @@ export default function Home() {
   const [bankId, setBankId] = useState(() => readPref("bank.selected", ""));
   const [month, setMonth] = useState(() => readPref("ledger.month", ""));
   const activeBankId = banks.some((b) => b.id === bankId) ? bankId : null;
-  // What the ledger has on screen. Auto-match pairs only these rows: other months and other
-  // accounts are left as they are.
-  const shown = useMemo(() => ledgerView(transactions, activeBankId, month), [transactions, activeBankId, month]);
+  // Money in and money out, each shown or hidden by the ledger's checkboxes; both on at first.
+  const [kinds, setKinds] = useState({ deposit: true, withdrawal: true });
+  // What the ledger has on screen. Auto-match pairs only these rows: other months, other
+  // accounts and the hidden side are left as they are.
+  const shown = useMemo(() => ledgerView(transactions, activeBankId, month, kinds), [transactions, activeBankId, month, kinds]);
   // The status bar counts the rows of the bank and month on screen, not every transaction stored:
   // all of them, then the confirmed and the unconfirmed, in the order of the ledger's tabs.
   const shownStats = useMemo(() => {
@@ -321,7 +323,7 @@ export default function Home() {
         </button>
 
         <main className={styles.main}>
-          <Ledger bankId={activeBankId} month={month} onMonthChange={setMonth} query={query} onPreviewReceipt={setPreview} />
+          <Ledger bankId={activeBankId} month={month} onMonthChange={setMonth} kinds={kinds} onKindsChange={setKinds} query={query} onPreviewReceipt={setPreview} />
         </main>
 
         <button

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, showToast } from "@ui";
 import { EXPORT_COLUMNS, EXPORT_FORMATS, exportLedger } from "@utils/export";
-import { ALL, UNDATED, monthLabel } from "@utils/transactions";
+import { monthLabel } from "@utils/transactions";
 import { DownloadIcon, LoaderIcon } from "../icons";
 import styles from "./export.module.css";
 
@@ -36,10 +36,8 @@ export default function ExportModal({ rows, bank, month, onClose }) {
   const [format, setFormat] = useState(readFormat);
   const [busy, setBusy] = useState(false);
   const scope = bank?.label || t("banks.all");
-  // The month as the ledger's picker writes it; the file takes a month's key itself, with no
-  // spaces, and the name of the other two entries (every month, no date).
+  // The month as the ledger's picker writes it, in the text and in the file's name.
   const monthText = monthLabel(month, t);
-  const monthName = month === ALL || month === UNDATED ? monthText : month;
 
   async function run() {
     writeFormat(format);
@@ -49,7 +47,7 @@ export default function ExportModal({ rows, bank, month, onClose }) {
         rows,
         format,
         header: EXPORT_COLUMNS.map((key) => t(`export.columns.${key}`)),
-        name: `${scope} ${monthName}`,
+        name: `${scope} ${monthText}`,
       });
       showToast(t("toast.exported", { count: rows.length }));
       onClose();
