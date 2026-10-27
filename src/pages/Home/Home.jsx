@@ -70,8 +70,18 @@ export default function Home() {
   const [month, setMonth] = useState(() => readPref("ledger.month", ""));
   const activeBankId = banks.some((b) => b.id === bankId) ? bankId : null;
   // The ledger's filter beside the month: money in and money out, each shown or hidden, and the
-  // smallest amount shown. Everything is shown at first.
-  const [filter, setFilter] = useState(NO_FILTER);
+  // smallest amount shown. Each account keeps its own ("" for all of them), remembered across
+  // reloads; everything is shown in an account not filtered yet.
+  const [filters, setFilters] = useState(() => {
+    try {
+      return JSON.parse(readPref("ledger.filters", "{}")) || {};
+    } catch {
+      return {};
+    }
+  });
+  const filterKey = activeBankId || "";
+  const filter = useMemo(() => ({ ...NO_FILTER, ...filters[filterKey] }), [filters, filterKey]);
+  const setFilter = useCallback((next) => setFilters((prev) => ({ ...prev, [filterKey]: next })), [filterKey]);
   // What the ledger has on screen. Auto-match pairs only these rows: other months, other
   // accounts and the rows the filter hides are left as they are.
   const shown = useMemo(() => ledgerView(transactions, activeBankId, month, filter), [transactions, activeBankId, month, filter]);
@@ -110,6 +120,7 @@ export default function Home() {
     if (!mobile) writeFlag("panel.right", rightOpen);
   }, [mobile, rightOpen]);
   useEffect(() => writePref("bank.selected", activeBankId || ""), [activeBankId]);
+  useEffect(() => writePref("ledger.filters", JSON.stringify(filters)), [filters]);
   useEffect(() => writePref("ledger.month", month), [month]);
 
   const closeClear = useCallback(() => setClearOpen(false), []);
