@@ -1,0 +1,160 @@
+/* After tm's income analysis (IncomeAnalysisModal/analysis.module.css): the totals as tiles, the
+   pie with its legend beside it, then every account in a table. */
+.modal {
+  max-width: 640px;
+}
+
+/* The 6px of top padding plus the modal header's 10px make the 16px kept below the content. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 6px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+
+/* .select is full width by default; here it fits its options. */
+.body :global(.select) {
+  width: auto;
+}
+
+.control :global(.select) {
+  color: var(--fg);
+}
+
+/* The totals, side by side. */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: var(--line) solid var(--soft-line);
+}
+
+.statLabel {
+  color: var(--muted);
+}
+
+.statValue {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.statNote {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+/* The pie, its legend beside it (under it when narrow). */
+.chart {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.pie {
+  flex: none;
+  width: 160px;
+  height: 160px;
+}
+
+.pie path,
+.pie circle {
+  stroke: var(--bg);
+  stroke-width: 1;
+}
+
+.legend {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+}
+
+.legendName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.num {
+  white-space: nowrap;
+}
+
+.share {
+  width: 48px;
+  text-align: right;
+  color: var(--muted);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 6px 8px;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: var(--line) solid var(--soft-line);
+}
+
+.table th {
+  color: var(--muted);
+  font-weight: normal;
+}
+
+.table th:not(:last-child),
+.table td:not(:last-child) {
+  text-align: left;
+  max-width: 200px;
+}
+
+.table tfoot td {
+  font-weight: 600;
+  border-bottom: 0;
+}

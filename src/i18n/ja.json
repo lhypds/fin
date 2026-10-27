@@ -136,6 +136,17 @@
     "unnamed": "新しい口座",
     "openSite": "銀行サイトを開く"
   },
+  "assets": {
+    "title": "資産分析",
+    "total": "総資産",
+    "accounts": "{{count}} 口座",
+    "owing": "マイナス残高",
+    "owingNote": "総資産から差し引き済み、円グラフには含まない",
+    "account": "口座",
+    "sum": "合計",
+    "none": "残高のある口座がまだありません。",
+    "unknown": "残高のない {{count}} 口座は含まれていません。"
+  },
   "bankEditor": {
     "title": "銀行口座を編集",
     "addTitle": "銀行口座を追加",

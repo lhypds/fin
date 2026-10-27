@@ -136,6 +136,17 @@
     "unnamed": "新账户",
     "openSite": "打开银行网站"
   },
+  "assets": {
+    "title": "资产分析",
+    "total": "总资产",
+    "accounts": "{{count}} 个账户",
+    "owing": "负余额",
+    "owingNote": "已从总资产中扣除，不在饼图中",
+    "account": "账户",
+    "sum": "合计",
+    "none": "还没有账户有余额。",
+    "unknown": "{{count}} 个账户还没有余额，未计入。"
+  },
   "bankEditor": {
     "title": "编辑银行账户",
     "addTitle": "添加银行账户",

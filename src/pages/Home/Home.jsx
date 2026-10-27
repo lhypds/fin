@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, BackupModal, AutoMatchModal, AutoMemoModal, ExportModal, confirm } from "@components";
-import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, EditIcon, UnlinkIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon, DownloadIcon, LoaderIcon } from "@components/icons";
+import { LanguageSwitcher, BankPanel, ReceiptPanel, Ledger, PreviewModal, BackupModal, AutoMatchModal, AutoMemoModal, ExportModal, AssetsModal, confirm } from "@components";
+import { ChevronLeftIcon, ChevronRightIcon, ZapIcon, EditIcon, UnlinkIcon, SearchIcon, XIcon, UserIcon, ArchiveIcon, DownloadIcon, LoaderIcon, PieIcon } from "@components/icons";
 import { showToast } from "@ui";
 import { useReconcile, useAuth } from "@store";
 import { ledgerView, monthLabel } from "@utils/transactions";
@@ -91,6 +91,7 @@ export default function Home() {
   const [autoMatchOpen, setAutoMatchOpen] = useState(false);
   const [autoMemoOpen, setAutoMemoOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [assetsOpen, setAssetsOpen] = useState(false);
   // While the model is writing memos: the button waits, and a toast says so.
   const [generating, setGenerating] = useState(false);
   const [query, setQuery] = useState("");
@@ -269,6 +270,10 @@ export default function Home() {
             <ArchiveIcon />
             {t("header.backup")}
           </button>
+          {/* What every account holds, as tm's analysis: an icon only, named by its tooltip. */}
+          <button type="button" className="btn" onClick={() => setAssetsOpen(true)} title={t("assets.title")} aria-label={t("assets.title")}>
+            <PieIcon />
+          </button>
           {/* The account, as stash's bar has it: the language switcher with a profile button
               joined to it, which opens a menu holding the name and the way out. */}
           <div className={styles.account}>
@@ -352,6 +357,7 @@ export default function Home() {
 
       {preview && <PreviewModal id={preview} onClose={closePreview} />}
       {backupOpen && <BackupModal onClose={() => setBackupOpen(false)} />}
+      {assetsOpen && <AssetsModal onClose={() => setAssetsOpen(false)} />}
       {autoMatchOpen && <AutoMatchModal onClose={() => setAutoMatchOpen(false)} onConfirm={handleAutoMatch} />}
       {autoMemoOpen && <AutoMemoModal rows={shown.rows} bankId={activeBankId} onClose={() => setAutoMemoOpen(false)} onConfirm={handleAutoMemo} />}
       {exportOpen && (

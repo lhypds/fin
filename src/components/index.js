@@ -11,4 +11,5 @@ export { default as BackupModal } from "./BackupModal";
 export { default as AutoMatchModal } from "./AutoMatchModal";
 export { default as AutoMemoModal } from "./AutoMemoModal";
 export { default as ExportModal } from "./ExportModal";
+export { default as AssetsModal } from "./AssetsModal";
 export { default as ConfirmModal, confirm } from "./ConfirmModal";

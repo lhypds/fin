@@ -136,6 +136,17 @@
     "unnamed": "New account",
     "openSite": "Open bank website"
   },
+  "assets": {
+    "title": "Asset analysis",
+    "total": "Total assets",
+    "accounts": "{{count}} accounts",
+    "owing": "Negative balances",
+    "owingNote": "Taken off the total; not in the pie",
+    "account": "Account",
+    "sum": "Total",
+    "none": "No account has a balance yet.",
+    "unknown": "{{count}} accounts without a balance are left out."
+  },
   "bankEditor": {
     "title": "Edit bank account",
     "addTitle": "Add bank account",

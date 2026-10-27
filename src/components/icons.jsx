@@ -132,6 +132,16 @@ export function PlusIcon({ className }) {
   );
 }
 
+// Analysis: a pie with a slice taken out, as tm's.
+export function PieIcon({ className }) {
+  return (
+    <Icon className={className}>
+      <path d="M21 12A9 9 0 1 1 12 3" />
+      <path d="M12 3a9 9 0 0 1 9 9h-9Z" />
+    </Icon>
+  );
+}
+
 export function ZapIcon({ className }) {
   return (
     <Icon className={className}>
