@@ -102,6 +102,15 @@ function reducer(state, action) {
         transactions: state.transactions.map((t) => (t.bankId === action.id && t.bank !== label ? { ...t, bank: label } : t)),
       };
     }
+    // An account dragged to another place in the list: before the account `before`, or last (null).
+    case "moveBank": {
+      const moved = state.banks.find((b) => b.id === action.id);
+      if (!moved) return state;
+      const rest = state.banks.filter((b) => b.id !== action.id);
+      const i = action.before == null ? -1 : rest.findIndex((b) => b.id === action.before);
+      const at = i < 0 ? rest.length : i;
+      return { ...state, banks: [...rest.slice(0, at), moved, ...rest.slice(at)] };
+    }
     // An account goes with its rows.
     case "removeBank": {
       const txIds = new Set(state.transactions.filter((t) => t.bankId === action.id).map((t) => t.id));
@@ -563,6 +572,7 @@ export function ReconcileProvider({ children }) {
   );
   const updateBank = useCallback((id, patch) => dispatch({ type: "updateBank", id, patch }), [dispatch]);
   const removeBank = useCallback((id) => dispatch({ type: "removeBank", id }), [dispatch]);
+  const moveBank = useCallback((id, before) => dispatch({ type: "moveBank", id, before }), [dispatch]);
 
   // Reads statements for an account (or for the account each turns out to be from, when `bankId`
   // is null): every file goes up, is read by the model, and comes down again. Returns the usual
@@ -909,6 +919,7 @@ export function ReconcileProvider({ children }) {
       addBank,
       updateBank,
       removeBank,
+      moveBank,
       readStatements,
       cancelRead,
       importReceipts,
@@ -944,6 +955,7 @@ export function ReconcileProvider({ children }) {
       addBank,
       updateBank,
       removeBank,
+      moveBank,
       readStatements,
       cancelRead,
       importReceipts,

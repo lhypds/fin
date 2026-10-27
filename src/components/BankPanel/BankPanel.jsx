@@ -43,6 +43,77 @@ function ReadingItem({ read, bank, onCancel }) {
   );
 }
 
+// Whether the pointer is over the top or the bottom half of the element the event is on.
+const edgeOf = (e) => {
+  const r = e.currentTarget.getBoundingClientRect();
+  return e.clientY < r.top + r.height / 2 ? "before" : "after";
+};
+
+// Where `moved` goes when dropped on the `edge` of `target`, all ids in `ids` (the accounts in
+// order): the id of the account it goes before, null for last, or undefined when that is where it
+// already is.
+function placeBefore(ids, moved, target, edge) {
+  const i = ids.indexOf(target);
+  const before = edge === "before" ? ids[i] : (ids[i + 1] ?? null);
+  const next = ids[ids.indexOf(moved) + 1] ?? null;
+  return before === moved || before === next ? undefined : before;
+}
+
+// Reordering the accounts by drag: a card dragged over another goes before or after it, by which
+// half of it the pointer is in, and that card shows a line there meanwhile. The hook gives the
+// props to spread on a card; `onMove(id, before)` gets the account moved and the id of the one it
+// now goes before (null: last). Files dragged in from outside are not this and pass through.
+function useReorder(ids, onMove) {
+  const [dragId, setDragId] = useState(null);
+  const [over, setOver] = useState(null); // { id, edge } of the card the line is on
+
+  const done = () => {
+    setDragId(null);
+    setOver(null);
+  };
+
+  return (id, label) => ({
+    draggable: true,
+    "data-dragging": dragId === id,
+    "data-drop": over?.id === id ? over.edge : undefined,
+    onDragStart: (e) => {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", label);
+      setDragId(id);
+    },
+    onDragEnd: done,
+    onDragOver: (e) => {
+      if (!dragId) return false;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      const edge = edgeOf(e);
+      const before = placeBefore(ids, dragId, id, edge);
+      // The same state again keeps the object, so nothing re-renders while the pointer moves.
+      setOver((cur) => {
+        if (before === undefined) return cur === null ? cur : null;
+        return cur?.id === id && cur.edge === edge ? cur : { id, edge };
+      });
+      return true;
+    },
+    onDragLeave: (e) => {
+      // Leaving for a child keeps the line; leaving the card drops it. The pointer's place says
+      // which, as the element left for (relatedTarget) is not given by every browser.
+      const r = e.currentTarget.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX < r.right && e.clientY >= r.top && e.clientY < r.bottom) return;
+      setOver((cur) => (cur?.id === id ? null : cur));
+    },
+    onDrop: (e) => {
+      if (!dragId) return false;
+      e.preventDefault();
+      const before = placeBefore(ids, dragId, id, edgeOf(e));
+      const moved = dragId;
+      done();
+      if (before !== undefined) onMove(moved, before);
+      return true;
+    },
+  });
+}
+
 // A bare icon button on an account's name line; a click on it does not choose the account.
 function RowButton({ label, onClick, children }) {
   return (
@@ -67,10 +138,14 @@ function RowButton({ label, onClick, children }) {
 // if there is none with that number, filling in details not typed in yet. Only the results stay.
 export default function BankPanel({ selectedId, onSelect, onImported }) {
   const { t } = useTranslation();
-  const { banks, transactions, reads, readStatements, cancelRead, removeBank, progress } = useReconcile();
+  const { banks, transactions, reads, readStatements, cancelRead, removeBank, moveBank, progress } = useReconcile();
   const [editing, setEditing] = useState(null); // null | "new" | the bank being edited
   const [choosing, setChoosing] = useState(null); // null | { files, bankId }: spreadsheets waiting for their account
   const [overId, setOverId] = useState(null);
+  const reorder = useReorder(
+    banks.map((b) => b.id),
+    moveBank,
+  );
 
   const selected = banks.find((b) => b.id === selectedId) || null;
   const running = progress.statement.total > 0;
@@ -166,6 +241,8 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
             // line only once filled in (an account just made for a CSV has only its name). The
             // bank and the memo stay in the editor.
             const account = [bank.branch, bank.accountNumber].filter(Boolean).join(" ");
+            // The card is dragged to reorder the list, and takes statement files dropped on it.
+            const move = reorder(bank.id, bank.label);
             return (
               <article
                 key={bank.id}
@@ -174,6 +251,11 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
                 tabIndex={0}
                 data-active={selectedId === bank.id}
                 data-over={overId === bank.id}
+                draggable={move.draggable}
+                data-dragging={move["data-dragging"]}
+                data-drop={move["data-drop"]}
+                onDragStart={move.onDragStart}
+                onDragEnd={move.onDragEnd}
                 onClick={() => onSelect(bank.id)}
                 onDoubleClick={(e) => {
                   // A quick double click on a button inside (edit, delete) is not one on the card.
@@ -181,15 +263,18 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
                 }}
                 onKeyDown={selectOnKey(bank.id)}
                 onDragOver={(e) => {
+                  if (move.onDragOver(e)) return;
                   if (!hasFiles(e)) return;
                   e.preventDefault();
                   e.dataTransfer.dropEffect = "copy";
                   if (overId !== bank.id) setOverId(bank.id);
                 }}
                 onDragLeave={(e) => {
+                  move.onDragLeave(e);
                   if (!e.currentTarget.contains(e.relatedTarget)) setOverId((id) => (id === bank.id ? null : id));
                 }}
                 onDrop={(e) => {
+                  if (move.onDrop(e)) return;
                   if (!hasFiles(e)) return;
                   e.preventDefault();
                   setOverId(null);

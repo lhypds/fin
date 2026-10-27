@@ -91,6 +91,37 @@
   background: var(--info-bg);
 }
 
+/* Reordering by drag: the card dragged is faded, and the card it would go before or after shows a
+   light grey line at its top or bottom, across the whole width of the list. */
+.card {
+  position: relative;
+}
+
+.card[data-dragging="true"] {
+  opacity: 0.4;
+}
+
+.card[data-drop]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--line);
+  background: var(--faint);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* The line sits on the border between two cards, so it is in one place whichever of the two the
+   pointer is in: over the border above the card, or over its own border below. */
+.card[data-drop="before"]::after {
+  top: calc(-1 * var(--line));
+}
+
+.card[data-drop="after"]::after {
+  bottom: calc(-1 * var(--line));
+}
+
 .top {
   display: flex;
   align-items: center;
