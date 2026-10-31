@@ -140,8 +140,9 @@
   background: var(--info-bg);
 }
 
+/* A brighter green than --ok-bg, which reads dull across a whole row. */
 .row[data-confirmed="true"] {
-  background: var(--ok-bg);
+  background: #dcfce7;
 }
 
 /* A selected row (clicked, Ctrl- or Shift-clicked, or reached with the arrows) is shaded the way a
