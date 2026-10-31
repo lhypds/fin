@@ -269,7 +269,6 @@
     "delete": "削除",
     "preview": "プレビュー",
     "ocr": "読取",
-    "ocrRunning": "読取中 {{percent}}%",
     "unmatch": "照合解除",
     "edit": "編集",
     "upload": "アップロード",

@@ -269,7 +269,6 @@
     "delete": "Delete",
     "preview": "Preview",
     "ocr": "Run OCR",
-    "ocrRunning": "Reading {{percent}}%",
     "unmatch": "Unmatch",
     "edit": "Edit",
     "upload": "Upload",

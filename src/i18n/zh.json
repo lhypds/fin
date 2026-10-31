@@ -269,7 +269,6 @@
     "delete": "删除",
     "preview": "预览",
     "ocr": "识别",
-    "ocrRunning": "识别中 {{percent}}%",
     "unmatch": "取消匹配",
     "edit": "编辑",
     "upload": "上传",

@@ -11,7 +11,7 @@ import StatusTag from "../StatusTag";
 import { confirm } from "../ConfirmModal";
 import BankEditor from "./BankEditor";
 import ImportTarget from "./ImportTarget";
-import { PlusIcon, EditIcon, TrashIcon, LoaderIcon, XIcon, ExternalLinkIcon } from "../icons";
+import { PlusIcon, EditIcon, TrashIcon, XIcon, ExternalLinkIcon } from "../icons";
 import styles from "./bank.module.css";
 
 function hasFiles(e) {
@@ -139,7 +139,7 @@ function RowButton({ label, onClick, children }) {
 // not typed in yet.
 export default function BankPanel({ selectedId, onSelect, onImported }) {
   const { t } = useTranslation();
-  const { banks, transactions, reads, readStatements, cancelRead, removeBank, moveBank, progress } = useReconcile();
+  const { banks, transactions, reads, readStatements, cancelRead, removeBank, moveBank } = useReconcile();
   const [editing, setEditing] = useState(null); // null | "new" | the bank being edited
   const [choosing, setChoosing] = useState(null); // null | { files, bankId }: spreadsheets waiting for their account
   const [overId, setOverId] = useState(null);
@@ -149,8 +149,6 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
   );
 
   const selected = banks.find((b) => b.id === selectedId) || null;
-  const running = progress.statement.total > 0;
-  const percent = running ? Math.round((progress.statement.done / progress.statement.total) * 100) : 0;
 
   // Reads files; once done, the ledger moves to the account read into and its newest month.
   async function read(files, bankId) {
@@ -205,12 +203,6 @@ export default function BankPanel({ selectedId, onSelect, onImported }) {
       <header className={styles.head}>
         <h2 className={styles.title}>{t("banks.title")}</h2>
         <div className={styles.headActions}>
-          {running && (
-            <button type="button" className="btn" disabled>
-              <LoaderIcon className="spin" />
-              {t("button.ocrRunning", { percent })}
-            </button>
-          )}
           <button type="button" className="btn" onClick={() => setEditing("new")}>
             <PlusIcon />
             {t("banks.add")}
