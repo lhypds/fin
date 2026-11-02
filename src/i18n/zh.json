@@ -161,7 +161,9 @@
     "trend": "资产走势",
     "monthEnd": "月末余额",
     "zoomHint": "在图上拖动可放大所选月份，双击还原",
-    "zoomReset": "显示全部月份"
+    "zoomReset": "显示全部月份",
+    "enlarge": "放大显示",
+    "shrink": "还原大小"
   },
   "bankEditor": {
     "title": "编辑银行账户",

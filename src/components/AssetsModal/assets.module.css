@@ -4,6 +4,12 @@
   max-width: 640px;
 }
 
+/* The dialog grown around the trend shown big. */
+.modal.big {
+  max-width: 1100px;
+  width: 95%;
+}
+
 /* The 6px of top padding plus the modal header's 10px make the 16px kept below the content. */
 .body {
   display: flex;
@@ -321,27 +327,9 @@
   fill: var(--tint);
 }
 
-/* A line's checkbox, its swatch and its name, the whole row wide but its amount. */
-.lineToggle {
-  flex: 1;
-  min-width: 0;
-}
-
-.lineToggle > span:last-child {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  flex: 1;
-}
-
-/* A hidden line keeps its row, greyed. */
-.off {
-  color: var(--muted);
-}
-
-.off .swatch {
-  opacity: 0.3;
+/* The button that shows the chart big, at the far end of the row. */
+.bigToggle {
+  margin-left: auto;
 }
 
 .totalRow {

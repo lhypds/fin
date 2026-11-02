@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Checkbox } from "@ui";
 import { fmtMoney } from "@utils/format";
+import { MaximizeIcon, MinimizeIcon } from "../icons";
 import styles from "./assets.module.css";
 
-// The plot's size in the viewBox, and the room kept for the axes' labels around it.
-const W = 600;
-const H = 220;
+// The plot's size in the viewBox, at the usual size and shown big (about as wide as the dialog
+// either way, so the labels keep their size), and the room kept for the axes' labels around it.
+const SIZE = { small: [600, 220], big: [1040, 420] };
 const PAD = { top: 8, right: 8, bottom: 20, left: 48 };
 
 // Round steps for the value axis: about `count` of them from `min` to `max`, a 1, 2 or 5 times a
@@ -25,25 +25,26 @@ const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumF
 
 // What the accounts held at the end of each month (`months`, oldest first) as lines: the total
 // (`total`) in the ink colour and thicker, each account (`series`: { key, name, color, values })
-// in its pie colour, a gap where an account had no statements yet. A line is hidden by unticking
-// it in the legend, and the value axis fits the lines shown. Dragging across the plot zooms into
+// in its pie colour, a gap where an account had no statements yet; either may be left out to show
+// one account alone. The value axis fits the lines shown. Dragging across the plot zooms into
 // those months; a double click, or the button above, shows them all again. Pointing at the plot
 // picks the nearest month; the legend gives every line's value then, the last month's otherwise.
-export default function Trend({ months: allMonths, total, series, currency }) {
+// `big` and `onBig` show the chart larger, the dialog grown around it.
+export default function Trend({ months: allMonths, total, series, currency, big, onBig }) {
   const { t } = useTranslation();
   const [hover, setHover] = useState(null);
-  const [hidden, setHidden] = useState(() => new Set());
   // The months zoomed into, as the first and last index into `allMonths`; null for all of them.
   const [range, setRange] = useState(null);
   // Where a drag began and where it is now, as indexes into the months shown.
   const [drag, setDrag] = useState(null);
-  const [from, to] = range ?? [0, allMonths.length - 1];
+  const [from, to] = range && range[1] < allMonths.length ? range : [0, allMonths.length - 1];
   const months = allMonths.slice(from, to + 1);
-  const lines = [{ key: "total", name: t("assets.total"), color: "var(--fg)", values: total, width: 2.5 }, ...series.map((s) => ({ ...s, width: 1.5 }))].map(
-    (l) => ({ ...l, values: l.values.slice(from, to + 1) }),
-  );
-  const shown = lines.filter((l) => !hidden.has(l.key));
-  const all = shown.flatMap((l) => l.values).filter((v) => v != null);
+  const [W, H] = SIZE[big ? "big" : "small"];
+  const lines = [
+    ...(total ? [{ key: "total", name: t("assets.total"), color: "var(--fg)", values: total, width: 2.5 }] : []),
+    ...series.map((s) => ({ ...s, width: 1.5 })),
+  ].map((l) => ({ ...l, values: l.values.slice(from, to + 1) }));
+  const all = lines.flatMap((l) => l.values).filter((v) => v != null);
   const axis = all.length ? ticks(Math.min(...all), Math.max(...all)) : [0];
   const lo = axis[0];
   const hi = axis.at(-1) === lo ? lo + 1 : axis.at(-1);
@@ -54,8 +55,8 @@ export default function Trend({ months: allMonths, total, series, currency }) {
   // The line through a series' known months, broken where one is missing.
   const path = (values) =>
     values.map((v, i) => (v == null ? "" : `${i && values[i - 1] != null ? "L" : "M"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`)).join("");
-  // At most six month labels, evenly spaced, the last month always among them.
-  const every = Math.ceil(months.length / 6);
+  // At most six month labels (twelve shown big), evenly spaced, the last month always among them.
+  const every = Math.ceil(months.length / (big ? 12 : 6));
   const labelled = months.map((_, i) => (months.length - 1 - i) % every === 0);
   const at = hover ?? months.length - 1;
 
@@ -75,13 +76,6 @@ export default function Trend({ months: allMonths, total, series, currency }) {
     if (drag && drag.end !== drag.start) setRange([from + Math.min(drag.start, drag.end), from + Math.max(drag.start, drag.end)]);
     setDrag(null);
   };
-  const toggle = (key, on) =>
-    setHidden((prev) => {
-      const next = new Set(prev);
-      if (on) next.delete(key);
-      else next.add(key);
-      return next;
-    });
 
   return (
     <div className={styles.trend}>
@@ -92,6 +86,15 @@ export default function Trend({ months: allMonths, total, series, currency }) {
             {t("assets.zoomReset")}
           </button>
         )}
+        <button
+          type="button"
+          className={`btn ${styles.bigToggle}`}
+          onClick={() => onBig(!big)}
+          title={t(big ? "assets.shrink" : "assets.enlarge")}
+          aria-label={t(big ? "assets.shrink" : "assets.enlarge")}
+        >
+          {big ? <MinimizeIcon /> : <MaximizeIcon />}
+        </button>
       </div>
       <svg
         className={styles.trendPlot}
@@ -137,7 +140,7 @@ export default function Trend({ months: allMonths, total, series, currency }) {
         )}
         {hover != null && <line className={styles.cursor} x1={x(hover)} x2={x(hover)} y1={PAD.top} y2={H - PAD.bottom} />}
         {/* The accounts under the total, the total drawn last so it stays on top. */}
-        {[...shown].reverse().map((l) => (
+        {[...lines].reverse().map((l) => (
           <g key={l.key}>
             <path d={path(l.values)} fill="none" stroke={l.color} strokeWidth={l.width} strokeLinejoin="round" strokeLinecap="round" />
             {/* A month standing alone has no line to show it, so it gets a dot; the hovered month a dot on every line. */}
@@ -157,13 +160,11 @@ export default function Trend({ months: allMonths, total, series, currency }) {
       </div>
       <ul className={styles.legend}>
         {lines.map((l) => (
-          <li key={l.key} className={[l.key === "total" && styles.totalRow, hidden.has(l.key) && styles.off].filter(Boolean).join(" ") || undefined}>
-            <Checkbox className={styles.lineToggle} checked={!hidden.has(l.key)} onChange={(on) => toggle(l.key, on)}>
-              <span className={styles.swatch} style={{ background: l.color }} />
-              <span className={styles.legendName} title={l.name}>
-                {l.name}
-              </span>
-            </Checkbox>
+          <li key={l.key} className={l.key === "total" ? styles.totalRow : undefined}>
+            <span className={styles.swatch} style={{ background: l.color }} />
+            <span className={styles.legendName} title={l.name}>
+              {l.name}
+            </span>
             <span className={`${styles.num} mono`}>{l.values[at] == null ? "—" : fmtMoney(l.values[at], currency)}</span>
           </li>
         ))}

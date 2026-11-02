@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Modal } from "@ui";
 import { useReconcile } from "@store";
 import { fmtMoney } from "@utils/format";
-import { ALL, UNDATED, accountBalances, balanceBefore, monthLabel, monthOf, nextMonth } from "@utils/transactions";
+import { ALL, UNDATED, accountBalances, balanceBefore, currentMonth, monthLabel, monthOf, nextMonth } from "@utils/transactions";
 import MonthPicker from "../Ledger/MonthPicker";
 import { findInternalTransfers } from "@utils/transfers";
 import Trend from "./Trend";
@@ -171,31 +171,39 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
   const owing = rows.filter((r) => r.balance < 0).reduce((sum, r) => sum + r.balance, 0);
   const slices = rows.filter((r) => r.balance > 0).map((r, i) => ({ key: r.bank.id, name: r.bank.label, value: r.balance, color: COLORS[i % COLORS.length] }));
   const sliceTotal = slices.reduce((sum, s) => sum + s.value, 0);
-  // What each account held at the end of every month from the first dated one to the last, gaps
-  // filled, oldest first: an account from the month of its first statement with a balance on, the
-  // total the sum of the accounts known that month. Each account keeps its colour in the pie (the
-  // accounts sorted as in the table, so the ones below zero, with no slice, take the colours after).
+  // What each account held at the end of every month from the first dated one to this month, gaps
+  // filled, oldest first: an account from the month of its first statement with a balance on (one
+  // with none, its balance typed in its editor, at this month alone), the total the sum of the
+  // accounts known that month. Each account keeps its colour in the pie (the accounts sorted as in
+  // the table, so the ones below zero, with no slice, take the colours after). One account chosen
+  // (`flowBank`, shared with the monthly tab) shows that account alone, with no total.
   const trend = useMemo(() => {
-    if (tab !== "trend" || !months.length) return null;
-    const list = [months.at(-1)];
-    while (list.at(-1) < months[0]) list.push(nextMonth(list.at(-1)));
+    if (tab !== "trend") return null;
+    const now = currentMonth();
+    const list = [months.length && months.at(-1) < now ? months.at(-1) : now];
+    while (list.at(-1) < (months[0] > now ? months[0] : now)) list.push(nextMonth(list.at(-1)));
     const accounts = held.filter((h) => h.currency === currency).sort((a, b) => b.balance - a.balance);
-    const series = accounts.map(({ bank }, i) => {
+    const series = accounts.map(({ bank, balance }, i) => {
       const dated = transactions.filter((tx) => tx.bankId === bank.id && tx.date && tx.balance != null).map((tx) => tx.date.slice(0, 7));
       const first = dated.length ? dated.reduce((a, m) => (m < a ? m : a)) : null;
-      const values = list.map((m) => (first && first <= m ? balanceBefore(bank, transactions, currency, `${nextMonth(m)}-01`) : null));
+      const values = first
+        ? list.map((m) => (first <= m ? balanceBefore(bank, transactions, currency, `${nextMonth(m)}-01`) : null))
+        : list.map((m) => (m === now ? balance : null));
       return { key: bank.id, name: bank.label, color: COLORS[i % COLORS.length], values: values.map((v) => (v == null ? null : Number(v))) };
     });
+    if (flowBank) return { months: list, series: series.filter((s) => s.key === flowBank), total: null };
     const total = list.map((_, i) => {
       const known = series.map((s) => s.values[i]).filter((v) => v != null);
       return known.length ? known.reduce((a, v) => a + v, 0) : null;
     });
     return { months: list, series, total };
-  }, [tab, months, held, currency, transactions]);
+  }, [tab, months, held, currency, transactions, flowBank]);
+  // The trend shown big, the dialog grown around it.
+  const [big, setBig] = useState(false);
   const unknown = banks.filter((bank) => accountBalances(bank, transactions).every((b) => b.balance == null)).length;
 
   return (
-    <Modal isOpen onClose={onClose} title={t("assets.title")} className={styles.modal}>
+    <Modal isOpen onClose={onClose} title={t("assets.title")} className={`${styles.modal} ${tab === "trend" && big ? styles.big : ""}`}>
       <div className={styles.body}>
         <div className={styles.tabs} role="tablist">
           {["assets", "monthly", "trend"].map((key) => (
@@ -205,13 +213,13 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
           ))}
         </div>
 
-        {(currencies.length > 1 || (tab === "monthly" && months.length > 0)) && (
+        {(currencies.length > 1 || (tab === "monthly" && months.length > 0) || tab === "trend") && (
           <div className={styles.controls}>
             {/* The month as the ledger's toolbar has it: a step back, the month and its list, a step forward. */}
             {tab === "monthly" && months.length > 0 && (
               <MonthPicker months={pickerMonths} index={months.indexOf(month)} label={(m) => monthLabel(m.key, t)} onChange={setChosenMonth} />
             )}
-            {tab === "monthly" && months.length > 0 && (
+            {((tab === "monthly" && months.length > 0) || tab === "trend") && (
               <label className={styles.control}>
                 {t("assets.account")}
                 <select className="select" value={flowBank} onChange={(e) => setChosenBank(e.target.value)}>
@@ -352,7 +360,7 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
 
         {tab === "trend" &&
           (trend?.series.length ? (
-            <Trend months={trend.months} total={trend.total} series={trend.series} currency={currency} />
+            <Trend months={trend.months} total={trend.total} series={trend.series} currency={currency} big={big} onBig={setBig} />
           ) : (
             <p className="muted">{t("assets.none")}</p>
           ))}

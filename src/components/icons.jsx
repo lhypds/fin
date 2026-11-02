@@ -142,6 +142,24 @@ export function PieIcon({ className }) {
   );
 }
 
+// Four corners pointing out: show bigger.
+export function MaximizeIcon({ className }) {
+  return (
+    <Icon className={className}>
+      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+    </Icon>
+  );
+}
+
+// Four corners pointing in: back to the usual size.
+export function MinimizeIcon({ className }) {
+  return (
+    <Icon className={className}>
+      <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" />
+    </Icon>
+  );
+}
+
 export function ZapIcon({ className }) {
   return (
     <Icon className={className}>
