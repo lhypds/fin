@@ -262,3 +262,55 @@
   font-weight: 600;
   border-bottom: 0;
 }
+
+/* What the accounts held month by month: the lines, then the month pointed at (the last one
+   otherwise) and every line's value then. */
+.trend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trendPlot {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grid {
+  stroke: var(--soft-line);
+  stroke-width: 1;
+}
+
+.zero {
+  stroke: var(--faint);
+  stroke-width: 1;
+}
+
+.cursor {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.tick {
+  fill: var(--muted);
+  font-size: 10px;
+  font-family: var(--font-mono);
+}
+
+/* A ring of the background keeps a dot apart from the lines it sits on. */
+.dot {
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+
+.trendHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.totalRow {
+  font-weight: 600;
+}

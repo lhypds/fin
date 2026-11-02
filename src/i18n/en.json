@@ -157,7 +157,9 @@
     "transfersNote": "{{count}} transfer rows between the accounts left out",
     "noFlows": "Nothing in or out this month.",
     "startBalance": "Start of month",
-    "endBalance": "End of month"
+    "endBalance": "End of month",
+    "trend": "Asset trend",
+    "monthEnd": "Balance at month end"
   },
   "bankEditor": {
     "title": "Edit bank account",

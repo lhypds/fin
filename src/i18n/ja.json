@@ -157,7 +157,9 @@
     "transfersNote": "口座間の振替 {{count}} 件は含みません",
     "noFlows": "この月の収支はありません。",
     "startBalance": "月初残高",
-    "endBalance": "月末残高"
+    "endBalance": "月末残高",
+    "trend": "資産推移",
+    "monthEnd": "月末残高"
   },
   "bankEditor": {
     "title": "銀行口座を編集",

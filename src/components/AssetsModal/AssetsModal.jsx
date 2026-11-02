@@ -6,6 +6,7 @@ import { fmtMoney } from "@utils/format";
 import { ALL, UNDATED, accountBalances, balanceBefore, monthLabel, monthOf, nextMonth } from "@utils/transactions";
 import MonthPicker from "../Ledger/MonthPicker";
 import { findInternalTransfers } from "@utils/transfers";
+import Trend from "./Trend";
 import styles from "./assets.module.css";
 
 // One color per account in the pie, in order; they repeat past the tenth account. The same as
@@ -170,15 +171,36 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
   const owing = rows.filter((r) => r.balance < 0).reduce((sum, r) => sum + r.balance, 0);
   const slices = rows.filter((r) => r.balance > 0).map((r, i) => ({ key: r.bank.id, name: r.bank.label, value: r.balance, color: COLORS[i % COLORS.length] }));
   const sliceTotal = slices.reduce((sum, s) => sum + s.value, 0);
+  // What each account held at the end of every month from the first dated one to the last, gaps
+  // filled, oldest first: an account from the month of its first statement with a balance on, the
+  // total the sum of the accounts known that month. Each account keeps its colour in the pie (the
+  // accounts sorted as in the table, so the ones below zero, with no slice, take the colours after).
+  const trend = useMemo(() => {
+    if (tab !== "trend" || !months.length) return null;
+    const list = [months.at(-1)];
+    while (list.at(-1) < months[0]) list.push(nextMonth(list.at(-1)));
+    const accounts = held.filter((h) => h.currency === currency).sort((a, b) => b.balance - a.balance);
+    const series = accounts.map(({ bank }, i) => {
+      const dated = transactions.filter((tx) => tx.bankId === bank.id && tx.date && tx.balance != null).map((tx) => tx.date.slice(0, 7));
+      const first = dated.length ? dated.reduce((a, m) => (m < a ? m : a)) : null;
+      const values = list.map((m) => (first && first <= m ? balanceBefore(bank, transactions, currency, `${nextMonth(m)}-01`) : null));
+      return { key: bank.id, name: bank.label, color: COLORS[i % COLORS.length], values: values.map((v) => (v == null ? null : Number(v))) };
+    });
+    const total = list.map((_, i) => {
+      const known = series.map((s) => s.values[i]).filter((v) => v != null);
+      return known.length ? known.reduce((a, v) => a + v, 0) : null;
+    });
+    return { months: list, series, total };
+  }, [tab, months, held, currency, transactions]);
   const unknown = banks.filter((bank) => accountBalances(bank, transactions).every((b) => b.balance == null)).length;
 
   return (
     <Modal isOpen onClose={onClose} title={t("assets.title")} className={styles.modal}>
       <div className={styles.body}>
         <div className={styles.tabs} role="tablist">
-          {["assets", "monthly"].map((key) => (
+          {["assets", "monthly", "trend"].map((key) => (
             <button key={key} type="button" role="tab" className={styles.tab} aria-selected={tab === key} onClick={() => setTab(key)}>
-              {t(key === "assets" ? "assets.total" : "assets.monthly")}
+              {t(key === "assets" ? "assets.total" : `assets.${key}`)}
             </button>
           ))}
         </div>
@@ -327,6 +349,13 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
             )}
           </>
         )}
+
+        {tab === "trend" &&
+          (trend?.series.length ? (
+            <Trend months={trend.months} total={trend.total} series={trend.series} currency={currency} />
+          ) : (
+            <p className="muted">{t("assets.none")}</p>
+          ))}
       </div>
     </Modal>
   );

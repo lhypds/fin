@@ -157,7 +157,9 @@
     "transfersNote": "账户之间的 {{count}} 笔转账不计入",
     "noFlows": "这个月没有收支。",
     "startBalance": "月初余额",
-    "endBalance": "月末余额"
+    "endBalance": "月末余额",
+    "trend": "资产走势",
+    "monthEnd": "月末余额"
   },
   "bankEditor": {
     "title": "编辑银行账户",
