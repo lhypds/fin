@@ -159,7 +159,9 @@
     "startBalance": "Start of month",
     "endBalance": "End of month",
     "trend": "Asset trend",
-    "monthEnd": "Balance at month end"
+    "monthEnd": "Balance at month end",
+    "zoomHint": "Drag across the chart to zoom into those months; double-click to reset",
+    "zoomReset": "Show all months"
   },
   "bankEditor": {
     "title": "Edit bank account",

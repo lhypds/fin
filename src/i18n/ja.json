@@ -159,7 +159,9 @@
     "startBalance": "月初残高",
     "endBalance": "月末残高",
     "trend": "資産推移",
-    "monthEnd": "月末残高"
+    "monthEnd": "月末残高",
+    "zoomHint": "グラフ上をドラッグすると選んだ月を拡大、ダブルクリックで元に戻ります",
+    "zoomReset": "すべての月を表示"
   },
   "bankEditor": {
     "title": "銀行口座を編集",

@@ -159,7 +159,9 @@
     "startBalance": "月初余额",
     "endBalance": "月末余额",
     "trend": "资产走势",
-    "monthEnd": "月末余额"
+    "monthEnd": "月末余额",
+    "zoomHint": "在图上拖动可放大所选月份，双击还原",
+    "zoomReset": "显示全部月份"
   },
   "bankEditor": {
     "title": "编辑银行账户",
