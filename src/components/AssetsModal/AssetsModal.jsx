@@ -49,6 +49,9 @@ function Pie({ slices, currency }) {
 // An amount of money with its direction written out: "+" in, "-" out, no sign on zero.
 const fmtSigned = (value, currency) => (value > 0 ? "+" : value < 0 ? "-" : "") + fmtMoney(Math.abs(value), currency);
 
+// The trend's choice of the total alone, besides every account ("") and one account (its id).
+const TOTAL = "total";
+
 // How many rows each side of a month lists by name; the rest share one slice.
 const TOP = 10;
 
@@ -149,6 +152,8 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
   // One account, or all of them ("").
   const [chosenBank, setChosenBank] = useState(ledgerBankId || "");
   const flowBank = banks.some((b) => b.id === chosenBank) ? chosenBank : "";
+  // The trend can also show the total alone; the monthly tab takes that as every account.
+  const trendBank = chosenBank === TOTAL ? TOTAL : flowBank;
   const flows = useMemo(
     () => month && monthFlows(transactions, banks, month, currency, flowBank),
     [transactions, banks, month, currency, flowBank],
@@ -176,7 +181,8 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
   // with none, its balance typed in its editor, at this month alone), the total the sum of the
   // accounts known that month. Each account keeps its colour in the pie (the accounts sorted as in
   // the table, so the ones below zero, with no slice, take the colours after). One account chosen
-  // (`flowBank`, shared with the monthly tab) shows that account alone, with no total.
+  // (`trendBank`, shared with the monthly tab) shows that account alone, with no total; the total
+  // chosen shows it alone.
   const trend = useMemo(() => {
     if (tab !== "trend") return null;
     const now = currentMonth();
@@ -191,13 +197,13 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
         : list.map((m) => (m === now ? balance : null));
       return { key: bank.id, name: bank.label, color: COLORS[i % COLORS.length], values: values.map((v) => (v == null ? null : Number(v))) };
     });
-    if (flowBank) return { months: list, series: series.filter((s) => s.key === flowBank), total: null };
+    if (trendBank && trendBank !== TOTAL) return { months: list, series: series.filter((s) => s.key === trendBank), total: null };
     const total = list.map((_, i) => {
       const known = series.map((s) => s.values[i]).filter((v) => v != null);
       return known.length ? known.reduce((a, v) => a + v, 0) : null;
     });
-    return { months: list, series, total };
-  }, [tab, months, held, currency, transactions, flowBank]);
+    return { months: list, series: trendBank === TOTAL ? [] : series, total: series.length ? total : null };
+  }, [tab, months, held, currency, transactions, trendBank]);
   // The trend shown big, the dialog grown around it.
   const [big, setBig] = useState(false);
   const unknown = banks.filter((bank) => accountBalances(bank, transactions).every((b) => b.balance == null)).length;
@@ -222,8 +228,9 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
             {((tab === "monthly" && months.length > 0) || tab === "trend") && (
               <label className={styles.control}>
                 {t("assets.account")}
-                <select className="select" value={flowBank} onChange={(e) => setChosenBank(e.target.value)}>
+                <select className="select" value={tab === "trend" ? trendBank : flowBank} onChange={(e) => setChosenBank(e.target.value)}>
                   <option value="">{t("banks.all")}</option>
+                  {tab === "trend" && <option value={TOTAL}>{t("assets.total")}</option>}
                   {banks.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.label}
@@ -359,7 +366,7 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
         )}
 
         {tab === "trend" &&
-          (trend?.series.length ? (
+          (trend?.series.length || trend?.total ? (
             <Trend months={trend.months} total={trend.total} series={trend.series} currency={currency} big={big} onBig={setBig} />
           ) : (
             <p className="muted">{t("assets.none")}</p>
