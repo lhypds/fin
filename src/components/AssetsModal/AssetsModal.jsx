@@ -6,6 +6,8 @@ import { fmtMoney } from "@utils/format";
 import { ALL, UNDATED, accountBalances, balanceBefore, currentMonth, monthLabel, monthOf, nextMonth } from "@utils/transactions";
 import MonthPicker from "../Ledger/MonthPicker";
 import { findInternalTransfers } from "@utils/transfers";
+import { MIN_MONTHS, recurringPayees } from "@utils/payees";
+import PayeePicker from "./PayeePicker";
 import Trend from "./Trend";
 import styles from "./assets.module.css";
 
@@ -123,7 +125,8 @@ function FlowChart({ title, side, sign, currency }) {
 // added up): the total, a pie of how it is split between the accounts, and every account with its
 // balance. A balance comes from the account's statements or the one typed in its editor; an
 // account below zero (a card owing) counts against the total but has no slice. A second tab has
-// one month's income and spending, in the ledger's month (`month`) and account (`bankId`) at first.
+// one month's income and spending, in the ledger's month (`month`) and account (`bankId`) at first;
+// a third what the accounts held month by month; a fourth what went out to one payee month by month.
 export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId = null, onClose }) {
   const { t } = useTranslation();
   const { banks, transactions } = useReconcile();
@@ -204,28 +207,43 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
     });
     return { months: list, series: trendBank === TOTAL ? [] : series, total: series.length ? total : null };
   }, [tab, months, held, currency, transactions, trendBank]);
-  // The trend shown big, the dialog grown around it.
+  // The payees paid in two months or more, in the account chosen (shared with the monthly tab) or
+  // all of them, the one paid the most first, and the months their spending is drawn over: every
+  // month from the first to the last the account has rows in, so a month with nothing paid reads
+  // as zero and no month past the statements does.
+  const spend = useMemo(() => {
+    if (tab !== "payee") return null;
+    const dated = [...new Set(transactions.filter((tx) => !flowBank || tx.bankId === flowBank).map(monthOf))].filter((m) => m !== UNDATED).sort();
+    const list = dated.slice(0, 1);
+    while (list.length && list.at(-1) < dated.at(-1)) list.push(nextMonth(list.at(-1)));
+    return { payees: recurringPayees(transactions, banks, currency, flowBank), months: list };
+  }, [tab, transactions, banks, currency, flowBank]);
+  // The payee charted: the one chosen, or the one paid the most while none is or the chosen one
+  // is not among this account's.
+  const [chosenPayee, setChosenPayee] = useState(null);
+  const payee = spend?.payees.find((p) => p.key === chosenPayee) || spend?.payees[0];
+  // A chart (the trend, a payee's spending) shown big, the dialog grown around it.
   const [big, setBig] = useState(false);
   const unknown = banks.filter((bank) => accountBalances(bank, transactions).every((b) => b.balance == null)).length;
 
   return (
-    <Modal isOpen onClose={onClose} title={t("assets.title")} className={`${styles.modal} ${tab === "trend" && big ? styles.big : ""}`}>
+    <Modal isOpen onClose={onClose} title={t("assets.title")} className={`${styles.modal} ${(tab === "trend" || tab === "payee") && big ? styles.big : ""}`}>
       <div className={styles.body}>
         <div className={styles.tabs} role="tablist">
-          {["assets", "monthly", "trend"].map((key) => (
+          {["assets", "monthly", "trend", "payee"].map((key) => (
             <button key={key} type="button" role="tab" className={styles.tab} aria-selected={tab === key} onClick={() => setTab(key)}>
               {t(key === "assets" ? "assets.total" : `assets.${key}`)}
             </button>
           ))}
         </div>
 
-        {(currencies.length > 1 || (tab === "monthly" && months.length > 0) || tab === "trend") && (
+        {(currencies.length > 1 || (tab === "monthly" && months.length > 0) || tab === "trend" || tab === "payee") && (
           <div className={styles.controls}>
             {/* The month as the ledger's toolbar has it: a step back, the month and its list, a step forward. */}
             {tab === "monthly" && months.length > 0 && (
               <MonthPicker months={pickerMonths} index={months.indexOf(month)} label={(m) => monthLabel(m.key, t)} onChange={setChosenMonth} />
             )}
-            {((tab === "monthly" && months.length > 0) || tab === "trend") && (
+            {((tab === "monthly" && months.length > 0) || tab === "trend" || tab === "payee") && (
               <label className={styles.control}>
                 {t("assets.account")}
                 <select className="select" value={tab === "trend" ? trendBank : flowBank} onChange={(e) => setChosenBank(e.target.value)}>
@@ -238,6 +256,12 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
                   ))}
                 </select>
               </label>
+            )}
+            {tab === "payee" && payee && (
+              <div className={`${styles.control} ${styles.payeeControl}`}>
+                {t("assets.payeeLabel")}
+                <PayeePicker payees={spend.payees} value={payee.key} currency={currency} onChange={setChosenPayee} />
+              </div>
             )}
             {currencies.length > 1 && (
               <label className={styles.control}>
@@ -371,6 +395,34 @@ export default function AssetsModal({ month: ledgerMonth, bankId: ledgerBankId =
           ) : (
             <p className="muted">{t("assets.none")}</p>
           ))}
+
+        {tab === "payee" && !payee && <p className="muted">{t("assets.noPayees", { count: MIN_MONTHS })}</p>}
+        {tab === "payee" && payee && (
+          <>
+            <div className={styles.stats}>
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>{t("assets.sum")}</span>
+                <span className={`${styles.statValue} ${styles.spending} mono`}>{fmtSigned(-payee.total, currency)}</span>
+                <span className={styles.statNote}>{t("assets.count", { count: payee.count })}</span>
+              </div>
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>{t("assets.average")}</span>
+                <span className={`${styles.statValue} mono`}>{fmtMoney(payee.total / payee.months.size, currency)}</span>
+                <span className={styles.statNote}>{t("assets.paidMonths", { count: payee.months.size })}</span>
+              </div>
+            </div>
+            <Trend
+              months={spend.months}
+              total={null}
+              series={[{ key: payee.key, name: payee.name, color: COLORS[0], values: spend.months.map((m) => payee.months.get(m) || 0) }]}
+              currency={currency}
+              big={big}
+              onBig={setBig}
+              note={t("assets.monthSpending")}
+              fromZero
+            />
+          </>
+        )}
       </div>
     </Modal>
   );

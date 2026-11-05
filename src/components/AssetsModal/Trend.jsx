@@ -29,8 +29,10 @@ const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumF
 // one account alone. The value axis fits the lines shown. Dragging across the plot zooms into
 // those months; a double click, or the button above, shows them all again. Pointing at the plot
 // picks the nearest month; the legend gives every line's value then, the last month's otherwise.
-// `big` and `onBig` show the chart larger, the dialog grown around it.
-export default function Trend({ months: allMonths, total, series, currency, big, onBig }) {
+// `big` and `onBig` show the chart larger, the dialog grown around it. `note` says what a value
+// is (a balance at the month's end when left out); `fromZero` keeps zero on the value axis, for
+// amounts that are read against it.
+export default function Trend({ months: allMonths, total, series, currency, big, onBig, note, fromZero = false }) {
   const { t } = useTranslation();
   const [hover, setHover] = useState(null);
   // The months zoomed into, as the first and last index into `allMonths`; null for all of them.
@@ -45,7 +47,7 @@ export default function Trend({ months: allMonths, total, series, currency, big,
     ...series.map((s) => ({ ...s, width: 1.5 })),
   ].map((l) => ({ ...l, values: l.values.slice(from, to + 1) }));
   const all = lines.flatMap((l) => l.values).filter((v) => v != null);
-  const axis = all.length ? ticks(Math.min(...all), Math.max(...all)) : [0];
+  const axis = all.length ? ticks(Math.min(...all, ...(fromZero ? [0] : [])), Math.max(...all)) : [0];
   const lo = axis[0];
   const hi = axis.at(-1) === lo ? lo + 1 : axis.at(-1);
   const span = W - PAD.left - PAD.right;
@@ -156,7 +158,7 @@ export default function Trend({ months: allMonths, total, series, currency, big,
       </svg>
       <div className={styles.trendHead}>
         <span className="mono">{months[at]}</span>
-        <span className={styles.statNote}>{t("assets.monthEnd")}</span>
+        <span className={styles.statNote}>{note ?? t("assets.monthEnd")}</span>
       </div>
       <ul className={styles.legend}>
         {lines.map((l) => (

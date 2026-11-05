@@ -335,3 +335,117 @@
 .totalRow {
   font-weight: 600;
 }
+
+/* The payee charted, as a select that can be searched: a button the height of the selects beside
+   it, and under it a field to type in over the list. It takes what the row has left, up to a
+   width that fits a name with its months and its amount, and a line of its own when that is too
+   little; the list is as wide as the button, so it never reaches past the dialog. */
+.payeeControl {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.payee {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  max-width: 400px;
+}
+
+.payeeButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 22px;
+  padding: 0 8px;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The mark of a list to open, drawn as the two strokes of a chevron. */
+.payeeButton::after {
+  content: "";
+  flex: none;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
+  border-right: var(--line) solid currentColor;
+  border-bottom: var(--line) solid currentColor;
+  transform: rotate(45deg);
+}
+
+.payeeButton:hover,
+.payee[data-open="true"] .payeeButton {
+  background: var(--bg-hover);
+}
+
+.payeeButton:focus-visible {
+  outline: var(--line) solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* Drawn like the month's list: under the button, sharing its bottom line. */
+.payeeMenu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% - var(--line));
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  border: var(--line) solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.body .payeeSearch {
+  flex: none;
+  height: 26px;
+  border: 0;
+  border-bottom: var(--line) solid var(--border);
+}
+
+.payeeList {
+  max-height: 242px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.payeeList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+.payeeMonths {
+  flex: none;
+  color: var(--muted);
+}
+
+/* The payee charted is shaded; the row under the mouse or the keys is inverted, like a menu row. */
+.payeeList li[aria-selected="true"] {
+  background: var(--bg-hover);
+}
+
+.payeeList li[data-active="true"] {
+  background: var(--border);
+  color: var(--bg);
+}
+
+.payeeList li[data-active="true"] .payeeMonths {
+  color: inherit;
+}
+
+.payeeList .payeeEmpty {
+  color: var(--muted);
+  cursor: default;
+}

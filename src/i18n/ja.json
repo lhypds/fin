@@ -163,7 +163,16 @@
     "zoomHint": "グラフ上をドラッグすると選んだ月を拡大、ダブルクリックで元に戻ります",
     "zoomReset": "すべての月を表示",
     "enlarge": "拡大表示",
-    "shrink": "元のサイズに戻す"
+    "shrink": "元のサイズに戻す",
+    "payee": "支払先別の支出",
+    "payeeLabel": "支払先",
+    "payeeSearch": "支払先を検索…",
+    "payeeMonths": "{{count}} か月",
+    "noPayees": "{{count}} か月以上支払いのある支払先はまだありません。",
+    "noMatch": "一致する支払先はありません",
+    "monthSpending": "その月の支出",
+    "average": "月平均",
+    "paidMonths": "支払いのあった {{count}} か月"
   },
   "bankEditor": {
     "title": "銀行口座を編集",

@@ -163,7 +163,16 @@
     "zoomHint": "Drag across the chart to zoom into those months; double-click to reset",
     "zoomReset": "Show all months",
     "enlarge": "Enlarge",
-    "shrink": "Back to normal size"
+    "shrink": "Back to normal size",
+    "payee": "Spending by payee",
+    "payeeLabel": "Payee",
+    "payeeSearch": "Search payees…",
+    "payeeMonths": "{{count}} months",
+    "noPayees": "No payee has been paid in {{count}} or more months yet.",
+    "noMatch": "No matching payee",
+    "monthSpending": "Spent in the month",
+    "average": "Monthly average",
+    "paidMonths": "Over the {{count}} months paid in"
   },
   "bankEditor": {
     "title": "Edit bank account",

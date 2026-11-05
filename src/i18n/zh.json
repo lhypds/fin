@@ -163,7 +163,16 @@
     "zoomHint": "在图上拖动可放大所选月份，双击还原",
     "zoomReset": "显示全部月份",
     "enlarge": "放大显示",
-    "shrink": "还原大小"
+    "shrink": "还原大小",
+    "payee": "项目支出",
+    "payeeLabel": "对方账户",
+    "payeeSearch": "搜索对方账户…",
+    "payeeMonths": "{{count}} 个月",
+    "noPayees": "还没有在 {{count}} 个月以上有支出的对方账户。",
+    "noMatch": "没有匹配的对方账户",
+    "monthSpending": "当月支出",
+    "average": "月均",
+    "paidMonths": "有支出的 {{count}} 个月"
   },
   "bankEditor": {
     "title": "编辑银行账户",
