@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, TextArea, showToast } from "@ui";
 import { useReconcile } from "@store";
@@ -88,6 +88,18 @@ export default function BankEditor({ bank, onClose, onCreated }) {
   }));
   const [error, setError] = useState(null);
 
+  // Cmd/Ctrl+S saves, wherever in the dialog the focus is.
+  const formRef = useRef(null);
+  useEffect(() => {
+    function handleKey(e) {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || e.repeat || e.key.toLowerCase() !== "s") return;
+      e.preventDefault();
+      formRef.current?.requestSubmit();
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, []);
+
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   const setOther = (i) => (patch) => setForm((f) => ({ ...f, balances: f.balances.map((b, j) => (j === i ? { ...b, ...patch } : b)) }));
 
@@ -134,7 +146,7 @@ export default function BankEditor({ bank, onClose, onCreated }) {
 
   return (
     <Modal isOpen onClose={onClose} title={bank ? t("bankEditor.title") : t("bankEditor.addTitle")}>
-      <form className={styles.form} onSubmit={submit}>
+      <form ref={formRef} className={styles.form} onSubmit={submit}>
         <div className={styles.grid2}>
           <div className="field">
             <label htmlFor="bank-label">{t("bankEditor.label")}</label>
